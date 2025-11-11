@@ -1,0 +1,125 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Import Inter font */
+  @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap");
+
+  body {
+    @apply font-sans text-base text-steel-800 bg-gray-50 antialiased;
+  }
+
+  /* Executive density defaults */
+  h1 {
+    @apply text-2xl font-bold text-steel-900;
+  }
+  h2 {
+    @apply text-xl font-semibold text-steel-900;
+  }
+  h3 {
+    @apply text-lg font-semibold text-steel-800;
+  }
+  h4 {
+    @apply text-base font-medium text-steel-800;
+  }
+
+  /* Custom scrollbar for all scrollable areas */
+  * {
+    @apply scrollbar-thin;
+  }
+}
+
+@layer components {
+  /* Button variants */
+  .btn-primary {
+    @apply px-4 py-2 text-sm font-medium text-white bg-burgundy-600 rounded hover:bg-burgundy-700 focus:outline-none focus:ring-2 focus:ring-burgundy-500 focus:ring-offset-2 transition-colors;
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2 text-sm font-medium text-burgundy-700 bg-burgundy-50 border border-burgundy-200 rounded hover:bg-burgundy-100 focus:outline-none focus:ring-2 focus:ring-burgundy-500 focus:ring-offset-2 transition-colors;
+  }
+
+  .btn-ghost {
+    @apply px-4 py-2 text-sm font-medium text-steel-700 hover:bg-steel-100 rounded focus:outline-none focus:ring-2 focus:ring-steel-500 focus:ring-offset-2 transition-colors;
+  }
+
+  /* Input variants */
+  .input-primary {
+    @apply w-full px-3 py-2 text-sm border border-steel-300 rounded focus:outline-none focus:ring-2 focus:ring-burgundy-500 focus:border-transparent transition-shadow;
+  }
+
+  /* Card variants */
+  .card {
+    @apply bg-white rounded-lg border border-steel-200 shadow-sm;
+  }
+
+  .card-compact {
+    @apply bg-white rounded border border-steel-200 p-3;
+  }
+
+  /* Table styles for executive density */
+  .table-executive {
+    @apply w-full text-xs;
+  }
+
+  .table-executive thead {
+    @apply bg-steel-50 border-b border-steel-200;
+  }
+
+  .table-executive th {
+    @apply px-3 py-2 text-left font-semibold text-steel-700;
+  }
+
+  .table-executive td {
+    @apply px-3 py-2 text-steel-900;
+  }
+
+  .table-executive tbody tr {
+    @apply border-b border-steel-100 hover:bg-steel-50 transition-colors;
+  }
+
+  /* Badge variants */
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-success {
+    @apply bg-success-100 text-success-700 border border-success-200;
+  }
+
+  .badge-warning {
+    @apply bg-warning-100 text-warning-700 border border-warning-200;
+  }
+
+  .badge-danger {
+    @apply bg-danger-100 text-danger-700 border border-danger-200;
+  }
+
+  .badge-info {
+    @apply bg-info-100 text-info-700 border border-info-200;
+  }
+
+  .badge-burgundy {
+    @apply bg-burgundy-100 text-burgundy-700 border border-burgundy-200;
+  }
+
+  .badge-navy {
+    @apply bg-navy-100 text-navy-700 border border-navy-200;
+  }
+
+  /* Text utilities */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}

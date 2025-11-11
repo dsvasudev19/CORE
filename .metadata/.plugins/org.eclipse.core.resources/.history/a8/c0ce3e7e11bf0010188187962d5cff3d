@@ -1,0 +1,14 @@
+package com.dev.core.model;
+
+import lombok.Data;
+import lombok.experimental.SuperBuilder;
+
+@Data
+@SuperBuilder
+public class PolicyDTO extends BaseDTO {
+    private RoleDTO role;
+    private ResourceDTO resource;
+    private ActionDTO action;
+    private String condition;
+    private String description;
+}

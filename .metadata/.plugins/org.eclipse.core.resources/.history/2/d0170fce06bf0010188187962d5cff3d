@@ -1,0 +1,306 @@
+package com.dev.core.controller;
+
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.dev.core.api.ControllerHelper;
+import com.dev.core.domain.Role;
+import com.dev.core.domain.User;
+import com.dev.core.mapper.UserMapper;
+import com.dev.core.model.AuthRequest;
+import com.dev.core.model.AuthResponse;
+import com.dev.core.model.CurrentUserResponse;
+import com.dev.core.model.RefreshTokenDTO;
+import com.dev.core.model.RoleSummary;
+import com.dev.core.model.UserDTO;
+import com.dev.core.repository.UserRepository;
+import com.dev.core.security.JwtTokenProvider;
+import com.dev.core.service.RefreshTokenService;
+
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.security.SignatureException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * Handles user authentication, token generation, and session management.
+ */
+@RestController
+@RequestMapping("/api/auth")
+@RequiredArgsConstructor
+@Slf4j
+public class AuthenticationController {
+
+    private final AuthenticationManager authenticationManager;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final RefreshTokenService refreshTokenService;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final ControllerHelper helper;
+
+    private static final long ACCESS_TOKEN_EXPIRATION_MINUTES = 60; // 1 hour
+
+    /**
+     * Authenticate and issue JWT access + refresh tokens.
+     */
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody AuthRequest request,
+                                   @RequestHeader(value = "User-Agent", required = false) String userAgent,
+                                   @RequestHeader(value = "X-Forwarded-For", required = false) String ipAddress) {
+
+        log.info("🔐 Login attempt for email='{}' (userAgent='{}', ip='{}')", request.getEmail(), userAgent, ipAddress);
+
+        final long startAll = System.nanoTime();
+
+        try {
+            // 1️⃣ Authenticate credentials
+            final long step1Start = System.nanoTime();
+            log.debug("Step 1️⃣ Authenticating credentials for '{}'", request.getEmail());
+
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+            );
+
+            final long step1Duration = System.nanoTime() - step1Start;
+            log.debug("✅ Step 1 complete: Authentication successful ({} ms)", step1Duration / 1_000_000);
+
+            // 2️⃣ Load the authenticated user entity
+            final long step2Start = System.nanoTime();
+            log.debug("Step 2️⃣ Fetching user entity for '{}'", request.getEmail());
+
+            User user = userRepository.findByEmail(request.getEmail())
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            final long step2Duration = System.nanoTime() - step2Start;
+            log.debug("✅ Step 2 complete: User loaded id='{}' ({} ms)", user.getId(), step2Duration / 1_000_000);
+
+            // 3️⃣ Generate JWT access token
+            final long step3Start = System.nanoTime();
+            log.debug("Step 3️⃣ Generating JWT access token for userId='{}'", user.getId());
+
+            String accessToken = jwtTokenProvider.generateToken(user.getUsername());
+
+            final long step3Duration = System.nanoTime() - step3Start;
+            log.debug("✅ Step 3 complete: Access token generated ({} ms)", step3Duration / 1_000_000);
+            log.debug("🔑 Access Token: {}", accessToken);
+
+            // 4️⃣ Generate refresh token
+            final long step4Start = System.nanoTime();
+            log.debug("Step 4️⃣ Creating refresh token for userId='{}'", user.getId());
+
+            RefreshTokenDTO refreshToken = refreshTokenService.createToken(
+                    UserDTO.builder()
+                            .id(user.getId())
+                            .email(user.getEmail())
+                            .organizationId(user.getOrganizationId())
+                            .build(),
+                    userAgent,
+                    ipAddress
+            );
+
+            final long step4Duration = System.nanoTime() - step4Start;
+            log.debug("✅ Step 4 complete: Refresh token generated ({} ms)", step4Duration / 1_000_000);
+            log.debug("🔁 Refresh Token: {}", refreshToken.getToken());
+
+            // 5️⃣ Collect roles for the response
+            final long step5Start = System.nanoTime();
+            log.debug("Step 5️⃣ Collecting roles for userId='{}'", user.getId());
+
+            Set<String> roles = user.getRoles() != null
+                    ? user.getRoles().stream().map(Role::getName).collect(Collectors.toSet())
+                    : Set.of();
+
+            final long step5Duration = System.nanoTime() - step5Start;
+            log.debug("✅ Step 5 complete: Roles collected = {} ({} ms)", roles, step5Duration / 1_000_000);
+
+            // 6️⃣ Prepare response
+            final long step6Start = System.nanoTime();
+            log.debug("Step 6️⃣ Building AuthResponse for userId='{}'", user.getId());
+
+            AuthResponse response = AuthResponse.builder()
+                    .accessToken(accessToken)
+                    .refreshToken(refreshToken.getToken())
+                    .userId(user.getId())
+                    .email(user.getEmail())
+                    .organizationId(user.getOrganizationId())
+                    .roles(roles)
+                    .expiresAt(Instant.now().plus(ACCESS_TOKEN_EXPIRATION_MINUTES, ChronoUnit.MINUTES).toEpochMilli())
+                    .build();
+
+            final long step6Duration = System.nanoTime() - step6Start;
+            log.debug("✅ Step 6 complete: AuthResponse built ({} ms)", step6Duration / 1_000_000);
+
+            final long totalDuration = System.nanoTime() - startAll;
+            log.info("✅ Login successful for '{}' (userId='{}') totalTime={} ms", request.getEmail(), user.getId(),
+                    totalDuration / 1_000_000);
+
+            // Optionally dump final response for debugging (comment out in production)
+            log.trace("Final AuthResponse: {}", response);
+
+            return helper.success("Login successful", response);
+
+        } catch (org.springframework.security.core.AuthenticationException ae) {
+            log.warn("❌ Authentication failed for '{}': {}", request.getEmail(), ae.getMessage(), ae);
+            return helper.error("Invalid credentials", HttpStatus.UNAUTHORIZED, "/api/auth/login");
+
+        } catch (Exception e) {
+            log.error("❌ Login failed for '{}': {}", request.getEmail(), e.getMessage(), e);
+            return helper.error("Login error", HttpStatus.INTERNAL_SERVER_ERROR, "/api/auth/login");
+        }
+    }
+
+
+    /**
+     * Generate a new access token using a refresh token.
+     */
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh(@RequestParam String refreshToken) {
+        Optional<RefreshTokenDTO> tokenOpt = refreshTokenService.getByToken(refreshToken);
+
+        if (tokenOpt.isEmpty()) {
+            return helper.error("Invalid or expired refresh token",
+                    HttpStatus.UNAUTHORIZED, "/api/auth/refresh");
+        }
+
+        RefreshTokenDTO token = tokenOpt.get();
+        User user = userRepository.findById(token.getUserId())
+                .orElseThrow(() -> new RuntimeException("User not found for token"));
+
+        String newAccessToken = jwtTokenProvider.generateToken(user.getEmail());
+        
+
+        AuthResponse response = AuthResponse.builder()
+                .accessToken(newAccessToken)
+                .refreshToken(refreshToken)
+                .userId(user.getId())
+                .email(user.getEmail())
+                .organizationId(user.getOrganizationId())
+                .roles(user.getRoles().stream().map(r -> r.getName()).collect(Collectors.toSet()))
+                .expiresAt(Instant.now().plus(ACCESS_TOKEN_EXPIRATION_MINUTES, ChronoUnit.MINUTES).toEpochMilli())
+                .build();
+
+        return helper.success("Access token refreshed", response);
+    }
+
+    /**
+     * Logout endpoint — revokes the refresh token.
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@RequestParam String refreshToken) {
+        try {
+            refreshTokenService.revokeToken(refreshToken);
+            return helper.success("Logged out successfully");
+        } catch (Exception e) {
+            return helper.error("Failed to logout", HttpStatus.BAD_REQUEST, "/api/auth/logout");
+        }
+    }
+    
+    @PostMapping("/me")
+    public ResponseEntity<?> getCurrentUser(@RequestBody String token) {
+        log.info("👤 Fetching current user details");
+
+        try {
+            // Clean raw input (in case JSON quotes exist)
+            token = token.replace("\"", "").trim();
+
+            // 1️⃣ Try JWT (Access Token)
+            try {
+                String username = jwtTokenProvider.extractUsername(token);
+                Date expiration = jwtTokenProvider.extractExpiration(token);
+
+                if (expiration.before(new Date())) {
+                    log.warn("⚠️ JWT expired for username='{}'", username);
+                    throw new ExpiredJwtException(null, null, "Token expired");
+                }
+
+                Optional<User> userOpt = userRepository.findByUsernameOrEmailWithRoles(username);
+                if (userOpt.isEmpty()) {
+                    return helper.error("User not found", HttpStatus.NOT_FOUND, "/api/auth/me");
+                }
+
+                User user = userOpt.get();
+                log.debug("✅ Valid JWT for username='{}'", username);
+
+                return helper.success("User details fetched successfully",
+                        UserMapper.toDTO(user)); // 🔹 Use mapper here
+
+            } catch (ExpiredJwtException | SignatureException | MalformedJwtException e) {
+                log.warn("🔁 Not a valid JWT, trying as Refresh Token...");
+            }
+
+            // 2️⃣ Fallback: Refresh Token
+            Optional<RefreshTokenDTO> tokenOpt = refreshTokenService.getByToken(token);
+            if (tokenOpt.isEmpty()) {
+                return helper.error("Invalid or expired token", HttpStatus.UNAUTHORIZED, "/api/auth/me");
+            }
+
+            RefreshTokenDTO refreshToken = tokenOpt.get();
+
+            if (Boolean.TRUE.equals(refreshToken.getRevoked())) {
+                return helper.error("Token revoked", HttpStatus.UNAUTHORIZED, "/api/auth/me");
+            }
+
+            if (refreshToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+                return helper.error("Refresh token expired", HttpStatus.UNAUTHORIZED, "/api/auth/me");
+            }
+
+            User user = userRepository.findById(refreshToken.getUserId())
+                    .orElseThrow(() -> new RuntimeException("User not found for refresh token"));
+
+            log.debug("✅ Valid refresh token found for userId='{}'", user.getId());
+            return helper.success("User details fetched successfully",
+                    UserMapper.toDTO(user)); // 🔹 Use mapper here
+
+        } catch (Exception e) {
+            log.error("❌ Failed to fetch user details: {}", e.getMessage(), e);
+            return helper.error("Failed to fetch user details",
+                    HttpStatus.INTERNAL_SERVER_ERROR, "/api/auth/me");
+        }
+    }
+    
+    private CurrentUserResponse buildCustomUserResponse(User user) {
+        Set<String> permissions = user.getRoles().stream()
+                .flatMap(role -> role.getPermissions().stream()
+                        .map(p -> p.getResource().getCode() + ":" + p.getAction().getCode()))
+                .collect(Collectors.toSet());
+
+        List<RoleSummary> roleSummaries = user.getRoles().stream()
+                .map(role -> RoleSummary.builder()
+                        .id(role.getId())
+                        .name(role.getName())
+                        .description(role.getDescription())
+                        .build())
+                .collect(Collectors.toList());
+
+        return CurrentUserResponse.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .organizationId(user.getOrganizationId())
+                .status(user.getStatus().name())
+                .lastLoginAt(user.getLastLoginAt())
+                .roles(roleSummaries)
+                .permissions(permissions)
+                .build();
+    }
+}

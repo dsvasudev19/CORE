@@ -1,0 +1,217 @@
+CORE HR/Employee Management System - Folder Structure
+=====================================================
+
+src/
+│
+├── 📁 pages/ ........................... Feature-based pages
+│   ├── 📁 auth/ ....................... Authentication
+│   │   ├── Login.tsx
+│   │   └── index.ts
+│   │
+│   ├── 📁 dashboard/ .................. Dashboards
+│   │   ├── Dashboard.tsx (Admin)
+│   │   ├── EmployeeHome.tsx
+│   │   ├── EmployeeDashboard.tsx
+│   │   └── index.ts
+│   │
+│   ├── 📁 employees/ .................. Employee Management
+│   │   ├── EmployeeList.tsx
+│   │   ├── EmployeeDetails.tsx
+│   │   ├── AddOrEditEmployee.tsx
+│   │   ├── EmployeeOnboarding.tsx
+│   │   └── index.ts
+│   │
+│   ├── 📁 teams/ ...................... Team Management
+│   │   ├── TeamManagement.tsx
+│   │   ├── MyTeam.tsx
+│   │   └── index.ts
+│   │
+│   ├── 📁 tasks/ ...................... Task Management
+│   │   ├── EmployeeTasks.tsx
+│   │   ├── TaskDetails.tsx
+│   │   ├── TodoManagement.tsx
+│   │   └── index.ts
+│   │
+│   ├── 📁 projects/ ................... Project Management
+│   │   ├── MyProjects.tsx
+│   │   └── index.ts
+│   │
+│   ├── 📁 time-tracking/ .............. Time Tracking
+│   │   ├── EmployeeTimeTracking.tsx
+│   │   ├── TimeTrackingDashboard.tsx
+│   │   └── index.ts
+│   │
+│   ├── 📁 attendance/ ................. Attendance
+│   │   ├── AttendanceDashboard.tsx
+│   │   └── index.ts
+│   │
+│   ├── 📁 leave/ ...................... Leave Management
+│   │   ├── LeaveRequests.tsx
+│   │   └── index.ts
+│   │
+│   ├── 📁 payroll/ .................... Payroll
+│   │   ├── PayrollManagement.tsx
+│   │   └── index.ts
+│   │
+│   ├── 📁 performance/ ................ Performance Reviews
+│   │   ├── PerformanceReviews.tsx
+│   │   └── index.ts
+│   │
+│   ├── 📁 recruitment/ ................ Recruitment
+│   │   ├── Recruitment.tsx
+│   │   └── index.ts
+│   │
+│   ├── 📁 training/ ................... Training & Development
+│   │   ├── TrainingDevelopment.tsx
+│   │   └── index.ts
+│   │
+│   ├── 📁 documents/ .................. Document Management
+│   │   ├── Documents.tsx
+│   │   ├── DocumentDetail.tsx
+│   │   └── index.ts
+│   │
+│   ├── 📁 calendar/ ................... Calendar & Events
+│   │   ├── Calendar.tsx
+│   │   └── index.ts
+│   │
+│   ├── 📁 messages/ ................... Messaging
+│   │   ├── Messages.tsx
+│   │   └── index.ts
+│   │
+│   ├── 📁 announcements/ .............. Announcements
+│   │   ├── Announcements.tsx
+│   │   └── index.ts
+│   │
+│   ├── 📁 notifications/ .............. Notifications
+│   │   ├── NotificationsCenter.tsx
+│   │   └── index.ts
+│   │
+│   ├── 📁 reports/ .................... Reports & Analytics
+│   │   ├── ReportsAnalytics.tsx
+│   │   └── index.ts
+│   │
+│   ├── 📁 profile/ .................... User Profile
+│   │   ├── MyProfile.tsx
+│   │   └── index.ts
+│   │
+│   └── 📁 settings/ ................... Settings
+│       ├── Settings.tsx
+│       └── index.ts
+│
+├── 📁 components/ ..................... Reusable Components
+│   ├── 📁 common/ ..................... Shared Components
+│   │   ├── MessageNotification.tsx
+│   │   └── index.ts
+│   │
+│   ├── 📁 chat/ ....................... Chat Components
+│   │   ├── AIAgent.tsx
+│   │   ├── ChatSidebar.tsx
+│   │   ├── ChatToggle.tsx
+│   │   ├── ChatFeatureInfo.tsx
+│   │   └── index.ts
+│   │
+│   ├── 📁 timer/ ...................... Timer Components
+│   │   ├── TimerWidget.tsx
+│   │   └── index.ts
+│   │
+│   ├── 📁 dashboard/ .................. Dashboard Components
+│   │   └── 📁 employee-home/
+│   │       ├── HeroSection.tsx
+│   │       ├── QuickLinksGrid.tsx
+│   │       ├── QuickLinkCard.tsx
+│   │       ├── NewsFeed.tsx
+│   │       ├── FeedItem.tsx
+│   │       ├── FeedItemSkeleton.tsx
+│   │       ├── FeedFilters.tsx
+│   │       ├── MyTasksWidget.tsx
+│   │       ├── UpcomingEventsWidget.tsx
+│   │       ├── LeaveBalanceWidget.tsx
+│   │       └── RecentDocumentsWidget.tsx
+│   │
+│   ├── 📁 employees/ .................. (Future: Employee Components)
+│   ├── 📁 tasks/ ...................... (Future: Task Components)
+│   ├── 📁 documents/ .................. (Future: Document Components)
+│   ├── 📁 calendar/ ................... (Future: Calendar Components)
+│   ├── 📁 messages/ ................... (Future: Message Components)
+│   └── 📁 time-tracking/ .............. (Future: Time Tracking Components)
+│
+├── 📁 layouts/ ........................ Layout Components
+│   ├── DashboardLayout.tsx (Admin)
+│   └── EmployeeLayout.tsx
+│
+├── 📁 modals/ ......................... Modal Components
+│   ├── ClockInModal.tsx
+│   ├── CreateEventModal.tsx
+│   ├── LogTimeModal.tsx
+│   ├── RequestLeaveModal.tsx
+│   └── UploadDocumentModal.tsx
+│
+├── 📁 contexts/ ....................... React Contexts
+│   └── ChatContext.tsx
+│
+├── 📁 hooks/ .......................... Custom Hooks
+│   └── useChat.ts
+│
+├── 📁 data/ ........................... Mock Data
+│   └── mockFeedData.ts
+│
+├── 📁 assets/ ......................... Static Assets
+│   └── react.svg
+│
+├── App.tsx ............................ Main App Component
+├── Router.tsx ......................... Route Definitions
+├── main.tsx ........................... Entry Point
+└── index.css .......................... Global Styles
+
+
+FEATURE MODULES READY FOR EXPANSION:
+=====================================
+
+✅ Implemented:
+- Authentication
+- Dashboards (Admin & Employee)
+- Employee Management
+- Team Management
+- Task Management
+- Project Management
+- Time Tracking
+- Attendance
+- Leave Management
+- Payroll
+- Performance Reviews
+- Recruitment
+- Training & Development
+- Document Management
+- Calendar & Events
+- Messaging
+- Announcements
+- Notifications
+- Reports & Analytics
+- User Profile
+- Settings
+
+🚀 Ready to Add:
+- Client Management (src/pages/clients/)
+- Invoice Management (src/pages/invoices/)
+- Expense Tracking (src/pages/expenses/)
+- Resource Planning (src/pages/resources/)
+- Sales Pipeline (src/pages/sales/)
+- Knowledge Base (src/pages/knowledge/)
+- Contracts (src/pages/contracts/)
+- Integrations (src/pages/integrations/)
+
+
+IMPORT EXAMPLES:
+================
+
+// Pages
+import { Login } from './pages/auth';
+import { Dashboard, EmployeeHome } from './pages/dashboard';
+import { EmployeeList, EmployeeDetails } from './pages/employees';
+import { Messages } from './pages/messages';
+import { Calendar } from './pages/calendar';
+
+// Components
+import { AIAgent, ChatToggle } from '../components/chat';
+import { TimerWidget } from '../components/timer';
+import { MessageNotification } from '../components/common';

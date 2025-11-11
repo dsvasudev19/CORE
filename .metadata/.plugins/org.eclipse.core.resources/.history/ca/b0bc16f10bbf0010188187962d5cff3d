@@ -1,0 +1,15 @@
+package com.dev.core.model;
+
+import java.util.Set;
+
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+
+@Data
+@SuperBuilder
+public class RoleDTO extends BaseDTO {
+    private String name;
+    private String description;
+    private Set<PermissionDTO> permissions;
+}

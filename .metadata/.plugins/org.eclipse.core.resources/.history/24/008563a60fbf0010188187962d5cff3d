@@ -1,0 +1,11 @@
+package com.dev.core.model;
+
+import lombok.Data;
+import lombok.experimental.SuperBuilder;
+
+@Data
+@SuperBuilder
+public class ActionDTO extends BaseDTO {
+    private String name;
+    private String code;
+}
