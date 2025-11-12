@@ -14,10 +14,10 @@ public class DesignationValidator {
 
     public void validateBeforeCreate(DesignationDTO dto) {
         if (dto == null)
-            throw new ValidationFailedException("error.designation.null", "Designation data cannot be null");
+            throw new ValidationFailedException("error.designation.null");
 
         if (dto.getTitle() == null || dto.getTitle().isBlank())
-            throw new ValidationFailedException("error.designation.title.required", "Title is required");
+            throw new ValidationFailedException("error.designation.title.required");
 
         boolean exists = designationRepository.existsByTitleAndOrganizationId(dto.getTitle(), dto.getOrganizationId());
         if (exists)
@@ -26,7 +26,7 @@ public class DesignationValidator {
 
     public void validateBeforeUpdate(Long id, DesignationDTO dto) {
         if (id == null)
-            throw new ValidationFailedException("error.designation.id.required", "Designation ID is required");
+            throw new ValidationFailedException("error.designation.id.required");
 
         if (!designationRepository.existsById(id))
             throw new ValidationFailedException("error.designation.notfound", new Object[]{id});
@@ -34,7 +34,7 @@ public class DesignationValidator {
 
     public void validateBeforeDelete(Long id) {
         if (id == null)
-            throw new ValidationFailedException("error.designation.id.required", "Designation ID is required");
+            throw new ValidationFailedException("error.designation.id.required");
 
         if (!designationRepository.existsById(id))
             throw new ValidationFailedException("error.designation.notfound", new Object[]{id});

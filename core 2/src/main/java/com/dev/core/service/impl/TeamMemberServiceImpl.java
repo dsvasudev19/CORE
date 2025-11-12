@@ -49,9 +49,9 @@ public class TeamMemberServiceImpl implements TeamMemberService {
         authorize("CREATE");
 
         if (dto == null)
-            throw new ValidationFailedException("error.teammember.null", "TeamMember data cannot be null");
+            throw new ValidationFailedException("error.teammember.null");
         if (dto.getTeamId() == null || dto.getEmployeeId() == null)
-            throw new ValidationFailedException("error.teammember.invalid", "Team ID and Employee ID are required");
+            throw new ValidationFailedException("error.teammember.invalid");
 
         Team team = teamRepository.findById(dto.getTeamId())
                 .orElseThrow(() -> new ValidationFailedException("error.team.notfound", new Object[]{dto.getTeamId()}));

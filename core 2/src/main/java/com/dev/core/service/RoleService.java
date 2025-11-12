@@ -1,11 +1,13 @@
 package com.dev.core.service;
 
 
-import com.dev.core.model.RoleDTO;
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-import java.util.List;
+import com.dev.core.model.RoleDTO;
+import com.dev.core.model.RolePermissionIdsDTO;
 
 public interface RoleService {
 
@@ -20,4 +22,8 @@ public interface RoleService {
     List<RoleDTO> getRolesByOrganization(Long organizationId);
 
     Page<RoleDTO> searchRoles(Long organizationId, String keyword, Pageable pageable);
+    
+    RoleDTO assignPermissionsToRole(Long roleId, RolePermissionIdsDTO dto);
+
+    RoleDTO removePermissionsFromRole(Long roleId, RolePermissionIdsDTO dto);
 }

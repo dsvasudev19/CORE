@@ -18,7 +18,8 @@ public class MessageSourceConfig {
         messageSource.setBasenames(
             "classpath:messages/apiresponse",
             "classpath:messages/validation",
-            "classpath:messages/exception"  
+            "classpath:messages/exception",
+            "classpath:messages/messages"
         );
         messageSource.setUseCodeAsDefaultMessage(false);
         messageSource.setCacheSeconds((int) TimeUnit.HOURS.toSeconds(1));

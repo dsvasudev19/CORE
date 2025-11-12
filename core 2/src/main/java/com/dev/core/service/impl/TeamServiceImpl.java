@@ -109,7 +109,7 @@ public class TeamServiceImpl implements TeamService {
     public void deleteTeam(Long id) {
         authorize("DELETE");
         if (id == null)
-            throw new ValidationFailedException("error.team.id.required", "Team ID is required");
+            throw new ValidationFailedException("error.team.id.required");
 
         if (!teamRepository.existsById(id))
             throw new ValidationFailedException("error.team.notfound", new Object[]{id});

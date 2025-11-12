@@ -13,7 +13,7 @@ public class TeamMemberValidator {
 
     public void validateBeforeUpdate(Long teamMemberId) {
         if (teamMemberId == null)
-            throw new ValidationFailedException("error.teammember.id.required", "TeamMember ID is required");
+            throw new ValidationFailedException("error.teammember.id.required");
 
         if (!teamMemberRepository.existsById(teamMemberId))
             throw new ValidationFailedException("error.teammember.notfound", new Object[]{teamMemberId});
@@ -21,7 +21,7 @@ public class TeamMemberValidator {
 
     public void validateBeforeDelete(Long teamMemberId) {
         if (teamMemberId == null)
-            throw new ValidationFailedException("error.teammember.id.required", "TeamMember ID is required");
+            throw new ValidationFailedException("error.teammember.id.required");
 
         if (!teamMemberRepository.existsById(teamMemberId))
             throw new ValidationFailedException("error.teammember.notfound", new Object[]{teamMemberId});

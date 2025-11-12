@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.dev.core.api.ControllerHelper;
 import com.dev.core.model.RoleDTO;
+import com.dev.core.model.RolePermissionIdsDTO;
 import com.dev.core.service.RoleService;
 
 import lombok.RequiredArgsConstructor;
@@ -67,5 +69,22 @@ public class RoleController {
                                     Pageable pageable) {
         Page<RoleDTO> result = roleService.searchRoles(organizationId, keyword, pageable);
         return helper.success("Roles searched", result);
+    }
+    
+    @PatchMapping("/{id}/permissions/assign")
+    public ResponseEntity<?> assignPermissions(@PathVariable Long id,
+                                               @RequestBody RolePermissionIdsDTO dto) {
+        RoleDTO updatedRole = roleService.assignPermissionsToRole(id, dto);
+        return helper.success("Permissions assigned to role successfully", updatedRole);
+    }
+
+    /**
+     * Remove permissions from role by permission IDs.
+     */
+    @PatchMapping("/{id}/permissions/remove")
+    public ResponseEntity<?> removePermissions(@PathVariable Long id,
+                                               @RequestBody RolePermissionIdsDTO dto) {
+        RoleDTO updatedRole = roleService.removePermissionsFromRole(id, dto);
+        return helper.success("Permissions removed from role successfully", updatedRole);
     }
 }

@@ -1,0 +1,6 @@
+# Ignore workspace metadata
+**/.metadata/
+
+# Ignore Maven files in "core 2" folder
+/core\ 2/.mvn/
+

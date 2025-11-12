@@ -124,7 +124,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     public void deleteEmployee(Long id) {
         authorize("DELETE");
         if (id == null)
-            throw new ValidationFailedException("error.employee.id.required", "Employee ID is required");
+            throw new ValidationFailedException("error.employee.id.required");
 
         if (!employeeRepository.existsById(id))
             throw new ValidationFailedException("error.employee.notfound", new Object[]{id});

@@ -69,7 +69,7 @@ public class EmploymentHistoryServiceImpl implements EmploymentHistoryService {
         authorize("READ");
 
         if (employeeId == null)
-            throw new ValidationFailedException("error.employee.id.required", "Employee ID is required");
+            throw new ValidationFailedException("error.employee.id.required");
 
         List<EmploymentHistory> historyList = historyRepository.findByEmployee_Id(employeeId);
         if (historyList.isEmpty())

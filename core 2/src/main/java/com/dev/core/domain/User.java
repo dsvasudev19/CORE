@@ -67,4 +67,14 @@ public class User extends BaseEntity {
             uniqueConstraints = {@UniqueConstraint(columnNames = {"user_id", "role_id"})}
     )
     private Set<Role> roles = new HashSet<>();
+    
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "user_permissions",
+        joinColumns = {@JoinColumn(name = "user_id")},
+        inverseJoinColumns = {@JoinColumn(name = "permission_id")},
+        uniqueConstraints = {@UniqueConstraint(columnNames = {"user_id", "permission_id"})}
+    )
+    private Set<Permission> permissions = new HashSet<>();
+
 }

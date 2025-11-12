@@ -88,7 +88,9 @@
 
 package com.dev.core.service.impl;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -96,11 +98,16 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.dev.core.domain.Permission;
+import com.dev.core.domain.Policy;
 import com.dev.core.domain.Role;
 import com.dev.core.exception.BaseException;
 import com.dev.core.mapper.PermissionMapper;
 import com.dev.core.mapper.RoleMapper;
 import com.dev.core.model.RoleDTO;
+import com.dev.core.model.RolePermissionIdsDTO;
+import com.dev.core.repository.PermissionRepository;
+import com.dev.core.repository.PolicyRepository;
 import com.dev.core.repository.RoleRepository;
 import com.dev.core.service.AuthorizationService;
 import com.dev.core.service.RoleService;
@@ -117,6 +124,8 @@ public class RoleServiceImpl implements RoleService {
     private final RoleRepository roleRepository;
     private final RoleValidator roleValidator;
     private final AuthorizationService authorizationService; // ✅ Injected
+    private final PermissionRepository permissionRepository;
+    private final PolicyRepository policyRepository;
 
     // Small helper for automatic resource name inference
     private void authorize(String action) {
@@ -195,4 +204,52 @@ public class RoleServiceImpl implements RoleService {
         );
         return page.map(RoleMapper::toDTO);
     }
+    
+    @Override
+    @Transactional
+    public RoleDTO assignPermissionsToRole(Long roleId, RolePermissionIdsDTO dto) {
+        Role role = roleRepository.findById(roleId)
+                .orElseThrow(() -> new BaseException("Role not found: " + roleId));
+
+        Set<Permission> permissionsToAdd = new HashSet<>(permissionRepository.findAllById(dto.getPermissionIds()));
+
+        role.getPermissions().addAll(permissionsToAdd);
+        Role savedRole = roleRepository.save(role);
+
+        for (Permission perm : permissionsToAdd) {
+            boolean policyExists = policyRepository.existsByRoleIdAndResourceIdAndActionId(
+                    roleId, perm.getResource().getId(), perm.getAction().getId());
+            if (!policyExists) {
+                Policy policy = new Policy();
+                policy.setRole(role);
+                policy.setResource(perm.getResource());
+                policy.setAction(perm.getAction());
+                policy.setOrganizationId(role.getOrganizationId());
+                policyRepository.save(policy);
+            }
+        }
+
+        return RoleMapper.toDTO(savedRole);
+    }
+
+    @Override
+    @Transactional
+    public RoleDTO removePermissionsFromRole(Long roleId, RolePermissionIdsDTO dto) {
+        Role role = roleRepository.findById(roleId)
+                .orElseThrow(() -> new BaseException("Role not found: " + roleId));
+
+        Set<Permission> permissionsToRemove = new HashSet<>(permissionRepository.findAllById(dto.getPermissionIds()));
+
+        role.getPermissions().removeAll(permissionsToRemove);
+        Role savedRole = roleRepository.save(role);
+
+        for (Permission perm : permissionsToRemove) {
+            List<Policy> policies = policyRepository.findAllByRoleIdAndResourceIdAndActionId(
+                    roleId, perm.getResource().getId(), perm.getAction().getId());
+            policyRepository.deleteAll(policies);
+        }
+
+        return RoleMapper.toDTO(savedRole);
+    }
+
 }
