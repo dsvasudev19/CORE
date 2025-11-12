@@ -9,10 +9,14 @@ public class BaseException extends RuntimeException {
     private static final long serialVersionUID = 1L;
 
     protected static String loadMessage(String placeHolder, Object[] args) {
+        System.out.println("🔍 Loading message for key: " + placeHolder);
         MessageSource messageSource = CoreBeanUtil.getBean(MessageSource.class);
         String message = messageSource.getMessage(placeHolder, args, placeHolder, null);
+        System.out.println("🔍 Loaded: " + message);
         return message != null ? message : placeHolder;
     }
+
+
 
     public BaseException() {
         super();

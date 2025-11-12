@@ -27,14 +27,15 @@ public class ControllerHelper {
 
     // ⚠️ Error (standard)
     public ResponseEntity<ApiResponse<Object>> error(String message, HttpStatus status, String path) {
-        ApiError error = ApiError.of(message, status, path, null);
+        ApiError error = ApiError.of(message, status, null);
         ApiResponse<Object> response = ApiResponse.error(message, error);
         return ResponseEntity.status(status).body(response);
     }
+    
 
     // ⚠️ Error (with details)
     public ResponseEntity<ApiResponse<Object>> error(String message, HttpStatus status, String path, Map<String, Object> details) {
-        ApiError error = ApiError.of(message, status, path, details);
+        ApiError error = ApiError.of(message, status, details);
         ApiResponse<Object> response = ApiResponse.error(message, error);
         return ResponseEntity.status(status).body(response);
     }

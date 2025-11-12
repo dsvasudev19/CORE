@@ -9,17 +9,29 @@ import org.springframework.web.multipart.MultipartFile;
 @Component
 public class BugAttachmentValidator {
 
+    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+
     public void validateBeforeUpload(Long bugId, MultipartFile file) {
-        if (bugId == null)
-            throw new ValidationFailedException("Bug ID is required for uploading attachments");
 
-        if (file == null || file.isEmpty())
-            throw new ValidationFailedException("Attachment file is missing");
+        if (bugId == null) {
+            throw new ValidationFailedException("error.bug.attachment.bugId.required");
+        }
 
-        if (file.getOriginalFilename() == null || file.getOriginalFilename().isBlank())
-            throw new ValidationFailedException("Attachment file name cannot be blank");
+        if (file == null || file.isEmpty()) {
+            throw new ValidationFailedException("error.bug.attachment.file.required");
+        }
 
-        if (file.getSize() > 10 * 1024 * 1024)
-            throw new ValidationFailedException("Attachment file size cannot exceed 10 MB");
+        if (file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()) {
+            throw new ValidationFailedException("error.bug.attachment.filename.blank");
+        }
+
+        if (file.getSize() > MAX_FILE_SIZE) {
+            throw new ValidationFailedException(
+                    "error.bug.attachment.file.size.exceeded",
+                    new Object[]{MAX_FILE_SIZE / (1024 * 1024)} // Pass size limit as param
+            );
+        }
+
+        log.debug("✅ BugAttachmentValidator passed for bugId={}, file={}", bugId, file.getOriginalFilename());
     }
 }

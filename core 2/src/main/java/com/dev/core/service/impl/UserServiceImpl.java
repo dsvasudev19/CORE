@@ -103,8 +103,10 @@
 
 package com.dev.core.service.impl;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -113,11 +115,16 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.dev.core.domain.Permission;
+import com.dev.core.domain.Policy;
 import com.dev.core.domain.User;
 import com.dev.core.exception.BaseException;
 import com.dev.core.mapper.RoleMapper;
 import com.dev.core.mapper.UserMapper;
 import com.dev.core.model.UserDTO;
+import com.dev.core.model.UserPermissionIdsDTO;
+import com.dev.core.repository.PermissionRepository;
+import com.dev.core.repository.PolicyRepository;
 import com.dev.core.repository.UserRepository;
 import com.dev.core.service.AuthorizationService; // ✅ Correct import
 import com.dev.core.service.UserService;
@@ -135,7 +142,8 @@ public class UserServiceImpl implements UserService {
     private final UserValidator userValidator;
     private final AuthorizationService authorizationService; // ✅ Injected for RBAC
     private final PasswordEncoder passwordEncoder;
-
+    private final PolicyRepository policyRepository;
+    private final PermissionRepository permissionRepository;
     /**
      * Helper method to perform dynamic policy-based authorization.
      */
@@ -232,4 +240,58 @@ public class UserServiceImpl implements UserService {
         );
         return page.map(UserMapper::toDTO);
     }
+
+    @Override
+    @Transactional
+    public UserDTO assignPermissionsToUser(Long userId, UserPermissionIdsDTO dto) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BaseException("User not found: " + userId));
+
+        Set<Permission> permissionsToAdd = new HashSet<>(permissionRepository.findAllById(dto.getPermissionIds()));
+
+        if (user.getPermissions() == null) {
+            user.setPermissions(new HashSet<>());
+        }
+        user.getPermissions().addAll(permissionsToAdd);
+
+        User savedUser = userRepository.save(user);
+
+        for (Permission perm : permissionsToAdd) {
+            boolean exists = policyRepository.existsByUserIdAndResourceIdAndActionId(
+                    userId, perm.getResource().getId(), perm.getAction().getId());
+            if (!exists) {
+                Policy policy = new Policy();
+                policy.setUser(user);
+                policy.setResource(perm.getResource());
+                policy.setAction(perm.getAction());
+                policy.setOrganizationId(user.getOrganizationId());
+                policyRepository.save(policy);
+            }
+        }
+
+        return UserMapper.toDTO(savedUser);
+    }
+
+    @Override
+    @Transactional
+    public UserDTO removePermissionsFromUser(Long userId, UserPermissionIdsDTO dto) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BaseException("User not found: " + userId));
+
+        Set<Permission> permissionsToRemove = new HashSet<>(permissionRepository.findAllById(dto.getPermissionIds()));
+
+        if (user.getPermissions() != null) {
+            user.getPermissions().removeAll(permissionsToRemove);
+        }
+        User savedUser = userRepository.save(user);
+
+        for (Permission perm : permissionsToRemove) {
+            List<Policy> policies = policyRepository.findAllByUserIdAndResourceIdAndActionId(
+                    userId, perm.getResource().getId(), perm.getAction().getId());
+            policyRepository.deleteAll(policies);
+        }
+
+        return UserMapper.toDTO(savedUser);
+    }
+
 }

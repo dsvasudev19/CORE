@@ -16,10 +16,13 @@ public class TeamValidator {
 
     public void validateBeforeCreate(TeamDTO dto) {
         if (dto == null)
-            throw new ValidationFailedException("error.team.null", "Team data cannot be null");
+            throw new ValidationFailedException("error.team.null");
 
         if (dto.getName() == null || dto.getName().isBlank())
-            throw new ValidationFailedException("error.team.name.required", "Team name is required");
+            throw new ValidationFailedException("error.team.name.required");
+
+        if (dto.getOrganizationId() == null)
+            throw new ValidationFailedException("error.team.organization.required");
 
         boolean exists = teamRepository.existsByNameAndOrganizationId(dto.getName(), dto.getOrganizationId());
         if (exists)
@@ -31,15 +34,22 @@ public class TeamValidator {
 
     public void validateBeforeUpdate(Long id, TeamDTO dto) {
         if (id == null)
-            throw new ValidationFailedException("error.team.id.required", "Team ID is required");
+            throw new ValidationFailedException("error.team.id.required");
 
         if (!teamRepository.existsById(id))
             throw new ValidationFailedException("error.team.notfound", new Object[]{id});
+
+        // Optional: Validate team data consistency on update
+        if (dto != null && dto.getName() != null && !dto.getName().isBlank()) {
+            boolean exists = teamRepository.existsByNameAndOrganizationId(dto.getName(), dto.getOrganizationId());
+            if (exists)
+                throw new ValidationFailedException("error.team.name.exists", new Object[]{dto.getName()});
+        }
     }
 
     public void validateAddMember(Long teamId, Long employeeId) {
         if (teamId == null || employeeId == null)
-            throw new ValidationFailedException("error.team.member.invalid", "Team and Employee IDs are required");
+            throw new ValidationFailedException("error.team.member.invalid");
 
         if (!teamRepository.existsById(teamId))
             throw new ValidationFailedException("error.team.notfound", new Object[]{teamId});

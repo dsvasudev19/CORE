@@ -16,10 +16,10 @@ public class EmploymentHistoryValidator {
 
     public void validateBeforeCreate(EmploymentHistoryDTO dto) {
         if (dto == null)
-            throw new ValidationFailedException("error.history.null", "Employment history data cannot be null");
+            throw new ValidationFailedException("error.history.null");
 
         if (dto.getEmployeeId() == null)
-            throw new ValidationFailedException("error.history.employee.required", "Employee ID is required");
+            throw new ValidationFailedException("error.history.employee.required");
 
         if (!employeeRepository.existsById(dto.getEmployeeId()))
             throw new ValidationFailedException("error.employee.notfound", new Object[]{dto.getEmployeeId()});
@@ -27,7 +27,7 @@ public class EmploymentHistoryValidator {
 
     public void validateBeforeDelete(Long id) {
         if (id == null)
-            throw new ValidationFailedException("error.history.id.required", "History ID is required");
+            throw new ValidationFailedException("error.history.id.required");
 
         if (!historyRepository.existsById(id))
             throw new ValidationFailedException("error.history.notfound", new Object[]{id});

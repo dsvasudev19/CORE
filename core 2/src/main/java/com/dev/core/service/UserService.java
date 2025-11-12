@@ -1,11 +1,13 @@
 package com.dev.core.service;
 
-import com.dev.core.model.UserDTO;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-import java.util.List;
-import java.util.Optional;
+import com.dev.core.model.UserDTO;
+import com.dev.core.model.UserPermissionIdsDTO;
 
 public interface UserService {
 
@@ -22,4 +24,8 @@ public interface UserService {
     List<UserDTO> getAllUsers(Long organizationId);
 
     Page<UserDTO> searchUsers(Long organizationId, String keyword, Pageable pageable);
+    
+    UserDTO assignPermissionsToUser(Long userId, UserPermissionIdsDTO dto);
+
+    UserDTO removePermissionsFromUser(Long userId, UserPermissionIdsDTO dto);
 }

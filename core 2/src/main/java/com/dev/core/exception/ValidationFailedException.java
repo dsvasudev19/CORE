@@ -15,17 +15,14 @@ public class ValidationFailedException extends BaseException {
         this.params = null;
     }
 
-    public ValidationFailedException(String errorCode, String message) {
-        super(message);
-        this.errorCode = errorCode;
-        this.params = null;
-    }
+
 
     public ValidationFailedException(String errorCode, Object[] params) {
-        super(errorCode);
+        super(errorCode, params); 
         this.errorCode = errorCode;
         this.params = params;
     }
+
 
     public String getErrorCode() {
         return errorCode;

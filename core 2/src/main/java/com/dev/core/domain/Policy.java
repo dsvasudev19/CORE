@@ -27,9 +27,16 @@ import lombok.Setter;
 public class Policy extends BaseEntity {
 
     // Which role this policy applies to
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "role_id", nullable = false)
+//    private Role role;
+	@ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "role_id")
+    private Role role; // nullable
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "role_id", nullable = false)
-    private Role role;
+    @JoinColumn(name = "user_id")
+    private User user; // nullable
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "resource_id", nullable = false)

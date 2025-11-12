@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.dev.core.api.ControllerHelper;
 import com.dev.core.model.UserDTO;
+import com.dev.core.model.UserPermissionIdsDTO;
 import com.dev.core.service.UserService;
 
 import lombok.RequiredArgsConstructor;
@@ -66,5 +68,21 @@ public class UserController {
                                     Pageable pageable) {
         Page<UserDTO> result = userService.searchUsers(organizationId, keyword, pageable);
         return helper.success("Users searched", result);
+    }
+    @PatchMapping("/{id}/permissions/assign")
+    public ResponseEntity<?> assignPermissions(@PathVariable Long id,
+                                               @RequestBody UserPermissionIdsDTO dto) {
+        UserDTO updatedUser = userService.assignPermissionsToUser(id, dto);
+        return helper.success("Permissions assigned to user successfully", updatedUser);
+    }
+
+    /**
+     * Remove permissions from user by permission IDs.
+     */
+    @PatchMapping("/{id}/permissions/remove")
+    public ResponseEntity<?> removePermissions(@PathVariable Long id,
+                                               @RequestBody UserPermissionIdsDTO dto) {
+        UserDTO updatedUser = userService.removePermissionsFromUser(id, dto);
+        return helper.success("Permissions removed from user successfully", updatedUser);
     }
 }
