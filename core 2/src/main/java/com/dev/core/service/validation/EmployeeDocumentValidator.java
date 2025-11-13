@@ -16,21 +16,21 @@ public class EmployeeDocumentValidator {
 
     public void validateBeforeUpload(EmployeeDocumentDTO dto) {
         if (dto == null)
-            throw new ValidationFailedException("error.document.null");
+            throw new ValidationFailedException("error.document.null",null);
 
         if (dto.getEmployeeId() == null)
-            throw new ValidationFailedException("error.document.employee.required");
+            throw new ValidationFailedException("error.document.employee.required",null);
 
         if (!employeeRepository.existsById(dto.getEmployeeId()))
             throw new ValidationFailedException("error.employee.notfound", new Object[]{dto.getEmployeeId()});
 
         if (dto.getDocumentName() == null || dto.getDocumentName().isBlank())
-            throw new ValidationFailedException("error.document.name.required");
+            throw new ValidationFailedException("error.document.name.required",null);
     }
 
     public void validateBeforeDelete(Long id) {
         if (id == null)
-            throw new ValidationFailedException("error.document.id.required");
+            throw new ValidationFailedException("error.document.id.required",null);
 
         if (!documentRepository.existsById(id))
             throw new ValidationFailedException("error.document.notfound", new Object[]{id});

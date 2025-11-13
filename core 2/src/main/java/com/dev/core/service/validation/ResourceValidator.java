@@ -14,16 +14,16 @@ public class ResourceValidator {
 
     public void validateBeforeCreate(ResourceDTO dto) {
         if (dto == null)
-            throw new ValidationFailedException("error.resource.null");
+            throw new ValidationFailedException("error.resource.null",null);
 
         if (dto.getCode() == null || dto.getCode().isBlank())
-            throw new ValidationFailedException("error.resource.code.required");
+            throw new ValidationFailedException("error.resource.code.required",null);
 
         if (dto.getName() == null || dto.getName().isBlank())
-            throw new ValidationFailedException("error.resource.name.required");
+            throw new ValidationFailedException("error.resource.name.required",null);
 
         if (dto.getOrganizationId() == null)
-            throw new ValidationFailedException("error.resource.organization.required");
+            throw new ValidationFailedException("error.resource.organization.required",null);
 
         if (resourceRepository.findByCode(dto.getCode()).isPresent())
             throw new ValidationFailedException("error.resource.code.exists", new Object[]{dto.getCode()});
@@ -31,7 +31,7 @@ public class ResourceValidator {
 
     public void validateBeforeUpdate(Long id) {
         if (id == null)
-            throw new ValidationFailedException("error.resource.id.required");
+            throw new ValidationFailedException("error.resource.id.required",null);
 
         if (!resourceRepository.existsById(id))
             throw new ValidationFailedException("error.resource.notfound", new Object[]{id});

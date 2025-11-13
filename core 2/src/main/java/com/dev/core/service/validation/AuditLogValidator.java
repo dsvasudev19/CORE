@@ -9,15 +9,15 @@ public class AuditLogValidator {
 
     public void validateBeforeCreate(AuditLogDTO dto) {
         if (dto == null)
-            throw new ValidationFailedException("error.audit.null");
+            throw new ValidationFailedException("error.audit.null",null);
 
         if (dto.getOrganizationId() == null)
-            throw new ValidationFailedException("error.audit.organization.required");
+            throw new ValidationFailedException("error.audit.organization.required",null);
 
         if (dto.getAction() == null || dto.getAction().isBlank())
-            throw new ValidationFailedException("error.audit.action.required");
+            throw new ValidationFailedException("error.audit.action.required",null);
 
         if (dto.getUserId() == null)
-            throw new ValidationFailedException("error.audit.user.required");
+            throw new ValidationFailedException("error.audit.user.required",null);
     }
 }

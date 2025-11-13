@@ -11,19 +11,19 @@ public class BugHistoryValidator {
 
     public void validateBeforeLog(BugHistoryDTO dto) {
         if (dto == null) {
-            throw new ValidationFailedException("error.bug.history.null");
+            throw new ValidationFailedException("error.bug.history.null",null);
         }
 
         if (dto.getBugId() == null) {
-            throw new ValidationFailedException("error.bug.history.bugId.required");
+            throw new ValidationFailedException("error.bug.history.bugId.required",null);
         }
 
         if (dto.getChangedField() == null || dto.getChangedField().isBlank()) {
-            throw new ValidationFailedException("error.bug.history.changedField.required");
+            throw new ValidationFailedException("error.bug.history.changedField.required",null);
         }
 
         if (dto.getChangedBy() == null) {
-            throw new ValidationFailedException("error.bug.history.changedBy.required");
+            throw new ValidationFailedException("error.bug.history.changedBy.required",null);
         }
 
         log.debug("✅ BugHistoryValidator.validateBeforeLog passed for bugId={}", dto.getBugId());

@@ -23,5 +23,6 @@ public class UserDTO extends BaseDTO {
     private LocalDateTime lastLoginAt;
     private Long employeeId;
     private Set<RoleDTO> roles;
-	
+    private Set<PermissionDTO> permissions;   // ✅ NEW LINE
+
 }

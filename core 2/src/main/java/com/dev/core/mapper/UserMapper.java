@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.dev.core.domain.Permission;
 import com.dev.core.domain.Role;
 import com.dev.core.domain.User;
 import com.dev.core.model.RoleDTO;
@@ -32,6 +33,11 @@ public class UserMapper {
                                 .map(RoleMapper::toDTO)
                                 .collect(Collectors.toSet())
                         : null)
+                .permissions(entity.getPermissions() != null
+                ? entity.getPermissions().stream()
+                        .map(PermissionMapper::toDTO)
+                        .collect(Collectors.toSet())
+                : null)
                 .build();
     }
 
@@ -57,6 +63,13 @@ public class UserMapper {
                     .map(RoleMapper::toEntity)
                     .collect(Collectors.toSet());
             entity.setRoles(roles);
+        }
+        
+        if (dto.getPermissions() != null) {
+            Set<Permission> permissions = dto.getPermissions().stream()
+                    .map(PermissionMapper::toEntity)
+                    .collect(Collectors.toSet());
+            entity.setPermissions(permissions);
         }
 
         return entity;

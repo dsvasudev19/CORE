@@ -13,29 +13,29 @@ public class ProjectValidator {
      */
     public void validateBeforeCreate(ProjectDTO dto) {
         if (dto == null)
-            throw new ValidationFailedException("error.project.null");
+            throw new ValidationFailedException("error.project.null",null);
 
         if (!StringUtils.hasText(dto.getName()))
-            throw new ValidationFailedException("error.project.name.required");
+            throw new ValidationFailedException("error.project.name.required",null);
 
         if (dto.getClientId() == null)
-            throw new ValidationFailedException("error.project.client.required");
+            throw new ValidationFailedException("error.project.client.required",null);
 
         if (dto.getOrganizationId() == null)
-            throw new ValidationFailedException("error.project.organization.required");
+            throw new ValidationFailedException("error.project.organization.required",null);
 
         if (dto.getStartDate() != null && dto.getEndDate() != null &&
                 dto.getStartDate().isAfter(dto.getEndDate()))
-            throw new ValidationFailedException("error.project.dates.invalid");
+            throw new ValidationFailedException("error.project.dates.invalid",null);
 
         if (dto.getExpectedDeliveryDate() != null &&
                 dto.getStartDate() != null &&
                 dto.getExpectedDeliveryDate().isBefore(dto.getStartDate()))
-            throw new ValidationFailedException("error.project.deliverydate.invalid");
+            throw new ValidationFailedException("error.project.deliverydate.invalid",null);
 
         if (dto.getProgressPercentage() != null &&
                 (dto.getProgressPercentage() < 0 || dto.getProgressPercentage() > 100))
-            throw new ValidationFailedException("error.project.progress.invalid");
+            throw new ValidationFailedException("error.project.progress.invalid",null);
     }
 
     /**
@@ -43,10 +43,10 @@ public class ProjectValidator {
      */
     public void validateBeforeUpdate(Long id, ProjectDTO dto) {
         if (id == null)
-            throw new ValidationFailedException("error.project.id.required");
+            throw new ValidationFailedException("error.project.id.required",null);
 
         if (dto == null)
-            throw new ValidationFailedException("error.project.null");
+            throw new ValidationFailedException("error.project.null",null);
 
         validateBeforeCreate(dto);
     }
@@ -56,7 +56,7 @@ public class ProjectValidator {
      */
     public void validateBeforeDelete(Long id) {
         if (id == null || id <= 0)
-            throw new ValidationFailedException("error.project.id.required");
+            throw new ValidationFailedException("error.project.id.required",null);
     }
 
     /**
@@ -64,7 +64,7 @@ public class ProjectValidator {
      */
     public void validateBeforeProgressRecalculation(Long projectId) {
         if (projectId == null || projectId <= 0)
-            throw new ValidationFailedException("error.project.id.required");
+            throw new ValidationFailedException("error.project.id.required",null);
     }
 
     /**
@@ -72,9 +72,9 @@ public class ProjectValidator {
      */
     public void validateStatusChange(Long projectId, String status) {
         if (projectId == null)
-            throw new ValidationFailedException("error.project.id.required");
+            throw new ValidationFailedException("error.project.id.required",null);
 
         if (!StringUtils.hasText(status))
-            throw new ValidationFailedException("error.project.status.required");
+            throw new ValidationFailedException("error.project.status.required",null);
     }
 }

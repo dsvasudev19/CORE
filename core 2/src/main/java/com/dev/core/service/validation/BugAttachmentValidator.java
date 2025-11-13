@@ -14,15 +14,15 @@ public class BugAttachmentValidator {
     public void validateBeforeUpload(Long bugId, MultipartFile file) {
 
         if (bugId == null) {
-            throw new ValidationFailedException("error.bug.attachment.bugId.required");
+            throw new ValidationFailedException("error.bug.attachment.bugId.required",null);
         }
 
         if (file == null || file.isEmpty()) {
-            throw new ValidationFailedException("error.bug.attachment.file.required");
+            throw new ValidationFailedException("error.bug.attachment.file.required",null);
         }
 
         if (file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()) {
-            throw new ValidationFailedException("error.bug.attachment.filename.blank");
+            throw new ValidationFailedException("error.bug.attachment.filename.blank",null);
         }
 
         if (file.getSize() > MAX_FILE_SIZE) {

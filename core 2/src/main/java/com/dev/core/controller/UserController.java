@@ -69,7 +69,7 @@ public class UserController {
         Page<UserDTO> result = userService.searchUsers(organizationId, keyword, pageable);
         return helper.success("Users searched", result);
     }
-    @PatchMapping("/{id}/permissions/assign")
+    @PutMapping("/{id}/permissions/assign")
     public ResponseEntity<?> assignPermissions(@PathVariable Long id,
                                                @RequestBody UserPermissionIdsDTO dto) {
         UserDTO updatedUser = userService.assignPermissionsToUser(id, dto);

@@ -11,11 +11,11 @@ public class BugCommentValidator {
 
     public void validateBeforeAdd(Long bugId, BugCommentDTO dto) {
         if (bugId == null) {
-            throw new ValidationFailedException("error.bug.comment.bugId.required");
+            throw new ValidationFailedException("error.bug.comment.bugId.required",null);
         }
 
         if (dto == null || dto.getCommentText() == null || dto.getCommentText().isBlank()) {
-            throw new ValidationFailedException("error.bug.comment.text.required");
+            throw new ValidationFailedException("error.bug.comment.text.required",null);
         }
 
         log.debug("✅ BugCommentValidator.validateBeforeAdd passed for bugId={}", bugId);
@@ -23,11 +23,11 @@ public class BugCommentValidator {
 
     public void validateBeforeReply(Long parentCommentId, BugCommentDTO dto) {
         if (parentCommentId == null) {
-            throw new ValidationFailedException("error.bug.comment.parentId.required");
+            throw new ValidationFailedException("error.bug.comment.parentId.required",null);
         }
 
         if (dto == null || dto.getCommentText() == null || dto.getCommentText().isBlank()) {
-            throw new ValidationFailedException("error.bug.comment.replyText.required");
+            throw new ValidationFailedException("error.bug.comment.replyText.required",null);
         }
 
         log.debug("✅ BugCommentValidator.validateBeforeReply passed for parentCommentId={}", parentCommentId);

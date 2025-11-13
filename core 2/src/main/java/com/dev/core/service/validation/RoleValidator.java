@@ -14,13 +14,13 @@ public class RoleValidator {
 
     public void validateBeforeCreate(RoleDTO dto) {
         if (dto == null)
-            throw new ValidationFailedException("error.role.null");
+            throw new ValidationFailedException("error.role.null",null);
 
         if (dto.getOrganizationId() == null)
-            throw new ValidationFailedException("error.role.organization.required");
+            throw new ValidationFailedException("error.role.organization.required",null);
 
         if (dto.getName() == null || dto.getName().isBlank())
-            throw new ValidationFailedException("error.role.name.required");
+            throw new ValidationFailedException("error.role.name.required",null);
 
         if (roleRepository.findByNameAndOrganizationId(dto.getName(), dto.getOrganizationId()).isPresent())
             throw new ValidationFailedException("error.role.exists", new Object[]{dto.getName()});
@@ -28,7 +28,7 @@ public class RoleValidator {
 
     public void validateBeforeUpdate(Long id) {
         if (id == null)
-            throw new ValidationFailedException("error.role.id.required");
+            throw new ValidationFailedException("error.role.id.required",null);
 
         if (!roleRepository.existsById(id))
             throw new ValidationFailedException("error.role.notfound", new Object[]{id});

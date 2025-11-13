@@ -14,16 +14,16 @@ public class UserValidator {
 
     public void validateBeforeCreate(UserDTO dto) {
         if (dto == null)
-            throw new ValidationFailedException("error.user.null");
+            throw new ValidationFailedException("error.user.null",null);
 
         if (dto.getEmail() == null || dto.getEmail().isBlank())
-            throw new ValidationFailedException("error.user.email.required");
+            throw new ValidationFailedException("error.user.email.required",null);
 
         if (dto.getUsername() == null || dto.getUsername().isBlank())
-            throw new ValidationFailedException("error.user.username.required");
+            throw new ValidationFailedException("error.user.username.required",null);
 
         if (dto.getOrganizationId() == null)
-            throw new ValidationFailedException("error.user.organization.required");
+            throw new ValidationFailedException("error.user.organization.required",null);
 
         if (userRepository.existsByEmail(dto.getEmail()))
             throw new ValidationFailedException("error.user.email.exists", new Object[]{dto.getEmail()});
@@ -34,19 +34,19 @@ public class UserValidator {
 
     public void validateBeforeUpdate(Long id, UserDTO dto) {
         if (id == null)
-            throw new ValidationFailedException("error.user.id.required");
+            throw new ValidationFailedException("error.user.id.required",null);
 
         if (!userRepository.existsById(id))
             throw new ValidationFailedException("error.user.notfound", new Object[]{id});
 
-        if (dto != null) {
-            if (dto.getEmail() != null && userRepository.existsByEmail(dto.getEmail()))
-                throw new ValidationFailedException("error.user.email.exists", new Object[]{dto.getEmail()});
-
-            if (dto.getUsername() != null &&
-                    dto.getOrganizationId() != null &&
-                    userRepository.existsByUsernameAndOrganizationId(dto.getUsername(), dto.getOrganizationId()))
-                throw new ValidationFailedException("error.user.username.exists", new Object[]{dto.getUsername()});
-        }
+//        if (dto != null) {
+//            if (dto.getEmail() != null && userRepository.existsByEmail(dto.getEmail()))
+//                throw new ValidationFailedException("error.user.email.exists", new Object[]{dto.getEmail()});
+//
+//            if (dto.getUsername() != null &&
+//                    dto.getOrganizationId() != null &&
+//                    userRepository.existsByUsernameAndOrganizationId(dto.getUsername(), dto.getOrganizationId()))
+//                throw new ValidationFailedException("error.user.username.exists", new Object[]{dto.getUsername()});
+//        }
     }
 }
