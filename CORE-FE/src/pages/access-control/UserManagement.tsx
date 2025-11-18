@@ -7,6 +7,8 @@ import type { UserDTO, UserStatus } from '../../types/user.types';
 import type { RoleDTO } from '../../types/role.types';
 import { ConfirmDialog } from '../../components';
 import { useConfirmDialog } from '../../hooks';
+import MultiSelectDropdown from '../../components/MultiSelectDropdown';
+import { permissionService } from '../../services/permission.service';
 
 const UserManagement = () => {
     const { user } = useAuth();
@@ -28,14 +30,17 @@ const UserManagement = () => {
         status: UserStatus;
         employeeId: string;
         roleIds: number[];
+        permissionIds: number[];
     }>({
         username: '',
         email: '',
         password: '',
         status: 'ACTIVE' as UserStatus,
         employeeId: '',
-        roleIds: []
+        roleIds: [],
+        permissionIds: []
     });
+    const [permissions, setPermissions] = useState<import('../../types/permission.types').PermissionDTO[]>([]);
 
     const fetchUsers = async () => {
         if (!user?.organizationId) return;
@@ -73,6 +78,9 @@ const UserManagement = () => {
         if (user?.organizationId) {
             fetchUsers();
             fetchRoles();
+            permissionService.getPermissionsByOrganization(user.organizationId)
+                .then(data => setPermissions(data))
+                .catch(() => setPermissions([]));
         }
     }, [searchKeyword, currentPage, user?.organizationId]);
 
@@ -89,7 +97,8 @@ const UserManagement = () => {
             password: '',
             status: 'ACTIVE' as UserStatus,
             employeeId: '',
-            roleIds: []
+            roleIds: [],
+            permissionIds: []
         });
         setIsModalOpen(true);
     };
@@ -102,7 +111,8 @@ const UserManagement = () => {
             password: '',
             status: user.status || 'ACTIVE' as UserStatus,
             employeeId: user.employeeId?.toString() || '',
-            roleIds: user.roles?.map(r => r.id!).filter(id => id !== undefined) || []
+            roleIds: user.roles?.map(r => r.id!).filter(id => id !== undefined) || [],
+            permissionIds: Array.isArray(user.permissions) ? user.permissions.map((p: import('../../types/permission.types').PermissionDTO) => p.id!) : []
         });
         setIsModalOpen(true);
     };
@@ -154,8 +164,14 @@ const UserManagement = () => {
 
             if (editingUser?.id) {
                 await userService.updateUser(editingUser.id, userData);
+                // Assign permissions
+                await userService.assignPermissions(editingUser.id, formData.permissionIds);
             } else {
-                await userService.createUser(userData);
+                const created = await userService.createUser(userData);
+                // Assign permissions to new user
+                if (created.id !== undefined) {
+                    await userService.assignPermissions(created.id, formData.permissionIds);
+                }
             }
             setIsModalOpen(false);
             fetchUsers();
@@ -172,6 +188,14 @@ const UserManagement = () => {
                 ? prev.roleIds.filter(id => id !== roleId)
                 : [...prev.roleIds, roleId]
         }));
+    };
+
+    const handlePermissionsChange = async (selected: (string | number)[]) => {
+        setFormData(prev => ({ ...prev, permissionIds: selected.map(Number) }));
+        if (editingUser?.id) {
+            // Assign permissions
+            await userService.assignPermissions(editingUser.id, selected.map(Number));
+        }
     };
 
     const getStatusColor = (status?: UserStatus) => {
@@ -263,6 +287,7 @@ const UserManagement = () => {
                                         <th className="px-3 py-2 text-left font-semibold text-steel-700">Username</th>
                                         <th className="px-3 py-2 text-left font-semibold text-steel-700">Email</th>
                                         <th className="px-3 py-2 text-left font-semibold text-steel-700">Roles</th>
+                                        <th className="px-3 py-2 text-left font-semibold text-steel-700">Permissions</th>
                                         <th className="px-3 py-2 text-left font-semibold text-steel-700">Status</th>
                                         <th className="px-3 py-2 text-left font-semibold text-steel-700">Last Login</th>
                                         <th className="px-3 py-2 text-left font-semibold text-steel-700">Created Date</th>
@@ -286,15 +311,37 @@ const UserManagement = () => {
                                                 <td className="px-3 py-2 text-steel-600">{user.email}</td>
                                                 <td className="px-3 py-2">
                                                     <div className="flex flex-wrap gap-1">
-                                                        {user.roles?.slice(0, 2).map((role, idx) => (
-                                                            <span key={idx} className="px-1.5 py-0.5 bg-purple-50 text-purple-700 rounded text-xs flex items-center gap-1">
-                                                                <Shield size={10} />
-                                                                {role.name}
-                                                            </span>
-                                                        ))}
-                                                        {user.roles && user.roles.length > 2 && (
+                                                        {user.roleNames?.length ? (
+                                                            user.roleNames.slice(0, 2).map((roleName, idx) => (
+                                                                <span key={idx} className="px-1.5 py-0.5 bg-purple-50 text-purple-700 rounded text-xs flex items-center gap-1">
+                                                                    <Shield size={10} />
+                                                                    {roleName}
+                                                                </span>
+                                                            ))
+                                                        ) : (
+                                                            <span className="text-xs text-steel-400">No roles</span>
+                                                        )}
+                                                        {user.roleNames && user.roleNames.length > 2 && (
                                                             <span className="px-1.5 py-0.5 bg-steel-100 text-steel-600 rounded text-xs">
-                                                                +{user.roles.length - 2}
+                                                                +{user.roleNames.length - 2}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-3 py-2">
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {user.permissionKeys?.length ? (
+                                                            user.permissionKeys.slice(0, 3).map((permKey, idx) => (
+                                                                <span key={idx} className="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-xs flex items-center gap-1">
+                                                                    {permKey}
+                                                                </span>
+                                                            ))
+                                                        ) : (
+                                                            <span className="text-xs text-steel-400">No permissions</span>
+                                                        )}
+                                                        {user.permissionKeys && user.permissionKeys.length > 3 && (
+                                                            <span className="px-1.5 py-0.5 bg-steel-100 text-steel-600 rounded text-xs">
+                                                                +{user.permissionKeys.length - 3}
                                                             </span>
                                                         )}
                                                     </div>
@@ -468,6 +515,17 @@ const UserManagement = () => {
                                         </label>
                                     ))}
                                 </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-steel-700 mb-2">
+                                    Permissions
+                                </label>
+                                <MultiSelectDropdown
+                                    options={permissions.map(p => ({ value: p.id!, label: `${p.resource?.name || ''} - ${p.action?.name || ''}` }))}
+                                    selectedValues={formData.permissionIds}
+                                    onChange={handlePermissionsChange}
+                                    placeholder="Select permissions..."
+                                />
                             </div>
                             <div className="flex items-center gap-2 pt-4">
                                 <button

@@ -13,6 +13,7 @@ export interface RoleDTO {
   name: string;
   description: string;
   permissions?: PermissionDTO[];
+  permissionKeys?: string[];
   active?: boolean;
   createdAt?: string;
   updatedAt?: string;

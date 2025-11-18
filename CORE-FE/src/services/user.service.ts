@@ -4,6 +4,15 @@ import { type UserDTO, type UserSearchParams, type PageResponse } from '../types
 const USER_API_BASE = '/users';
 
 export const userService = {
+  // Assign permissions to user
+  assignPermissions: async (userId: number, permissionIds: number[]): Promise<void> => {
+    await axiosInstance.put(`${USER_API_BASE}/${userId}/permissions/assign`, { permissionIds });
+  },
+
+  // Remove permissions from user
+  removePermissions: async (userId: number, permissionIds: number[]): Promise<void> => {
+    await axiosInstance.patch(`${USER_API_BASE}/${userId}/permissions/remove`, { permissionIds });
+  },
   // Create a new user
   createUser: async (userData: UserDTO): Promise<UserDTO> => {
     const response = await axiosInstance.post(USER_API_BASE, userData);

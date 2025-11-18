@@ -244,27 +244,43 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserDTO assignPermissionsToUser(Long userId, UserPermissionIdsDTO dto) {
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BaseException("User not found: " + userId));
 
-        Set<Permission> permissionsToAdd = new HashSet<>(permissionRepository.findAllById(dto.getPermissionIds()));
+        Set<Permission> permissionsToAdd =
+                new HashSet<>(permissionRepository.findAllById(dto.getPermissionIds()));
 
         if (user.getPermissions() == null) {
             user.setPermissions(new HashSet<>());
         }
+
         user.getPermissions().addAll(permissionsToAdd);
 
         User savedUser = userRepository.save(user);
 
         for (Permission perm : permissionsToAdd) {
+
+            Long resourceId = perm.getResource().getId();
+            Long actionId   = perm.getAction().getId();
+
             boolean exists = policyRepository.existsByUserIdAndResourceIdAndActionId(
-                    userId, perm.getResource().getId(), perm.getAction().getId());
+                    userId, resourceId, actionId
+            );
+
             if (!exists) {
+
+                // --- 🔥 Auto-generate description: <RESOURCE>-<ACTION> ---
+                String resourceCode = perm.getResource().getCode();
+                String actionCode   = perm.getAction().getCode();
+                String description  = resourceCode + " - " + actionCode;
+
                 Policy policy = new Policy();
                 policy.setUser(user);
                 policy.setResource(perm.getResource());
                 policy.setAction(perm.getAction());
                 policy.setOrganizationId(user.getOrganizationId());
+                policy.setDescription(description);  // 🚀 auto-set description
                 policyRepository.save(policy);
             }
         }

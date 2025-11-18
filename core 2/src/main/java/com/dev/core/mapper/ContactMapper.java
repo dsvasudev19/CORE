@@ -5,6 +5,8 @@ import com.dev.core.model.ContactDTO;
 
 public class ContactMapper {
 
+    private ContactMapper() {}
+
     public static ContactDTO toDTO(Contact entity) {
         if (entity == null) return null;
 
@@ -26,12 +28,9 @@ public class ContactMapper {
                 .build();
     }
 
-    public static Contact toEntity(ContactDTO dto, Contact entity) {
-        if (dto == null) return entity;
-        if (entity == null) entity = new Contact();
+    public static void updateEntityFromDTO(ContactDTO dto, Contact entity) {
+        if (dto == null || entity == null) return;
 
-        entity.setOrganizationId(dto.getOrganizationId());
-        entity.setActive(dto.getActive());
         entity.setName(dto.getName());
         entity.setEmail(dto.getEmail());
         entity.setPhone(dto.getPhone());
@@ -39,6 +38,5 @@ public class ContactMapper {
         entity.setDepartment(dto.getDepartment());
         entity.setType(dto.getType());
         entity.setNotes(dto.getNotes());
-        return entity;
     }
 }

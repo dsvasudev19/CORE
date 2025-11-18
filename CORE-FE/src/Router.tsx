@@ -83,11 +83,18 @@ import { ClientMessages } from "./pages/client/messages";
 import { ClientSupport } from "./pages/client/support";
 import { ClientSettings } from "./pages/client/settings";
 import AuthGuard from "./contexts/AuthGuard";
+import AdvancedMiroBoard from "./pages/sprint-planning/SprintPlanning";
+import EpicManagement from "./pages/sprint-planning/EpicManagement";
+import ClientListingPage from "./pages/client-management/ClientManagement";
+import ClientDetailsPage from "./pages/client-management/ClientDetails";
+import ClientAddPage from "./pages/client-management/AddClient";
 
 const Router = () => {
     return (
         <BrowserRouter>
             <Routes>
+                <Route path="/miro" element={<AdvancedMiroBoard />} />
+                <Route path="/epic" element={<EpicManagement />} />
                 {/* Redirect root to admin dashboard */}
                 <Route path="/" element={<Navigate to="/a/dashboard" replace />} />
 
@@ -118,7 +125,9 @@ const Router = () => {
                     <Route path="access-control" element={<AccessControl />} />
                     {/* Placeholder routes for other admin sections */}
                     <Route path="projects" element={<div className="p-6"><h1 className="text-2xl font-bold">Projects Management</h1><p className="text-steel-600 mt-2">Coming soon...</p></div>} />
-                    <Route path="clients" element={<div className="p-6"><h1 className="text-2xl font-bold">Client Management</h1><p className="text-steel-600 mt-2">Coming soon...</p></div>} />
+                    <Route path="clients" element={<ClientListingPage />} />
+                    <Route path="clients/:id" element={<ClientDetailsPage />} />
+                    <Route path="clients/add" element={<ClientAddPage />} />
                     <Route path="communication" element={<Messages />} />
                     <Route path="documents" element={<Documents />} />
                     <Route path="documents/:id" element={<DocumentDetail />} />
