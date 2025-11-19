@@ -307,6 +307,7 @@ const DashboardLayout = () => {
         { name: 'Announcements', href: '/a/announcements', icon: Zap },
         { name: 'Reports', href: '/a/reports', icon: BarChart3 },
         { name: 'Access Control', href: '/a/access-control', icon: Shield },
+        { name: 'Organization Settings', href: '/a/organization-settings', icon: Building2 },
         { name: 'Notifications', href: '/a/notifications', icon: Bell },
         { name: 'Settings', href: '/a/settings', icon: Settings },
     ];

@@ -88,6 +88,9 @@ import EpicManagement from "./pages/sprint-planning/EpicManagement";
 import ClientListingPage from "./pages/client-management/ClientManagement";
 import ClientDetailsPage from "./pages/client-management/ClientDetails";
 import ClientAddPage from "./pages/client-management/AddClient";
+import DepartmentList from "./pages/departments/DepartmentList";
+import DesignationList from "./pages/designations/DesignationList";
+import OrganizationSettings from "./pages/organization-settings/OrganizationSettings";
 
 const Router = () => {
     return (
@@ -131,6 +134,9 @@ const Router = () => {
                     <Route path="communication" element={<Messages />} />
                     <Route path="documents" element={<Documents />} />
                     <Route path="documents/:id" element={<DocumentDetail />} />
+                    <Route path="departments" element={<DepartmentList />} />
+                    <Route path="designation" element={<DesignationList />} />
+                    <Route path="organization-settings" element={<OrganizationSettings />} />
                     <Route path="calendar" element={<Calendar />} />
                 </Route>
 

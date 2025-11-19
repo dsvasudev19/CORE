@@ -1,8 +1,10 @@
 package com.dev.core.service;
 
-import com.dev.core.model.DepartmentDTO;
-
 import java.util.List;
+import java.util.Optional;
+
+import com.dev.core.domain.Department;
+import com.dev.core.model.DepartmentDTO;
 
 public interface DepartmentService {
 
@@ -20,4 +22,6 @@ public interface DepartmentService {
     long getEmployeeCount(Long departmentId);
 
     long getTeamCount(Long departmentId);
+    
+    Optional<DepartmentDTO> findByCode(String code);
 }

@@ -62,6 +62,7 @@ public class DesignationServiceImpl implements DesignationService {
                 .orElseThrow(() -> new ValidationFailedException("error.designation.notfound", new Object[]{id}));
 
         if (dto.getTitle() != null) existing.setTitle(dto.getTitle());
+        if (dto.getCode() != null) existing.setCode(dto.getCode());
         if (dto.getDescription() != null) existing.setDescription(dto.getDescription());
 //        if (dto.getStatus() != null) existing.setStatus(dto.getStatus());
 //        if (dto.isActive() != existing.isActive()) existing.setActive(dto.isActive());

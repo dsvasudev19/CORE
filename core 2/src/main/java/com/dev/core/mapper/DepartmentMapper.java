@@ -15,6 +15,7 @@ public final class DepartmentMapper {
         entity.setOrganizationId(dto.getOrganizationId());
         entity.setName(dto.getName());
         entity.setDescription(dto.getDescription());
+        entity.setCode(dto.getCode());
         return entity;
     }
 
@@ -35,6 +36,7 @@ public final class DepartmentMapper {
                             .map(TeamMapper::toDTO)
                             .collect(Collectors.toSet())
                         : null)
+                .code(entity.getCode())
                 .build();
     }
 }

@@ -18,6 +18,9 @@ public class Department extends BaseEntity {
 
     @Column(length = 500)
     private String description;
+    
+    @Column(length=20,nullable=false)
+    private String code;
 
     @OneToMany(mappedBy = "department", fetch = FetchType.LAZY)
     private Set<Employee> employees;
