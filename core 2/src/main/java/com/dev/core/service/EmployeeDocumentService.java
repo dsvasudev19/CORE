@@ -1,8 +1,10 @@
 package com.dev.core.service;
 
-import com.dev.core.model.EmployeeDocumentDTO;
-
 import java.util.List;
+
+import org.springframework.web.multipart.MultipartFile;
+
+import com.dev.core.model.EmployeeDocumentDTO;
 
 public interface EmployeeDocumentService {
 
@@ -15,4 +17,7 @@ public interface EmployeeDocumentService {
     List<EmployeeDocumentDTO> getDocumentsByEmployee(Long employeeId);
 
     void markVerified(Long documentId, boolean verified);
+    
+    EmployeeDocumentDTO uploadDocument(MultipartFile file, EmployeeDocumentDTO dto);
+
 }

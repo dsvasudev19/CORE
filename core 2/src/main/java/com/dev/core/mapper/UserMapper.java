@@ -106,7 +106,6 @@ public class UserMapper {
                 .email(entity.getEmail())
                 .status(entity.getStatus())
                 .lastLoginAt(entity.getLastLoginAt())
-                .employeeId(entity.getEmployeeId())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .createdBy(entity.getCreatedBy())
@@ -122,6 +121,17 @@ public class UserMapper {
                         : null)
 
                 .build();
+        dto.setEmployeeProfileId(
+        	       entity.getEmployeeProfile() != null
+        	           ? entity.getEmployeeProfile().getId()
+        	           : null
+        	);
+        dto.setClientRepresentativeProfileId(
+        	       entity.getClientRepresentativeProfile() != null
+        	           ? entity.getClientRepresentativeProfile().getId()
+        	           : null
+        	);
+
 
         // --- ADD LIGHTWEIGHT ROLE NAMES ---
         if (dto.getRoles() != null) {
@@ -167,12 +177,12 @@ public class UserMapper {
         entity.setEmail(dto.getEmail());
         entity.setStatus(dto.getStatus());
         entity.setLastLoginAt(dto.getLastLoginAt());
-        entity.setEmployeeId(dto.getEmployeeId());
         entity.setCreatedAt(dto.getCreatedAt());
         entity.setUpdatedAt(dto.getUpdatedAt());
         entity.setCreatedBy(dto.getCreatedBy());
         entity.setUpdatedBy(dto.getUpdatedBy());
         entity.setActive(dto.getActive());
+
 
         // roles
         if (dto.getRoles() != null) {

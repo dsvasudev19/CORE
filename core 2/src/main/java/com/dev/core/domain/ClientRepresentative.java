@@ -35,4 +35,9 @@ public class ClientRepresentative extends BaseEntity {
                 .forEach(r -> r.setPrimaryContact(false));
         }
     }
+    
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", unique = true)
+    private User user;   // optional User login
+
 }

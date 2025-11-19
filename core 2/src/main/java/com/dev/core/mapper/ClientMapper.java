@@ -44,6 +44,8 @@ public class ClientMapper {
                         .map(ClientDocumentMapper::toDTO)
                         .collect(Collectors.toList())
                 : List.of();
+        
+        
 
         List<ClientRepresentativeDTO> representatives = entity.getRepresentatives() != null
                 ? entity.getRepresentatives().stream()

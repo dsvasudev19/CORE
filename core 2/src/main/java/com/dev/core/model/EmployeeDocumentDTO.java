@@ -16,4 +16,5 @@ public class EmployeeDocumentDTO extends BaseDTO {
     private String documentType;
     private String filePath;
     private boolean verified;
+    private String fileId;
 }

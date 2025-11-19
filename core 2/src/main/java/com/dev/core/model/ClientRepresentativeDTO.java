@@ -13,4 +13,6 @@ public class ClientRepresentativeDTO extends BaseDTO {
     private ContactDTO contact;
     private String role;
     private boolean primaryContact;
+    private Long userId;
+
 }

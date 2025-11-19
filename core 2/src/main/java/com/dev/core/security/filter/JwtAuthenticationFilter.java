@@ -88,8 +88,20 @@
 
 package com.dev.core.security.filter;
 
+import java.io.IOException;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import com.dev.core.security.CustomUserDetails;
 import com.dev.core.security.CustomUserDetailsService;
 import com.dev.core.security.JwtTokenProvider;
+import com.dev.core.wrapper.OrganizationRequestWrapper;
+
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.SignatureException;
@@ -100,14 +112,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
-import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
-
-import java.io.IOException;
 
 @Component
 @RequiredArgsConstructor
@@ -133,17 +137,39 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 username = jwtTokenProvider.extractUsername(token);
             }
 
+//            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+//                var userDetails = userDetailsService.loadUserByUsername(username);
+//                if (jwtTokenProvider.validateToken(token, userDetails)) {
+//                    UsernamePasswordAuthenticationToken auth =
+//                            new UsernamePasswordAuthenticationToken(
+//                                    userDetails, null, userDetails.getAuthorities());
+//                    auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+//                    SecurityContextHolder.getContext().setAuthentication(auth);
+//                    log.info("✅ JWT validated successfully for user: {}", username);
+//                }
+//            }
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 var userDetails = userDetailsService.loadUserByUsername(username);
+
                 if (jwtTokenProvider.validateToken(token, userDetails)) {
                     UsernamePasswordAuthenticationToken auth =
-                            new UsernamePasswordAuthenticationToken(
-                                    userDetails, null, userDetails.getAuthorities());
+                            new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                     auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(auth);
-                    log.info("✅ JWT validated successfully for user: {}", username);
+
+                    log.info("JWT validated for user {}", username);
+
+                    // Inject orgId
+                    Long orgId = ((CustomUserDetails) userDetails).getOrganizationId();
+
+                    OrganizationRequestWrapper wrappedRequest =
+                            new OrganizationRequestWrapper(request, orgId);
+
+                    filterChain.doFilter(wrappedRequest, response);
+                    return;
                 }
             }
+
 
             filterChain.doFilter(request, response);
 

@@ -1,5 +1,6 @@
 package com.dev.core.service.validation;
 
+import com.dev.core.exception.BaseException;
 import com.dev.core.exception.ValidationFailedException;
 import com.dev.core.model.UserDTO;
 import com.dev.core.repository.UserRepository;
@@ -21,6 +22,10 @@ public class UserValidator {
 
         if (dto.getUsername() == null || dto.getUsername().isBlank())
             throw new ValidationFailedException("error.user.username.required",null);
+        if (dto.getPassword() == null || dto.getPassword().isBlank()) {
+            throw new BaseException("error.user.password.required");
+        }
+
 
         if (dto.getOrganizationId() == null)
             throw new ValidationFailedException("error.user.organization.required",null);

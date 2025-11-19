@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import com.dev.core.constants.ProfileType;
 import com.dev.core.model.UserDTO;
 import com.dev.core.model.UserPermissionIdsDTO;
 
@@ -28,4 +29,11 @@ public interface UserService {
     UserDTO assignPermissionsToUser(Long userId, UserPermissionIdsDTO dto);
 
     UserDTO removePermissionsFromUser(Long userId, UserPermissionIdsDTO dto);
+    
+    UserDTO createUserForEmployee(Long employeeId, UserDTO dto);
+
+    UserDTO createUserForClientRepresentative(Long representativeId, UserDTO dto);
+
+    UserDTO createUserAndLink(Long profileId, UserDTO dto, ProfileType type);
+
 }

@@ -1,25 +1,46 @@
 package com.dev.core.service.impl;
 
-import com.dev.core.domain.*;
-import com.dev.core.exception.ValidationFailedException;
-import com.dev.core.mapper.*;
-import com.dev.core.model.EmployeeDTO;
-import com.dev.core.repository.*;
-import com.dev.core.service.*;
-import com.dev.core.service.validation.EmployeeValidator;
-import com.dev.core.specification.SpecificationBuilder;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.util.List;
-import java.util.stream.Collectors;
+import com.dev.core.constants.ProfileStatus;
+import com.dev.core.constants.UserStatus;
+import com.dev.core.domain.Department;
+import com.dev.core.domain.Designation;
+import com.dev.core.domain.Employee;
+import com.dev.core.domain.EmployeeAsset;
+import com.dev.core.domain.EmployeeDocument;
+import com.dev.core.domain.EmploymentHistory;
+import com.dev.core.domain.TeamMember;
+import com.dev.core.exception.ValidationFailedException;
+import com.dev.core.mapper.EmployeeAssetMapper;
+import com.dev.core.mapper.EmployeeMapper;
+import com.dev.core.model.EmployeeAssetDTO;
+import com.dev.core.model.EmployeeDTO;
+import com.dev.core.model.UserDTO;
+import com.dev.core.repository.DepartmentRepository;
+import com.dev.core.repository.DesignationRepository;
+import com.dev.core.repository.EmployeeAssetRepository;
+import com.dev.core.repository.EmployeeDocumentRepository;
+import com.dev.core.repository.EmployeeRepository;
+import com.dev.core.repository.EmploymentHistoryRepository;
+import com.dev.core.repository.TeamMemberRepository;
+import com.dev.core.repository.TeamRepository;
+import com.dev.core.service.AuthorizationService;
+import com.dev.core.service.EmployeeService;
+import com.dev.core.service.NotificationService;
+import com.dev.core.service.UserService;
+import com.dev.core.service.validation.EmployeeValidator;
+import com.dev.core.specification.SpecificationBuilder;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +58,11 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     private final EmployeeValidator employeeValidator;
     private final AuthorizationService authorizationService;
+    private final UserService userService;
+
+    private final NotificationService notificationService;
+    private final EmployeeAssetRepository employeeAssetRepository;
+
 
     /**
      * Helper for RBAC authorization
@@ -70,12 +96,56 @@ public class EmployeeServiceImpl implements EmployeeService {
             entity.setDesignation(desig);
         }
 
+     // NEW FIELDS
+        if (dto.getDob() != null) entity.setDob(dto.getDob());
+        if (dto.getAddress() != null) entity.setAddress(dto.getAddress());
+        if (dto.getEmergencyContact() != null) entity.setEmergencyContact(dto.getEmergencyContact());
+        if (dto.getEmergencyPhone() != null) entity.setEmergencyPhone(dto.getEmergencyPhone());
+
+        if (dto.getWorkEmail() != null) entity.setWorkEmail(dto.getWorkEmail());
+        if (dto.getSystemAccess() != null) entity.setSystemAccess(dto.getSystemAccess());
+
+        if (dto.getPolicyAcknowledgment() != null) entity.setPolicyAcknowledgment(dto.getPolicyAcknowledgment());
+        if (dto.getNdaSigned() != null) entity.setNdaSigned(dto.getNdaSigned());
+        if (dto.getSecurityTraining() != null) entity.setSecurityTraining(dto.getSecurityTraining());
+        if (dto.getToolsTraining() != null) entity.setToolsTraining(dto.getToolsTraining());
+
+        if (dto.getManagerId() != null) {
+            Employee manager = employeeRepository.findById(dto.getManagerId())
+                    .orElseThrow(() -> new ValidationFailedException("error.manager.notfound", new Object[]{dto.getManagerId()}));
+            entity.setManager(manager);
+        }
+
         // Default status
         if (entity.getStatus() == null)
             entity.setStatus(dto.getStatus() != null ? dto.getStatus() : com.dev.core.constants.EmployeeStatus.ACTIVE);
 
         Employee saved = employeeRepository.save(entity);
         log.info("✅ Employee created: {} ({})", saved.getFirstName(), saved.getEmail());
+        
+        UserDTO userDto = new UserDTO();
+        userDto.setOrganizationId(saved.getOrganizationId());
+        userDto.setUsername(saved.getEmployeeCode());  // OR saved.getEmail() — your choice
+        userDto.setEmail(saved.getEmail());
+        userDto.setPassword("Temp@123"); // or auto-generate
+        userDto.setStatus(UserStatus.ACTIVE);
+
+        UserDTO createdUser = userService.createUserForEmployee(saved.getId(), userDto);
+        
+        try {
+            notificationService.sendTemplateEmail(
+                    saved.getEmail(),
+                    "Welcome to the Company!",
+                    "employee-welcome",
+                    saved
+            );
+        } catch (Exception ex) {
+            notificationService.handleNotificationFailure(saved.getEmail(), "Failed to send welcome email", ex);
+        }
+
+
+        log.info("🔐 Login created for employee {} with userId={}", saved.getId(), createdUser.getId());
+
 
         return EmployeeMapper.toDTO(saved);
     }
@@ -110,6 +180,26 @@ public class EmployeeServiceImpl implements EmployeeService {
                             new Object[]{dto.getDesignationId()}));
             existing.setDesignation(desig);
         }
+     // NEW SIMPLE FIELDS
+        if (dto.getDob() != null) existing.setDob(dto.getDob());
+        if (dto.getAddress() != null) existing.setAddress(dto.getAddress());
+        if (dto.getEmergencyContact() != null) existing.setEmergencyContact(dto.getEmergencyContact());
+        if (dto.getEmergencyPhone() != null) existing.setEmergencyPhone(dto.getEmergencyPhone());
+
+        if (dto.getWorkEmail() != null) existing.setWorkEmail(dto.getWorkEmail());
+        if (dto.getSystemAccess() != null) existing.setSystemAccess(dto.getSystemAccess());
+
+        if (dto.getPolicyAcknowledgment() != null) existing.setPolicyAcknowledgment(dto.getPolicyAcknowledgment());
+        if (dto.getNdaSigned() != null) existing.setNdaSigned(dto.getNdaSigned());
+        if (dto.getSecurityTraining() != null) existing.setSecurityTraining(dto.getSecurityTraining());
+        if (dto.getToolsTraining() != null) existing.setToolsTraining(dto.getToolsTraining());
+
+        if (dto.getManagerId() != null) {
+            Employee manager = employeeRepository.findById(dto.getManagerId())
+                    .orElseThrow(() -> new ValidationFailedException("error.manager.notfound", new Object[]{dto.getManagerId()}));
+            existing.setManager(manager);
+        }
+
 
         Employee updated = employeeRepository.save(existing);
         log.info("✏️ Employee updated: {}", updated.getEmail());
@@ -335,4 +425,173 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .map(EmployeeMapper::toDTO)
                 .collect(Collectors.toList());
     }
+    
+    @Override
+    @Transactional
+    public void markProfileAsCompleted(Long employeeId) {
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new RuntimeException("Employee not found"));
+
+        employee.setProfileStatus(ProfileStatus.COMPLETED);
+        
+        notificationService.sendEmail(
+                employee.getEmail(),
+                "Profile Completed",
+                "Your employee profile has been successfully completed."
+        );
+
+
+        employeeRepository.save(employee);
+    }
+
+    @Override
+    @Transactional
+    public void updateProfileStatus(Long employeeId, ProfileStatus status) {
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new RuntimeException("Employee not found"));
+
+        employee.setProfileStatus(status);
+        notificationService.sendEmail(
+                employee.getEmail(),
+                "Profile Status Updated",
+                "Your profile status has been updated to: " + status
+        );
+
+
+        employeeRepository.save(employee);
+    }
+    @Override
+    public void assignManager(Long employeeId, Long managerId) {
+        authorize("UPDATE");
+
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new ValidationFailedException("error.employee.notfound", new Object[]{employeeId}));
+
+        Employee manager = employeeRepository.findById(managerId)
+                .orElseThrow(() -> new ValidationFailedException("error.manager.notfound", new Object[]{managerId}));
+
+        employee.setManager(manager);
+        employeeRepository.save(employee);
+
+        // Send notification to manager
+        try {
+            notificationService.sendEmail(
+                    manager.getEmail(),
+                    "New Team Member Assigned",
+                    "You have been assigned as manager for employee: " + employee.getFirstName()
+            );
+        } catch (Exception ex) {
+            notificationService.handleNotificationFailure(manager.getEmail(),
+                    "Could not send manager assignment email", ex);
+        }
+
+        log.info("👔 Manager {} assigned to employee {}", managerId, employeeId);
+    }
+
+    @Override
+    public void removeManager(Long employeeId) {
+        authorize("UPDATE");
+
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new ValidationFailedException("error.employee.notfound", new Object[]{employeeId}));
+
+        Employee oldManager = employee.getManager();
+
+        if (oldManager == null) return;
+
+        employee.setManager(null);
+        employeeRepository.save(employee);
+
+        // Notify previous manager
+        try {
+            notificationService.sendEmail(
+                    oldManager.getEmail(),
+                    "Manager Assignment Removed",
+                    "You are no longer manager for employee: " + employee.getFirstName()
+            );
+        } catch (Exception ex) {
+            notificationService.handleNotificationFailure(oldManager.getEmail(),
+                    "Could not send manager removal email", ex);
+        }
+
+        log.info("❌ Manager {} removed from employee {}", oldManager.getId(), employeeId);
+    }
+
+
+    @Override
+    public EmployeeAssetDTO addAsset(Long employeeId, EmployeeAssetDTO assetDTO) {
+        authorize("UPDATE");
+
+        Employee employee = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new ValidationFailedException("error.employee.notfound", new Object[]{employeeId}));
+
+        EmployeeAsset asset = EmployeeAssetMapper.toEntity(assetDTO);
+        asset.setEmployee(employee);
+        asset.setOrganizationId(employee.getOrganizationId());
+
+        EmployeeAsset saved = employeeAssetRepository.save(asset);
+
+        // Notify employee
+        try {
+            notificationService.sendEmail(
+                    employee.getEmail(),
+                    "New Asset Assigned",
+                    "Asset assigned: " + asset.getAssetType()
+            );
+        } catch (Exception ex) {
+            notificationService.handleNotificationFailure(employee.getEmail(),
+                    "Failed to send asset assignment email", ex);
+        }
+
+        log.info("💻 Asset {} assigned to employee {}", saved.getAssetType(), employeeId);
+
+        return EmployeeAssetMapper.toDTO(saved);
+    }
+
+
+    @Override
+    public void removeAsset(Long assetId) {
+        authorize("UPDATE");
+
+        EmployeeAsset asset = employeeAssetRepository.findById(assetId)
+                .orElseThrow(() -> new ValidationFailedException("error.asset.notfound", new Object[]{assetId}));
+
+        Employee emp = asset.getEmployee();
+
+        employeeAssetRepository.delete(asset);
+
+        // Notify employee
+        try {
+            notificationService.sendEmail(
+                    emp.getEmail(),
+                    "Asset Removed",
+                    "Asset removed: " + asset.getAssetType()
+            );
+        } catch (Exception ex) {
+            notificationService.handleNotificationFailure(emp.getEmail(),
+                    "Failed to send asset removal email", ex);
+        }
+
+        log.info("🗑️ Asset {} removed from employee {}", asset.getAssetType(), emp.getId());
+    }
+
+
+    @Override
+    public List<EmployeeAssetDTO> getEmployeeAssets(Long employeeId) {
+        authorize("READ");
+
+        employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new ValidationFailedException("error.employee.notfound", new Object[]{employeeId}));
+
+        return employeeAssetRepository.findByEmployee_Id(employeeId)
+                .stream()
+                .map(EmployeeAssetMapper::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    
+   
+
+    
+
 }

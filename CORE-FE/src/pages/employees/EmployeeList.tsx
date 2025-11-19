@@ -56,7 +56,7 @@ const EmployeeList = () => {
               <Download size={14} />
               Export
             </button>
-            <button className="px-3 py-1.5 text-xs font-medium text-white bg-burgundy-600 rounded hover:bg-burgundy-700 flex items-center gap-1.5">
+            <button onClick={()=>{window.location.href="/a/employees/onboarding"}} className="px-3 py-1.5 text-xs font-medium text-white bg-burgundy-600 rounded hover:bg-burgundy-700 flex items-center gap-1.5">
               <Plus size={14} />
               Add Employee
             </button>

@@ -16,6 +16,7 @@ import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
@@ -56,8 +57,6 @@ public class User extends BaseEntity {
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
 
-    @Column(name = "employee_id")
-    private Long employeeId; // optional link to Employee entity
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
@@ -76,5 +75,16 @@ public class User extends BaseEntity {
         uniqueConstraints = {@UniqueConstraint(columnNames = {"user_id", "permission_id"})}
     )
     private Set<Permission> permissions = new HashSet<>();
+    
+    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
+    private Employee employeeProfile;
+
+    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
+    private ClientRepresentative clientRepresentativeProfile;
+
+    // or
+    //@OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
+    //private Client clientProfile;
+
 
 }

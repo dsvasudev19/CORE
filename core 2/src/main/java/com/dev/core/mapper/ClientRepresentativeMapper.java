@@ -29,6 +29,8 @@ public class ClientRepresentativeMapper {
                 .contact(entity.getContact() != null ? ContactMapper.toDTO(entity.getContact()) : null)
                 .role(entity.getRole())
                 .primaryContact(entity.isPrimaryContact())
+                .userId(entity.getUser() != null ? entity.getUser().getId() : null)
+
                 .build();
     }
 

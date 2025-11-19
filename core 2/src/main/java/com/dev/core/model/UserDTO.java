@@ -23,7 +23,9 @@ public class UserDTO extends BaseDTO {
     private String password;
     private UserStatus status;
     private LocalDateTime lastLoginAt;
-    private Long employeeId;
+    private Long employeeProfileId;
+    private Long clientRepresentativeProfileId;
+
     @JsonIgnore
     private Set<RoleDTO> roles;
     @JsonIgnore
