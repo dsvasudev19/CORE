@@ -26,6 +26,6 @@ public class Team extends BaseEntity {
     @JoinColumn(name = "manager_id")
     private Employee manager;
 
-    @OneToMany(mappedBy = "team", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "team",  cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<TeamMember> members;
 }

@@ -9,6 +9,7 @@ import com.dev.core.repository.EmployeeDocumentRepository;
 import com.dev.core.repository.EmployeeRepository;
 import com.dev.core.service.AuthorizationService;
 import com.dev.core.service.EmployeeDocumentService;
+import com.dev.core.service.file.FileStorageService;
 import com.dev.core.service.validation.EmployeeDocumentValidator;
 
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -30,6 +32,7 @@ public class EmployeeDocumentServiceImpl implements EmployeeDocumentService {
     private final EmployeeRepository employeeRepository;
     private final EmployeeDocumentValidator documentValidator;
     private final AuthorizationService authorizationService;
+    private final FileStorageService fileStorageService;
 
     /**
      * Helper method for RBAC authorization.
@@ -60,6 +63,39 @@ public class EmployeeDocumentServiceImpl implements EmployeeDocumentService {
 
         EmployeeDocument saved = documentRepository.save(entity);
         log.info("📎 Uploaded document '{}' for employee {}", dto.getDocumentName(), dto.getEmployeeId());
+
+        return EmployeeDocumentMapper.toDTO(saved);
+    }
+
+    @Override
+    public EmployeeDocumentDTO uploadDocument(MultipartFile file, EmployeeDocumentDTO dto) {
+        authorize("CREATE");
+        documentValidator.validateBeforeUpload(dto);
+
+        Employee employee = employeeRepository.findById(dto.getEmployeeId())
+                .orElseThrow(() -> new ValidationFailedException("error.employee.notfound",
+                        new Object[]{dto.getEmployeeId()}));
+
+        boolean exists = documentRepository.existsByEmployee_IdAndDocumentName(
+                dto.getEmployeeId(),
+                dto.getDocumentName()
+        );
+
+        if (exists)
+            throw new ValidationFailedException("error.document.name.exists",
+                    new Object[]{dto.getDocumentName()});
+
+        // 👉 Store file physically
+        String fileId = fileStorageService.storeFile(file, dto.getEmployeeId());
+
+        // 👉 Store metadata in DB
+        EmployeeDocument entity = EmployeeDocumentMapper.toEntity(dto);
+        entity.setEmployee(employee);
+        entity.setFileId(fileId); // <--- IMPORTANT
+        entity.setOrganizationId(employee.getOrganizationId());
+        entity.setVerified(false);
+
+        EmployeeDocument saved = documentRepository.save(entity);
 
         return EmployeeDocumentMapper.toDTO(saved);
     }

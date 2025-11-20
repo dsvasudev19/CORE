@@ -14,20 +14,20 @@ public class RefreshTokenValidator {
 
     public void validateBeforeCreate(RefreshTokenDTO dto) {
         if (dto == null)
-            throw new ValidationFailedException("error.token.null");
+            throw new ValidationFailedException("error.token.null",null);
 
         if (dto.getUserId() == null)
-            throw new ValidationFailedException("error.token.user.required");
+            throw new ValidationFailedException("error.token.user.required",null);
 
         if (dto.getToken() == null || dto.getToken().isBlank())
-            throw new ValidationFailedException("error.token.value.required");
+            throw new ValidationFailedException("error.token.value.required",null);
     }
 
     public void validateTokenExists(String token) {
         if (token == null || token.isBlank())
-            throw new ValidationFailedException("error.token.value.required");
+            throw new ValidationFailedException("error.token.value.required",null);
 
         if (refreshTokenRepository.findByToken(token).isEmpty())
-            throw new ValidationFailedException("error.token.notfound");
+            throw new ValidationFailedException("error.token.notfound",null);
     }
 }

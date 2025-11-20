@@ -14,6 +14,8 @@ public interface ClientRepresentativeRepository extends JpaRepository<ClientRepr
 
     // 🔹 Tenant & client scope
     List<ClientRepresentative> findByOrganizationIdAndClientIdAndActiveTrue(Long organizationId, Long clientId);
+    
+    List<ClientRepresentative> findByClientIdAndActiveTrue(Long clientId);
 
     Page<ClientRepresentative> findByOrganizationIdAndClientIdAndActiveTrue(Long organizationId, Long clientId, Pageable pageable);
 

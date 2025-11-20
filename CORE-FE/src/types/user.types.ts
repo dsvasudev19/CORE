@@ -1,12 +1,14 @@
 // User Types
 import type { RoleDTO } from './role.types';
 
-export enum UserStatus {
-  ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
-  SUSPENDED = 'SUSPENDED',
-  PENDING = 'PENDING'
-}
+export const UserStatus = {
+  ACTIVE: 'ACTIVE',
+  INACTIVE: 'INACTIVE',
+  SUSPENDED: 'SUSPENDED',
+  PENDING: 'PENDING'
+} as const;
+
+export type UserStatus = typeof UserStatus[keyof typeof UserStatus];
 
 export interface UserDTO {
   id?: number;
@@ -18,6 +20,9 @@ export interface UserDTO {
   lastLoginAt?: string;
   employeeId?: number;
   roles?: RoleDTO[];
+  permissions?: import('./permission.types').PermissionDTO[];
+  roleNames?: string[];
+  permissionKeys?: string[];
   active?: boolean;
   createdAt?: string;
   updatedAt?: string;

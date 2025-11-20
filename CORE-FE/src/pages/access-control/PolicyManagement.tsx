@@ -283,13 +283,13 @@ const PolicyManagement = () => {
                                                 </td>
                                                 <td className="px-3 py-2">
                                                     <span className="px-2 py-0.5 bg-purple-50 text-purple-700 rounded text-xs">
-                                                        {policy.role.name}
+                                                        {policy?.role?.name}
                                                     </span>
                                                 </td>
                                                 <td className="px-3 py-2">
                                                     <div className="flex flex-col">
-                                                        <span className="font-medium text-steel-900">{policy.resource.name}</span>
-                                                        <span className="text-steel-500 text-xs font-mono">{policy.resource.code}</span>
+                                                        <span className="font-medium text-steel-900">{policy?.resource?.name}</span>
+                                                        <span className="text-steel-500 text-xs font-mono">{policy?.resource?.code}</span>
                                                     </div>
                                                 </td>
                                                 <td className="px-3 py-2">

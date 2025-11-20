@@ -6,8 +6,8 @@ import com.dev.core.domain.Contact;
 import com.dev.core.exception.BaseException;
 import com.dev.core.mapper.ClientRepresentativeMapper;
 import com.dev.core.model.ClientRepresentativeDTO;
-import com.dev.core.repository.ClientRepresentativeRepository;
 import com.dev.core.repository.ClientRepository;
+import com.dev.core.repository.ClientRepresentativeRepository;
 import com.dev.core.repository.ContactRepository;
 import com.dev.core.service.AuthorizationService;
 import com.dev.core.service.ClientRepresentativeService;
@@ -31,7 +31,7 @@ public class ClientRepresentativeServiceImpl implements ClientRepresentativeServ
     private final AuthorizationService authorizationService;
 
     private void authorize(String action) {
-        String resource = "CLIENTREPRESENTATIVE";
+        String resource = "CLIENT_REPRESENTATIVE";
         authorizationService.authorize(resource, action);
     }
 
@@ -42,11 +42,22 @@ public class ClientRepresentativeServiceImpl implements ClientRepresentativeServ
 
         Client client = clientRepository.findById(dto.getClientId())
                 .orElseThrow(() -> new BaseException("error.client.not.found", new Object[]{dto.getClientId()}));
+
         Contact contact = contactRepository.findById(dto.getContactId())
                 .orElseThrow(() -> new BaseException("error.contact.not.found", new Object[]{dto.getContactId()}));
 
-        ClientRepresentative entity = ClientRepresentativeMapper.toEntity(dto, null, client, contact);
+        // Handle primary contact logic: if this is set as primary, unset others
+        if (Boolean.TRUE.equals(dto.isPrimaryContact())) {
+            representativeRepository.findByClientIdAndPrimaryContactTrue(dto.getClientId())
+                    .ifPresent(primary -> {
+                        primary.setPrimaryContact(false);
+                        representativeRepository.save(primary);
+                    });
+        }
+
+        ClientRepresentative entity = ClientRepresentativeMapper.toEntity(dto, client, contact);
         ClientRepresentative saved = representativeRepository.save(entity);
+
         return ClientRepresentativeMapper.toDTO(saved);
     }
 
@@ -60,11 +71,22 @@ public class ClientRepresentativeServiceImpl implements ClientRepresentativeServ
 
         Client client = clientRepository.findById(dto.getClientId())
                 .orElseThrow(() -> new BaseException("error.client.not.found", new Object[]{dto.getClientId()}));
+
         Contact contact = contactRepository.findById(dto.getContactId())
                 .orElseThrow(() -> new BaseException("error.contact.not.found", new Object[]{dto.getContactId()}));
 
-        ClientRepresentativeMapper.toEntity(dto, existing, client, contact);
+        // Primary contact change logic
+        if (Boolean.TRUE.equals(dto.isPrimaryContact()) && !existing.isPrimaryContact()) {
+            representativeRepository.findByClientIdAndPrimaryContactTrue(dto.getClientId())
+                    .ifPresent(oldPrimary -> {
+                        oldPrimary.setPrimaryContact(false);
+                        representativeRepository.save(oldPrimary);
+                    });
+        }
+
+        ClientRepresentativeMapper.updateEntityFromDTO(dto, existing, client, contact);
         ClientRepresentative updated = representativeRepository.save(existing);
+
         return ClientRepresentativeMapper.toDTO(updated);
     }
 
@@ -72,8 +94,10 @@ public class ClientRepresentativeServiceImpl implements ClientRepresentativeServ
     public void deactivateRepresentative(Long id) {
         authorize("DELETE");
         if (id == null) throw new BaseException("error.rep.id.required");
+
         ClientRepresentative existing = representativeRepository.findById(id)
                 .orElseThrow(() -> new BaseException("error.rep.not.found", new Object[]{id}));
+
         existing.setActive(false);
         representativeRepository.save(existing);
     }
@@ -82,8 +106,10 @@ public class ClientRepresentativeServiceImpl implements ClientRepresentativeServ
     public void activateRepresentative(Long id) {
         authorize("UPDATE");
         if (id == null) throw new BaseException("error.rep.id.required");
+
         ClientRepresentative existing = representativeRepository.findById(id)
                 .orElseThrow(() -> new BaseException("error.rep.not.found", new Object[]{id}));
+
         existing.setActive(true);
         representativeRepository.save(existing);
     }
@@ -101,9 +127,10 @@ public class ClientRepresentativeServiceImpl implements ClientRepresentativeServ
     @Transactional(readOnly = true)
     public List<ClientRepresentativeDTO> getRepresentativesByClient(Long clientId) {
         authorize("READ");
-        return representativeRepository.findByOrganizationIdAndClientIdAndActiveTrue(null, clientId)
-                // note: repository method requires organizationId. If you want org-scoped, pass orgId; here we assume upper layer provides proper org scoping.
-                .stream().map(ClientRepresentativeMapper::toDTO).collect(Collectors.toList());
+        return representativeRepository.findByClientIdAndActiveTrue(clientId)
+                .stream()
+                .map(ClientRepresentativeMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -111,7 +138,9 @@ public class ClientRepresentativeServiceImpl implements ClientRepresentativeServ
     public List<ClientRepresentativeDTO> getAllRepresentatives(Long organizationId) {
         authorize("READ");
         return representativeRepository.findByOrganizationIdAndActiveTrue(organizationId)
-                .stream().map(ClientRepresentativeMapper::toDTO).collect(Collectors.toList());
+                .stream()
+                .map(ClientRepresentativeMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
     @Override

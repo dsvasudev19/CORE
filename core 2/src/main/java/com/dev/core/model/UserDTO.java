@@ -1,9 +1,11 @@
 package com.dev.core.model;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 
 import com.dev.core.constants.UserStatus;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -21,7 +23,15 @@ public class UserDTO extends BaseDTO {
     private String password;
     private UserStatus status;
     private LocalDateTime lastLoginAt;
-    private Long employeeId;
+    private Long employeeProfileId;
+    private Long clientRepresentativeProfileId;
+
+    @JsonIgnore
     private Set<RoleDTO> roles;
-	
+    @JsonIgnore
+    private Set<PermissionDTO> permissions;   // ✅ NEW LINE
+    
+    private List<String> roleNames;       // Only role names
+    private List<String> permissionKeys;  // resource-action format
+
 }

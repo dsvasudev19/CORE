@@ -15,7 +15,7 @@ const AccessControl = () => {
     // Initialize state from sessionStorage or default to 'resources'
     const [activeTab, setActiveTab] = useState<TabType>(() => {
         const savedTab = sessionStorage.getItem(ACCESS_CONTROL_TAB_KEY);
-        return (savedTab as TabType) || 'resources';
+        return (savedTab as TabType) || 'users';
     });
 
     // Save to sessionStorage whenever tab changes

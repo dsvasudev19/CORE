@@ -5,43 +5,21 @@ import java.util.List;
 
 public interface ClientService {
 
-    /**
-     * Create a new client under an organization.
-     */
-    ClientDTO createClient(ClientDTO dto);
+    ClientDTO createClient(ClientDTO dto);                    // supports nested docs + reps
 
-    /**
-     * Update an existing client’s information.
-     */
-    ClientDTO updateClient(Long id, ClientDTO dto);
+    ClientDTO updateClient(Long id, ClientDTO dto);            // full sync of nested data
 
-    /**
-     * Soft delete or deactivate a client.
-     */
     void deactivateClient(Long id);
 
-    /**
-     * Reactivate a previously deactivated client.
-     */
     void activateClient(Long id);
 
-    /**
-     * Get a client by its ID (scoped by organization).
-     */
-    ClientDTO getClientById(Long id);
+    ClientDTO getClientById(Long id);                          // flat
 
-    /**
-     * Get all active clients for the given organization.
-     */
+    ClientDTO getClientDetailed(Long id);                      // with full nested data
+
     List<ClientDTO> getAllActiveClients(Long organizationId);
 
-    /**
-     * Search clients by name, code, or industry.
-     */
     List<ClientDTO> searchClients(Long organizationId, String keyword);
 
-    /**
-     * Check if client code or name already exists in an organization.
-     */
     boolean existsByCodeOrName(Long organizationId, String code, String name);
 }

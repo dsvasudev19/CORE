@@ -15,6 +15,8 @@ public interface ClientRepository extends JpaRepository<Client, Long>, JpaSpecif
 
     // 🔹 Tenant-scoped finders
     Optional<Client> findByIdAndOrganizationId(Long id, Long organizationId);
+    
+    Optional<Client> findByIdAndOrganizationIdAndActiveTrue(Long clientId,Long organizationId);
 
     List<Client> findByOrganizationIdAndActiveTrue(Long organizationId);
 

@@ -1,3 +1,4 @@
+import { Toaster } from "react-hot-toast";
 import "./App.css";
 import Router from "./Router";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -7,6 +8,7 @@ function App() {
   return (
     <AuthProvider>
       <ChatProvider>
+        <Toaster position="top-right" reverseOrder={false}/>
         <Router />
       </ChatProvider>
     </AuthProvider>

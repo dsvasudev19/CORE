@@ -1,6 +1,7 @@
 package com.dev.core.controller;
 
 import com.dev.core.model.ClientRepresentativeDTO;
+import com.dev.core.security.SecurityContextUtil;
 import com.dev.core.service.ClientRepresentativeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,9 +17,12 @@ import java.util.List;
 public class ClientRepresentativeController {
 
     private final ClientRepresentativeService representativeService;
+    private final SecurityContextUtil securityContext;
 
     @PostMapping
     public ResponseEntity<ClientRepresentativeDTO> addRepresentative(@RequestBody @Validated ClientRepresentativeDTO dto) {
+    	dto.setOrganizationId(securityContext.getCurrentOrganizationId());
+    	
         ClientRepresentativeDTO created = representativeService.addRepresentative(dto);
         return ResponseEntity.ok(created);
     }

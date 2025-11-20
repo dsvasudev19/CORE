@@ -1,13 +1,12 @@
 package com.dev.core.domain;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
-import lombok.experimental.SuperBuilder;
 
 @Entity
-@Table(name = "contacts")
+@Table(name = "contacts", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"organization_id", "email"})
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -18,7 +17,7 @@ public class Contact extends BaseEntity {
     @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name = "email", nullable = false, unique = true)
+    @Column(name = "email", nullable = false)
     private String email;
 
     @Column(name = "phone")
@@ -31,7 +30,7 @@ public class Contact extends BaseEntity {
     private String department;
 
     @Column(name = "type")
-    private String type; // e.g., CLIENT, VENDOR, EMPLOYEE_REF, etc.
+    private String type; // CLIENT, VENDOR, INTERNAL, etc.
 
     @Column(name = "notes", length = 1000)
     private String notes;

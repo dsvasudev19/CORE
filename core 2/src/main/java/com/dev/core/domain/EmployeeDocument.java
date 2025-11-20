@@ -26,4 +26,8 @@ public class EmployeeDocument extends BaseEntity {
     private String filePath;
 
     private boolean verified;
+    
+    @Column(name = "file_id", nullable = false)
+    private String fileId;
+
 }

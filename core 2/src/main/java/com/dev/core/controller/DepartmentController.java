@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/departments")
+@RequestMapping("/api/department")
 @RequiredArgsConstructor
 public class DepartmentController {
 
@@ -52,4 +52,6 @@ public class DepartmentController {
     public ResponseEntity<Long> getTeamCount(@PathVariable Long id) {
         return ResponseEntity.ok(departmentService.getTeamCount(id));
     }
+    
+   
 }

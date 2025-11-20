@@ -11,36 +11,36 @@ public class ProjectFileValidator {
 
     public void validateBeforeUpload(Long projectId, MultipartFile file, String visibility) {
         if (projectId == null || projectId <= 0)
-            throw new ValidationFailedException("error.projectfile.projectid.required");
+            throw new ValidationFailedException("error.projectfile.projectid.required",null);
 
         if (file == null || file.isEmpty())
-            throw new ValidationFailedException("error.projectfile.file.empty");
+            throw new ValidationFailedException("error.projectfile.file.empty",null);
 
         if (!StringUtils.hasText(visibility))
-            throw new ValidationFailedException("error.projectfile.visibility.required");
+            throw new ValidationFailedException("error.projectfile.visibility.required",null);
     }
 
     public void validateBeforeDelete(Long id) {
         if (id == null || id <= 0)
-            throw new ValidationFailedException("error.projectfile.id.required");
+            throw new ValidationFailedException("error.projectfile.id.required",null);
     }
 
     public void validateBeforeGet(Long id) {
         if (id == null || id <= 0)
-            throw new ValidationFailedException("error.projectfile.id.required");
+            throw new ValidationFailedException("error.projectfile.id.required",null);
     }
 
     public void validateDTO(ProjectFileDTO dto) {
         if (dto == null)
-            throw new ValidationFailedException("error.projectfile.dto.null");
+            throw new ValidationFailedException("error.projectfile.dto.null",null);
 
         if (dto.getProjectId() == null)
-            throw new ValidationFailedException("error.projectfile.projectid.required");
+            throw new ValidationFailedException("error.projectfile.projectid.required",null);
 
         if (!StringUtils.hasText(dto.getOriginalFilename()))
-            throw new ValidationFailedException("error.projectfile.filename.required");
+            throw new ValidationFailedException("error.projectfile.filename.required",null);
 
         if (!StringUtils.hasText(dto.getStoredPath()))
-            throw new ValidationFailedException("error.projectfile.path.required");
+            throw new ValidationFailedException("error.projectfile.path.required",null);
     }
 }

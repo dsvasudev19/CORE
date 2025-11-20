@@ -15,6 +15,7 @@ public final class DesignationMapper {
         entity.setOrganizationId(dto.getOrganizationId());
         entity.setTitle(dto.getTitle());
         entity.setDescription(dto.getDescription());
+        entity.setCode(dto.getCode());
         return entity;
     }
 
@@ -25,11 +26,24 @@ public final class DesignationMapper {
                 .organizationId(entity.getOrganizationId())
                 .title(entity.getTitle())
                 .description(entity.getDescription())
+                .code(entity.getCode())
                 .employees(entity.getEmployees() != null
                         ? entity.getEmployees().stream()
                             .map(EmployeeMapper::toDTO)
                             .collect(Collectors.toSet())
                         : null)
+                .build();
+    }
+    
+    public static DesignationDTO toShallowDTO(Designation entity) {
+        if (entity == null) return null;
+
+        return DesignationDTO.builder()
+                .id(entity.getId())
+                .organizationId(entity.getOrganizationId())
+                .title(entity.getTitle())
+                .description(entity.getDescription())
+                .code(entity.getCode())
                 .build();
     }
 }

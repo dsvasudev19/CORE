@@ -21,7 +21,8 @@ const RoleManagement = () => {
     const [formData, setFormData] = useState<RoleDTO>({
         name: '',
         description: '',
-        permissions: []
+        permissions: [],
+        permissionKeys: []
     });
 
     const fetchRoles = async () => {
@@ -62,14 +63,18 @@ const RoleManagement = () => {
         setFormData({
             name: '',
             description: '',
-            permissions: []
+            permissions: [],
+            permissionKeys: []
         });
         setIsModalOpen(true);
     };
 
     const handleEdit = (role: RoleDTO) => {
         setEditingRole(role);
-        setFormData(role);
+        setFormData({
+            ...role,
+            permissionKeys: role.permissionKeys || []
+        });
         setIsModalOpen(true);
     };
 
@@ -217,7 +222,22 @@ const RoleManagement = () => {
                                                 <td className="px-3 py-2 font-medium text-steel-900">{role.name}</td>
                                                 <td className="px-3 py-2 text-steel-600">{role.description}</td>
                                                 <td className="px-3 py-2 text-steel-900 font-medium">
-                                                    {role.permissions?.length || 0}
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {role.permissionKeys?.length ? (
+                                                            role.permissionKeys.slice(0, 3).map((permKey, idx) => (
+                                                                <span key={idx} className="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-xs flex items-center gap-1">
+                                                                    {permKey}
+                                                                </span>
+                                                            ))
+                                                        ) : (
+                                                            <span className="text-xs text-steel-400">No permissions</span>
+                                                        )}
+                                                        {role.permissionKeys && role.permissionKeys.length > 3 && (
+                                                            <span className="px-1.5 py-0.5 bg-steel-100 text-steel-600 rounded text-xs">
+                                                                +{role.permissionKeys.length - 3}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </td>
                                                 <td className="px-3 py-2">
                                                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(role.active)}`}>

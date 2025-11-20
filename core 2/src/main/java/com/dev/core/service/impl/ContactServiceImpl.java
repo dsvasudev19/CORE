@@ -36,7 +36,19 @@ public class ContactServiceImpl implements ContactService {
     public ContactDTO createContact(ContactDTO dto) {
         authorize("CREATE");
         contactValidator.validateForCreate(dto, java.util.Locale.getDefault());
-        Contact entity = ContactMapper.toEntity(dto, null);
+
+        Contact entity = new Contact();
+        // Manually copy fields (since we no longer have toEntity(dto, null))
+        entity.setOrganizationId(dto.getOrganizationId());
+        entity.setName(dto.getName());
+        entity.setEmail(dto.getEmail());
+        entity.setPhone(dto.getPhone());
+        entity.setDesignation(dto.getDesignation());
+        entity.setDepartment(dto.getDepartment());
+        entity.setType(dto.getType());
+        entity.setNotes(dto.getNotes());
+        // active defaults to true from BaseEntity
+
         Contact saved = contactRepository.save(entity);
         return ContactMapper.toDTO(saved);
     }
@@ -49,7 +61,9 @@ public class ContactServiceImpl implements ContactService {
         Contact existing = contactRepository.findById(id)
                 .orElseThrow(() -> new BaseException("error.contact.not.found", new Object[]{id}));
 
-        ContactMapper.toEntity(dto, existing);
+        // Use the new update method from mapper
+        ContactMapper.updateEntityFromDTO(dto, existing);
+
         Contact updated = contactRepository.save(existing);
         return ContactMapper.toDTO(updated);
     }
@@ -58,8 +72,10 @@ public class ContactServiceImpl implements ContactService {
     public void deactivateContact(Long id) {
         authorize("DELETE");
         if (id == null) throw new BaseException("error.contact.id.required");
+
         Contact existing = contactRepository.findById(id)
                 .orElseThrow(() -> new BaseException("error.contact.not.found", new Object[]{id}));
+
         existing.setActive(false);
         contactRepository.save(existing);
     }
@@ -68,8 +84,10 @@ public class ContactServiceImpl implements ContactService {
     public void activateContact(Long id) {
         authorize("UPDATE");
         if (id == null) throw new BaseException("error.contact.id.required");
+
         Contact existing = contactRepository.findById(id)
                 .orElseThrow(() -> new BaseException("error.contact.not.found", new Object[]{id}));
+
         existing.setActive(true);
         contactRepository.save(existing);
     }
@@ -88,24 +106,30 @@ public class ContactServiceImpl implements ContactService {
     public List<ContactDTO> getAllActiveContacts(Long organizationId) {
         authorize("READ");
         return contactRepository.findByOrganizationIdAndActiveTrue(organizationId)
-                .stream().map(ContactMapper::toDTO).collect(Collectors.toList());
+                .stream()
+                .map(ContactMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<ContactDTO> searchContacts(Long organizationId, String keyword) {
         authorize("READ");
+
         Page<Contact> page = contactRepository.findAll(
                 SpecificationBuilder.of(Contact.class)
                         .equals("organizationId", organizationId)
-                        
                         .contains("name", keyword)
                         .contains("email", keyword)
+                        .contains("phone", keyword)
                         .contains("type", keyword)
                         .build(),
                 Pageable.unpaged()
         );
-        return page.map(ContactMapper::toDTO).stream().collect(Collectors.toList());
+
+        return page.stream()
+                .map(ContactMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -113,7 +137,9 @@ public class ContactServiceImpl implements ContactService {
     public List<ContactDTO> getContactsByType(Long organizationId, String type) {
         authorize("READ");
         return contactRepository.findByOrganizationIdAndTypeIgnoreCase(organizationId, type)
-                .stream().map(ContactMapper::toDTO).collect(Collectors.toList());
+                .stream()
+                .map(ContactMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
     @Override

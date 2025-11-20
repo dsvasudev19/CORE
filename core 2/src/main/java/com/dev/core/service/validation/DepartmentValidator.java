@@ -14,10 +14,10 @@ public class DepartmentValidator {
 
     public void validateBeforeCreate(DepartmentDTO dto) {
         if (dto == null)
-            throw new ValidationFailedException("error.department.null");
+            throw new ValidationFailedException("error.department.null",null);
 
         if (dto.getName() == null || dto.getName().isBlank())
-            throw new ValidationFailedException("error.department.name.required");
+            throw new ValidationFailedException("error.department.name.required",null);
 
         boolean exists = departmentRepository.existsByNameAndOrganizationId(dto.getName(), dto.getOrganizationId());
         if (exists)
@@ -26,7 +26,7 @@ public class DepartmentValidator {
 
     public void validateBeforeUpdate(Long id, DepartmentDTO dto) {
         if (id == null)
-            throw new ValidationFailedException("error.department.id.required");
+            throw new ValidationFailedException("error.department.id.required",null);
 
         if (!departmentRepository.existsById(id))
             throw new ValidationFailedException("error.department.notfound", new Object[]{id});
@@ -34,7 +34,7 @@ public class DepartmentValidator {
 
     public void validateBeforeDelete(Long id) {
         if (id == null)
-            throw new ValidationFailedException("error.department.id.required");
+            throw new ValidationFailedException("error.department.id.required",null);
 
         if (!departmentRepository.existsById(id))
             throw new ValidationFailedException("error.department.notfound", new Object[]{id});

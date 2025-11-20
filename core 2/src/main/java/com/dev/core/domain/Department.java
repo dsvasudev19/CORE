@@ -6,7 +6,8 @@ import java.util.Set;
 
 @Entity
 @Table(name = "departments")
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -18,6 +19,9 @@ public class Department extends BaseEntity {
 
     @Column(length = 500)
     private String description;
+    
+    @Column(length=20,nullable=false)
+    private String code;
 
     @OneToMany(mappedBy = "department", fetch = FetchType.LAZY)
     private Set<Employee> employees;

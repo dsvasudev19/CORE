@@ -17,7 +17,9 @@ public class Designation extends BaseEntity {
 
     @Column(length = 255)
     private String description;
-
+    
+    @Column(nullable=false)
+    private String code;
     @OneToMany(mappedBy = "designation", fetch = FetchType.LAZY)
     private Set<Employee> employees;
 }
