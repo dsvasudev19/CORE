@@ -29,6 +29,10 @@ public interface PolicyRepository extends JpaRepository<Policy, Long>, JpaSpecif
     List<Policy> findAllByRoleIdAndResourceIdAndActionId(long roleId, long resourceId, long actionId);
 
     List<Policy> findAllByUserIdAndResourceIdAndActionId(long userId, long resourceId, long actionId);
+    void deleteByRoleIdAndResourceIdAndActionId(long roleId, long resourceId, long actionId);
+    void deleteByUserIdAndResourceIdAndActionId(long userId, long resourceId, long actionId);
+
+
 
 }
 	

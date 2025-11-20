@@ -242,7 +242,6 @@ public class UserMfaServiceImpl implements UserMfaService {
         UserMfaFactor factor = mfaFactorRepository.findByUserIdAndType(userId, MfaType.BACKUP)
                 .orElseGet(UserMfaFactor::new);
 
-        factor.setUser(userId);
         factor.setType(MfaType.BACKUP);
         factor.setBackupCodesJson(csvHashed);  // ← Fixed: use correct column
         factor.setVerified(true);

@@ -51,11 +51,14 @@ public final class EmployeeMapper {
         entity.setToolsTraining(dto.getToolsTraining());
         
      // Manager handling (SAFEST APPROACH)
-        if (dto.getManager().getId() != null) {
+        if (dto.getManager() != null && dto.getManager().getId() != null) {
             Employee manager = new Employee();
             manager.setId(dto.getManager().getId()); // Reference only
             entity.setManager(manager);
+        } else {
+            entity.setManager(null); // IMPORTANT: clear manager if not provided
         }
+
         
         
 

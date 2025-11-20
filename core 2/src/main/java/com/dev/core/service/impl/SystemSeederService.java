@@ -78,7 +78,7 @@ public class SystemSeederService {
         // 3️⃣ Seed Resources (from your domain)
         List<String> baseResources = Arrays.asList(
                 "USER", "ROLE", "POLICY", "RESOURCE", "ACTION",
-                "PERMISSION", "REFRESHTOKEN", "ORGANIZATION", "AUDITLOG"
+                "PERMISSION", "REFRESHTOKEN", "ORGANIZATION", "AUDITLOG","DEPARTMENT","DESIGNATION","EMPLOYEE","EMPLOYEES","CLIENT","TEAM","DOCUMENT","EMPLOYEE-DOCUMENT"
         );
 
         Map<String, ResourceEntity> resources = baseResources.stream()

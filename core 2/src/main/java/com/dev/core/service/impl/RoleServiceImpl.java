@@ -102,6 +102,7 @@ import com.dev.core.domain.Permission;
 import com.dev.core.domain.Policy;
 import com.dev.core.domain.Role;
 import com.dev.core.exception.BaseException;
+import com.dev.core.exception.ResourceNotFoundException;
 import com.dev.core.mapper.PermissionMapper;
 import com.dev.core.mapper.RoleMapper;
 import com.dev.core.model.RoleDTO;
@@ -109,8 +110,10 @@ import com.dev.core.model.RolePermissionIdsDTO;
 import com.dev.core.repository.PermissionRepository;
 import com.dev.core.repository.PolicyRepository;
 import com.dev.core.repository.RoleRepository;
+import com.dev.core.security.SecurityContextUtil;
 import com.dev.core.service.AuthorizationService;
 import com.dev.core.service.RoleService;
+import com.dev.core.service.UserService;
 import com.dev.core.service.validation.RoleValidator;
 import com.dev.core.specification.SpecificationBuilder;
 
@@ -126,6 +129,8 @@ public class RoleServiceImpl implements RoleService {
     private final AuthorizationService authorizationService; // ✅ Injected
     private final PermissionRepository permissionRepository;
     private final PolicyRepository policyRepository;
+    private final UserService userService;
+    private final SecurityContextUtil securityContextUtil;
 
     // Small helper for automatic resource name inference
     private void authorize(String action) {
@@ -208,29 +213,67 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional
     public RoleDTO assignPermissionsToRole(Long roleId, RolePermissionIdsDTO dto) {
+
         Role role = roleRepository.findById(roleId)
-                .orElseThrow(() -> new BaseException("Role not found: " + roleId));
+                .orElseThrow(() -> new ResourceNotFoundException("role.not.found",null));
 
-        Set<Permission> permissionsToAdd = new HashSet<>(permissionRepository.findAllById(dto.getPermissionIds()));
+        // Fetch all permissions that user sent
+        Set<Permission> requestedPermissions =
+                new HashSet<>(permissionRepository.findAllById(dto.getPermissionIds()));
 
-        role.getPermissions().addAll(permissionsToAdd);
+        // Current permissions in DB
+        Set<Permission> existingPermissions = role.getPermissions();
+
+        // 1. Determine removals
+        Set<Permission> toRemove = existingPermissions.stream()
+                .filter(p -> !requestedPermissions.contains(p))
+                .collect(Collectors.toSet());
+
+        // 2. Determine additions
+        Set<Permission> toAdd = requestedPermissions.stream()
+                .filter(p -> !existingPermissions.contains(p))
+                .collect(Collectors.toSet());
+
+        // 3. Apply the changes
+        existingPermissions.removeAll(toRemove);
+        existingPermissions.addAll(toAdd);
+
+        // Save updated role
         Role savedRole = roleRepository.save(role);
 
-        for (Permission perm : permissionsToAdd) {
-            boolean policyExists = policyRepository.existsByRoleIdAndResourceIdAndActionId(
-                    roleId, perm.getResource().getId(), perm.getAction().getId());
-            if (!policyExists) {
-                Policy policy = new Policy();
-                policy.setRole(role);
-                policy.setResource(perm.getResource());
-                policy.setAction(perm.getAction());
-                policy.setOrganizationId(role.getOrganizationId());
-                policyRepository.save(policy);
+        // --- SYNC POLICIES ALSO ---
+
+        // Remove policies for removed permissions
+        for (Permission perm : toRemove) {
+            policyRepository.deleteByRoleIdAndResourceIdAndActionId(
+                roleId,
+                perm.getResource().getId(),
+                perm.getAction().getId()
+            );
+        }
+
+        // Add policies for added permissions
+        for (Permission perm : toAdd) {
+            boolean exists = policyRepository.existsByRoleIdAndResourceIdAndActionId(
+                    roleId,
+                    perm.getResource().getId(),
+                    perm.getAction().getId()
+            );
+
+            if (!exists) {
+                Policy pol = new Policy();
+                pol.setRole(role);
+                pol.setResource(perm.getResource());
+                pol.setAction(perm.getAction());
+                pol.setDescription("Assigned By "+userService.getUserById(securityContextUtil.getCurrentUserId()).getUsername());
+                pol.setOrganizationId(role.getOrganizationId());
+                policyRepository.save(pol);
             }
         }
 
         return RoleMapper.toDTO(savedRole);
     }
+
 
     @Override
     @Transactional

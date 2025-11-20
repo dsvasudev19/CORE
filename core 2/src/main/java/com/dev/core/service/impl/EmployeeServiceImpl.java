@@ -114,7 +114,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         if (dto.getSecurityTraining() != null) entity.setSecurityTraining(dto.getSecurityTraining());
         if (dto.getToolsTraining() != null) entity.setToolsTraining(dto.getToolsTraining());
 
-        if (dto.getManager().getId() != null) {
+        if (dto.getManager() != null && dto.getManager().getId() != null) {
             Employee manager = employeeRepository.findById(dto.getManager().getId())
                     .orElseThrow(() -> new ValidationFailedException("error.manager.notfound", new Object[]{dto.getManager().getId()}));
             entity.setManager(manager);
@@ -140,12 +140,10 @@ public class EmployeeServiceImpl implements EmployeeService {
         UserDTO createdUser = userService.createUserForEmployee(saved.getId(), userDto);
         
         try {
-            notificationService.sendTemplateEmail(
+            notificationService.sendEmail(
                     saved.getEmail(),
                     "Welcome to the Company!",
-                    "employee-welcome",
-                    saved
-            );
+                    saved.toString()            );
         } catch (Exception ex) {
             notificationService.handleNotificationFailure(saved.getEmail(), "Failed to send welcome email", ex);
         }

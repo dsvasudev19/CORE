@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { Search, Filter, Plus, Edit2, Trash2, Eye, ChevronDown, ChevronUp, X, Check } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { roleService } from '../../services/role.service';
+import { permissionService } from '../../services/permission.service';
 import type { RoleDTO } from '../../types/role.types';
+import type { PermissionDTO } from '../../types/permission.types';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 
@@ -24,6 +26,8 @@ const RoleManagement = () => {
         permissions: [],
         permissionKeys: []
     });
+    const [allPermissions, setAllPermissions] = useState<PermissionDTO[]>([]);
+    const [selectedPermissionIds, setSelectedPermissionIds] = useState<number[]>([]);
 
     const fetchRoles = async () => {
         if (!user?.organizationId) return;
@@ -46,6 +50,23 @@ const RoleManagement = () => {
         }
     };
 
+    // Fetch permissions on component mount
+    useEffect(() => {
+        const fetchPermissions = async () => {
+            if (!user?.organizationId) return;
+            try {
+                const permissions = await permissionService.getPermissionsByOrganization(user.organizationId);
+                setAllPermissions(permissions);
+            } catch (error) {
+                console.error('Error fetching permissions:', error);
+            }
+        };
+
+        if (user?.organizationId) {
+            fetchPermissions();
+        }
+    }, [user?.organizationId]);
+
     // Fetch roles on component mount and when filters change
     useEffect(() => {
         if (user?.organizationId) {
@@ -66,6 +87,7 @@ const RoleManagement = () => {
             permissions: [],
             permissionKeys: []
         });
+        setSelectedPermissionIds([]);
         setIsModalOpen(true);
     };
 
@@ -75,6 +97,18 @@ const RoleManagement = () => {
             ...role,
             permissionKeys: role.permissionKeys || []
         });
+
+        // Map permissionKeys to permissionIds
+        const permissionIds = (role.permissionKeys || [])
+            .map(key => {
+                const permission = allPermissions.find(p =>
+                    `${p.resource?.code}-${p.action?.code}` === key
+                );
+                return permission?.id;
+            })
+            .filter((id): id is number => id !== undefined);
+
+        setSelectedPermissionIds(permissionIds);
         setIsModalOpen(true);
     };
 
@@ -112,11 +146,18 @@ const RoleManagement = () => {
                 organizationId: user.organizationId
             };
 
+            let roleId: number;
             if (editingRole?.id) {
                 await roleService.updateRole(editingRole.id, roleData);
+                roleId = editingRole.id;
             } else {
-                await roleService.createRole(roleData);
+                const createdRole = await roleService.createRole(roleData);
+                roleId = createdRole.id!;
             }
+
+            // Assign permissions to the role (always call to update/clear permissions)
+            await roleService.assignPermissionsToRole(roleId, selectedPermissionIds);
+
             setIsModalOpen(false);
             fetchRoles();
         } catch (error) {
@@ -310,9 +351,10 @@ const RoleManagement = () => {
 
             {/* Create/Edit Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg border border-steel-200 p-6 w-full max-w-md">
-                        <div className="flex items-center justify-between mb-4">
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+                        {/* Modal Header - Fixed */}
+                        <div className="flex items-center justify-between p-6 border-b border-steel-200 bg-white">
                             <h3 className="text-lg font-bold text-steel-900">
                                 {editingRole ? 'Edit Role' : 'Create New Role'}
                             </h3>
@@ -320,50 +362,149 @@ const RoleManagement = () => {
                                 <X size={20} />
                             </button>
                         </div>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-medium text-steel-700 mb-1">
-                                    Role Name <span className="text-red-600">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    className="w-full px-3 py-2 text-sm border border-steel-300 rounded focus:outline-none focus:ring-2 focus:ring-burgundy-500"
-                                    placeholder="e.g., HR Manager"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium text-steel-700 mb-1">
-                                    Description <span className="text-red-600">*</span>
-                                </label>
-                                <textarea
-                                    value={formData.description}
-                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                    className="w-full px-3 py-2 text-sm border border-steel-300 rounded focus:outline-none focus:ring-2 focus:ring-burgundy-500"
-                                    placeholder="Describe the role's responsibilities"
-                                    rows={3}
-                                    required
-                                />
-                            </div>
-                            <div className="flex items-center gap-2 pt-4">
-                                <button
-                                    type="submit"
-                                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-burgundy-600 rounded hover:bg-burgundy-700 flex items-center justify-center gap-2"
-                                >
-                                    <Check size={16} />
-                                    {editingRole ? 'Update Role' : 'Create Role'}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setIsModalOpen(false)}
-                                    className="px-4 py-2 text-sm font-medium text-steel-700 bg-white border border-steel-300 rounded hover:bg-steel-50"
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        </form>
+
+                        {/* Modal Body - Scrollable */}
+                        <div className="flex-1 overflow-y-auto p-6 bg-white">
+                            <form id="role-form" onSubmit={handleSubmit} className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-medium text-steel-700 mb-1">
+                                        Role Name <span className="text-red-600">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        className="w-full px-3 py-2 text-sm border border-steel-300 rounded focus:outline-none focus:ring-2 focus:ring-burgundy-500"
+                                        placeholder="e.g., HR Manager"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-steel-700 mb-1">
+                                        Description <span className="text-red-600">*</span>
+                                    </label>
+                                    <textarea
+                                        value={formData.description}
+                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                        className="w-full px-3 py-2 text-sm border border-steel-300 rounded focus:outline-none focus:ring-2 focus:ring-burgundy-500"
+                                        placeholder="Describe the role's responsibilities"
+                                        rows={3}
+                                        required
+                                    />
+                                </div>
+                                <div className="pb-6">
+                                    <label className="block text-xs font-medium text-steel-700 mb-1">
+                                        Permissions
+                                    </label>
+                                    {/* Compact Dropdown Trigger */}
+                                    <div className="relative z-20">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const dropdown = document.getElementById('permission-dropdown');
+                                                if (dropdown) {
+                                                    dropdown.classList.toggle('hidden');
+                                                }
+                                            }}
+                                            className="w-full px-3 py-2 text-sm border border-steel-300 rounded focus:outline-none focus:ring-2 focus:ring-burgundy-500 bg-white hover:border-steel-400 flex items-center justify-between"
+                                        >
+                                            <span className="text-steel-600">
+                                                {selectedPermissionIds.length > 0
+                                                    ? `${selectedPermissionIds.length} permission${selectedPermissionIds.length > 1 ? 's' : ''} selected`
+                                                    : 'Select permissions...'}
+                                            </span>
+                                            <ChevronDown size={16} className="text-steel-400" />
+                                        </button>
+
+                                        {/* Dropdown Panel */}
+                                        {/* Dropdown Panel - appears above everything */}
+                                        <div
+                                            id="permission-dropdown"
+                                            className="hidden fixed z-[60] bg-white border border-steel-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+                                            style={{
+                                                width: 'calc(100% - 48px)', // Match the input width accounting for padding
+                                                maxWidth: 'calc(576px - 48px)' // Match modal max-width minus padding
+                                            }}
+                                        >
+                                            <div className="p-2 border-b border-steel-200 sticky top-0 bg-white z-10">
+                                                <div className="relative">
+                                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-steel-400" />
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Search permissions..."
+                                                        onChange={(e) => {
+                                                            const searchTerm = e.target.value.toLowerCase();
+                                                            const items = document.querySelectorAll('[data-permission-item]');
+                                                            items.forEach(item => {
+                                                                const label = item.getAttribute('data-permission-label')?.toLowerCase() || '';
+                                                                if (label.includes(searchTerm)) {
+                                                                    (item as HTMLElement).style.display = 'flex';
+                                                                } else {
+                                                                    (item as HTMLElement).style.display = 'none';
+                                                                }
+                                                            });
+                                                        }}
+                                                        className="w-full pl-9 pr-3 py-1.5 text-xs border border-steel-300 rounded focus:outline-none focus:ring-1 focus:ring-burgundy-500"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="p-1">
+                                                {allPermissions.map(p => {
+                                                    const label = `${p.resource?.name || p.resource?.code || ''} - ${p.action?.name || p.action?.code || ''}`;
+                                                    const isSelected = selectedPermissionIds.includes(p.id!);
+                                                    return (
+                                                        <div
+                                                            key={p.id}
+                                                            data-permission-item
+                                                            data-permission-label={label}
+                                                            onClick={() => {
+                                                                if (isSelected) {
+                                                                    setSelectedPermissionIds(prev => prev.filter(id => id !== p.id));
+                                                                } else {
+                                                                    setSelectedPermissionIds(prev => [...prev, p.id!]);
+                                                                }
+                                                            }}
+                                                            className="flex items-center gap-2 px-2 py-1.5 hover:bg-steel-50 cursor-pointer rounded text-xs"
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={isSelected}
+                                                                onChange={() => { }}
+                                                                className="w-3.5 h-3.5 text-burgundy-600 border-steel-300 rounded focus:ring-burgundy-500"
+                                                            />
+                                                            <span className={isSelected ? 'font-medium text-steel-900' : 'text-steel-700'}>
+                                                                {label}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+
+
+                                </div>
+                            </form>
+                        </div>
+
+                        {/* Modal Footer - Fixed */}
+                        <div className="flex items-center gap-2 p-6 border-t border-steel-200 bg-steel-50 rounded-b-lg">
+                            <button
+                                type="submit"
+                                form="role-form"
+                                className="flex-1 px-4 py-2 text-sm font-medium text-white bg-burgundy-600 rounded hover:bg-burgundy-700 flex items-center justify-center gap-2"
+                            >
+                                <Check size={16} />
+                                {editingRole ? 'Update Role' : 'Create Role'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setIsModalOpen(false)}
+                                className="px-4 py-2 text-sm font-medium text-steel-700 bg-white border border-steel-300 rounded hover:bg-steel-50"
+                            >
+                                Cancel
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

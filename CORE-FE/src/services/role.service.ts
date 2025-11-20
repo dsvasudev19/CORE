@@ -59,4 +59,16 @@ export const roleService = {
     });
     return response.data.data;
   },
+
+  // Assign permissions to role
+  assignPermissionsToRole: async (
+    roleId: number,
+    permissionIds: number[]
+  ): Promise<RoleDTO> => {
+    const response = await axiosInstance.patch(
+      `${ROLE_API_BASE}/${roleId}/permissions/assign`,
+      { permissionIds }
+    );
+    return response.data.data;
+  },
 };

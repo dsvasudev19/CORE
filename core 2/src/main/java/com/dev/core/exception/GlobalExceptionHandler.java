@@ -5,6 +5,7 @@ import com.dev.core.api.ControllerHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 
 import java.util.Locale;
+import java.util.Map;
 
 @ControllerAdvice
 @Slf4j
@@ -82,6 +84,23 @@ public class GlobalExceptionHandler {
                 request.getDescription(false)
         );
     }
+    
+    @ExceptionHandler(UnauthorizedAccessException.class)
+    public ResponseEntity<Object> handleUnauthorized(UnauthorizedAccessException ex) {
+        String message = messageSource.getMessage(
+                ex.getErrorCode(),
+                ex.getParams(),
+                LocaleContextHolder.getLocale()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of(
+                        "error", message,
+                        "code", ex.getErrorCode()
+                ));
+    }
+
 
     /**
      * Safely resolve messages from the MessageSource.

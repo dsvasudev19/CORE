@@ -11,6 +11,7 @@ import com.dev.core.domain.Policy;
 import com.dev.core.domain.Role;
 import com.dev.core.domain.User;
 import com.dev.core.exception.BaseException;
+import com.dev.core.exception.UnauthorizedAccessException;
 import com.dev.core.repository.PolicyRepository;
 import com.dev.core.repository.UserRepository;
 import com.dev.core.security.SecurityContextUtil;
@@ -180,7 +181,10 @@ public class AuthorizationServiceImpl implements AuthorizationService {
                     resourceCode,
                     actionCode);
 
-            throw new BaseException("error.auth.access.denied", new Object[]{resourceCode, actionCode});
+            throw new UnauthorizedAccessException(
+            	    "error.auth.access.denied",
+            	    resourceCode, actionCode
+            	);
         }
 
         log.debug("🏁 [AUTHZ] Authorization check complete for userId={} → allowed={}", userId, allowed);

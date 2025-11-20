@@ -122,6 +122,7 @@ import com.dev.core.domain.Permission;
 import com.dev.core.domain.Policy;
 import com.dev.core.domain.User;
 import com.dev.core.exception.BaseException;
+import com.dev.core.exception.ResourceNotFoundException;
 import com.dev.core.mapper.RoleMapper;
 import com.dev.core.mapper.UserMapper;
 import com.dev.core.model.UserDTO;
@@ -131,6 +132,7 @@ import com.dev.core.repository.EmployeeRepository;
 import com.dev.core.repository.PermissionRepository;
 import com.dev.core.repository.PolicyRepository;
 import com.dev.core.repository.UserRepository;
+import com.dev.core.security.SecurityContextUtil;
 import com.dev.core.service.AuthorizationService; // ✅ Correct import
 import com.dev.core.service.NotificationService;
 import com.dev.core.service.UserService;
@@ -153,6 +155,7 @@ public class UserServiceImpl implements UserService {
     private final EmployeeRepository employeeRepository;
     private final ClientRepresentativeRepository clientRepresentativeRepository;
     private final NotificationService notificationService;
+    private final SecurityContextUtil securityContextUtil;
     /**
      * Helper method to perform dynamic policy-based authorization.
      */
@@ -254,20 +257,54 @@ public class UserServiceImpl implements UserService {
     public UserDTO assignPermissionsToUser(Long userId, UserPermissionIdsDTO dto) {
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BaseException("User not found: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("user.not.found", new Object[]{userId}));
 
-        Set<Permission> permissionsToAdd =
+        // Permissions requested by frontend
+        Set<Permission> requestedPermissions =
                 new HashSet<>(permissionRepository.findAllById(dto.getPermissionIds()));
 
-        if (user.getPermissions() == null) {
-            user.setPermissions(new HashSet<>());
-        }
+        // Current permissions in DB
+        Set<Permission> currentPermissions =
+                Optional.ofNullable(user.getPermissions())
+                        .orElseGet(() -> {
+                            Set<Permission> newSet = new HashSet<>();
+                            user.setPermissions(newSet);
+                            return newSet;
+                        });
 
-        user.getPermissions().addAll(permissionsToAdd);
 
+        // Determine removals
+        Set<Permission> toRemove = currentPermissions.stream()
+                .filter(p -> !requestedPermissions.contains(p))
+                .collect(Collectors.toSet());
+
+        // Determine additions
+        Set<Permission> toAdd = requestedPermissions.stream()
+                .filter(p -> !currentPermissions.contains(p))
+                .collect(Collectors.toSet());
+
+        // Apply sync
+        currentPermissions.removeAll(toRemove);
+        currentPermissions.addAll(toAdd);
+
+        // Save updated user
         User savedUser = userRepository.save(user);
 
-        for (Permission perm : permissionsToAdd) {
+        // -------------------------
+        // POLICY SYNC STARTS HERE
+        // -------------------------
+
+        // Remove stale policies
+        for (Permission perm : toRemove) {
+            policyRepository.deleteByUserIdAndResourceIdAndActionId(
+                    userId,
+                    perm.getResource().getId(),
+                    perm.getAction().getId()
+            );
+        }
+
+        // Add new policies
+        for (Permission perm : toAdd) {
 
             Long resourceId = perm.getResource().getId();
             Long actionId   = perm.getAction().getId();
@@ -278,23 +315,24 @@ public class UserServiceImpl implements UserService {
 
             if (!exists) {
 
-                // --- 🔥 Auto-generate description: <RESOURCE>-<ACTION> ---
-                String resourceCode = perm.getResource().getCode();
-                String actionCode   = perm.getAction().getCode();
-                String description  = resourceCode + " - " + actionCode;
+                String description = 
+                        "Assigned By: " + this.getUserById(securityContextUtil.getCurrentUserId()).getUsername();
 
                 Policy policy = new Policy();
                 policy.setUser(user);
                 policy.setResource(perm.getResource());
                 policy.setAction(perm.getAction());
                 policy.setOrganizationId(user.getOrganizationId());
-                policy.setDescription(description);  // 🚀 auto-set description
+                policy.setDescription(description);
+
                 policyRepository.save(policy);
             }
         }
 
         return UserMapper.toDTO(savedUser);
     }
+
+
 
     @Override
     @Transactional
