@@ -260,7 +260,7 @@ import {
     Menu,
     X,
     Home,
-    Users,
+    // Users,
     FolderOpen,
     MessageSquare,
     Calendar,
@@ -295,7 +295,6 @@ const DashboardLayout = () => {
     const navigation = [
         { name: 'Dashboard', href: '/a/dashboard', icon: Home },
         { name: 'Employees', href: '/a/employees', icon: UserPlus },
-        { name: 'Teams', href: '/a/teams', icon: Users },
         { name: 'Recruitment', href: '/a/recruitment', icon: Briefcase },
         { name: 'Attendance', href: '/a/attendance', icon: Clock },
         { name: 'Payroll', href: '/a/payroll', icon: Target },

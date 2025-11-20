@@ -32,12 +32,15 @@ import com.dev.core.repository.EmployeeRepository;
 import com.dev.core.repository.EmploymentHistoryRepository;
 import com.dev.core.repository.TeamMemberRepository;
 import com.dev.core.repository.TeamRepository;
+import com.dev.core.security.SecurityContextUtil;
 import com.dev.core.service.AuthorizationService;
 import com.dev.core.service.EmployeeService;
 import com.dev.core.service.NotificationService;
 import com.dev.core.service.UserService;
 import com.dev.core.service.validation.EmployeeValidator;
 import com.dev.core.specification.SpecificationBuilder;
+import com.dev.core.util.EmployeeCodeHelper;
+import com.dev.core.util.PasswordGenerator;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -62,7 +65,8 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     private final NotificationService notificationService;
     private final EmployeeAssetRepository employeeAssetRepository;
-
+    private final SecurityContextUtil securityContext;
+   
 
     /**
      * Helper for RBAC authorization
@@ -110,24 +114,27 @@ public class EmployeeServiceImpl implements EmployeeService {
         if (dto.getSecurityTraining() != null) entity.setSecurityTraining(dto.getSecurityTraining());
         if (dto.getToolsTraining() != null) entity.setToolsTraining(dto.getToolsTraining());
 
-        if (dto.getManagerId() != null) {
-            Employee manager = employeeRepository.findById(dto.getManagerId())
-                    .orElseThrow(() -> new ValidationFailedException("error.manager.notfound", new Object[]{dto.getManagerId()}));
+        if (dto.getManager().getId() != null) {
+            Employee manager = employeeRepository.findById(dto.getManager().getId())
+                    .orElseThrow(() -> new ValidationFailedException("error.manager.notfound", new Object[]{dto.getManager().getId()}));
             entity.setManager(manager);
         }
 
         // Default status
         if (entity.getStatus() == null)
             entity.setStatus(dto.getStatus() != null ? dto.getStatus() : com.dev.core.constants.EmployeeStatus.ACTIVE);
-
+        entity.setEmployeeCode(EmployeeCodeHelper.generateEmployeeCode(dto.getDepartment().getName()));
+        entity.setProfileStatus(ProfileStatus.OPENED);
+        entity.setOrganizationId(securityContext.getCurrentOrganizationId());
+        entity.setJoiningDate(LocalDate.now());
         Employee saved = employeeRepository.save(entity);
         log.info("✅ Employee created: {} ({})", saved.getFirstName(), saved.getEmail());
         
         UserDTO userDto = new UserDTO();
         userDto.setOrganizationId(saved.getOrganizationId());
         userDto.setUsername(saved.getEmployeeCode());  // OR saved.getEmail() — your choice
-        userDto.setEmail(saved.getEmail());
-        userDto.setPassword("Temp@123"); // or auto-generate
+        userDto.setEmail(saved.getFirstName()+"."+saved.getLastName()+"@core.com");
+        userDto.setPassword(PasswordGenerator.generatePassword()); // or auto-generate
         userDto.setStatus(UserStatus.ACTIVE);
 
         UserDTO createdUser = userService.createUserForEmployee(saved.getId(), userDto);
@@ -237,13 +244,13 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<EmployeeDTO> getAllEmployees(Long organizationId) {
+    public Page<EmployeeDTO> getAllEmployees(Long organizationId, Pageable pageable) {
         authorize("READ");
-        return employeeRepository.findByOrganizationId(organizationId)
-                .stream()
-                .map(EmployeeMapper::toDTO)
-                .collect(Collectors.toList());
+
+        return employeeRepository.findByOrganizationId(organizationId, pageable)
+                .map(EmployeeMapper::toDTO); // Page.map() is efficient
     }
+
 
     @Override
     @Transactional(readOnly = true)
@@ -588,6 +595,12 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .map(EmployeeAssetMapper::toDTO)
                 .collect(Collectors.toList());
     }
+
+	@Override
+	public List<EmployeeDTO> getAllEmployees(Long organizationId) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
     
    

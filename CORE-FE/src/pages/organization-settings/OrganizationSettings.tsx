@@ -1,21 +1,20 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Building2, Users } from 'lucide-react';
 import DepartmentList from '../departments/DepartmentList';
 import DesignationList from '../designations/DesignationList';
 
-// Tab type
-type TabType = 'departments' | 'designations';
+import TeamList from '../teams/TeamList';
+
+type TabType = 'departments' | 'designations' | 'teams';
 
 const ORG_SETTINGS_TAB_KEY = 'orgSettingsActiveTab';
 
 const OrganizationSettings = () => {
-  // Initialize state from sessionStorage or default to 'departments'
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     const savedTab = sessionStorage.getItem(ORG_SETTINGS_TAB_KEY);
     return (savedTab as TabType) || 'departments';
   });
 
-  // Save to sessionStorage whenever tab changes
   useEffect(() => {
     sessionStorage.setItem(ORG_SETTINGS_TAB_KEY, activeTab);
   }, [activeTab]);
@@ -23,6 +22,7 @@ const OrganizationSettings = () => {
   const tabs = [
     { id: 'departments' as TabType, label: 'Departments', icon: Building2 },
     { id: 'designations' as TabType, label: 'Designations', icon: Users },
+    { id: 'teams' as TabType, label: 'Teams', icon: Users },
   ];
 
   return (
@@ -33,7 +33,7 @@ const OrganizationSettings = () => {
           <Building2 size={24} className="text-burgundy-600" />
           <div>
             <h1 className="text-2xl font-bold text-steel-900">Organization Settings</h1>
-            <p className="text-xs text-steel-500 mt-0.5">Manage departments and designations for your organization</p>
+            <p className="text-xs text-steel-500 mt-0.5">Manage departments, designations, and teams for your organization</p>
           </div>
         </div>
 
@@ -58,6 +58,7 @@ const OrganizationSettings = () => {
       <div className="mt-4">
         {activeTab === 'departments' && <DepartmentList key="departments" />}
         {activeTab === 'designations' && <DesignationList key="designations" />}
+        {activeTab === 'teams' && <TeamList key="teams" />}
       </div>
     </div>
   );

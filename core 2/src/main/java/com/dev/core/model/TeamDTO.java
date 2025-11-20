@@ -7,6 +7,8 @@ import java.util.Set;
 
 @Data
 @SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
 public class TeamDTO extends BaseDTO {
 
     private String name;

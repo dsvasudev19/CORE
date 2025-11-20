@@ -34,4 +34,16 @@ public final class DesignationMapper {
                         : null)
                 .build();
     }
+    
+    public static DesignationDTO toShallowDTO(Designation entity) {
+        if (entity == null) return null;
+
+        return DesignationDTO.builder()
+                .id(entity.getId())
+                .organizationId(entity.getOrganizationId())
+                .title(entity.getTitle())
+                .description(entity.getDescription())
+                .code(entity.getCode())
+                .build();
+    }
 }

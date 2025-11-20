@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  Search, Plus, Filter, Building2, Globe, MapPin, MoreVertical, Eye, Edit, Archive, 
+  Search, Plus, Building2, Globe, MapPin, MoreVertical, Eye, Edit, Archive,
   CheckCircle, AlertCircle, Loader2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -31,7 +31,7 @@ const ClientListingPage: React.FC = () => {
   const [error, setError] = useState('');
   
   const [searchKeyword, setSearchKeyword] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterStatus] = useState('all');
   const [activeMenu, setActiveMenu] = useState<number | null>(null);
 
   const organizationId = 1; // TODO: Get from auth context
@@ -43,9 +43,9 @@ const ClientListingPage: React.FC = () => {
     try {
       const res = await axiosInstance.get(`/client/organization/${organizationId}`);
       setClients(res.data || []);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load clients');
-      console.error('Error loading clients:', err);
+    } catch {
+      setError('Failed to load clients');
+      console.error('Error loading clients');
     } finally {
       setLoading(false);
     }
@@ -88,8 +88,8 @@ const ClientListingPage: React.FC = () => {
       ));
       
       setActiveMenu(null);
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to update status');
+    } catch {
+      alert('Failed to update status');
     }
   };
 

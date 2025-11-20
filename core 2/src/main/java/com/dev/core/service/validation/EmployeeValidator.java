@@ -29,13 +29,7 @@ public class EmployeeValidator {
             throw new ValidationFailedException("error.employee.email.exists",
                     new Object[]{dto.getEmail()});
 
-        if (dto.getDepartmentId() != null && !departmentRepository.existsById(dto.getDepartmentId()))
-            throw new ValidationFailedException("error.department.notfound",
-                    new Object[]{dto.getDepartmentId()});
-
-        if (dto.getDesignationId() != null && !designationRepository.existsById(dto.getDesignationId()))
-            throw new ValidationFailedException("error.designation.notfound",
-                    new Object[]{dto.getDesignationId()});
+      
     }
 
     public void validateBeforeUpdate(Long id, EmployeeDTO dto) {

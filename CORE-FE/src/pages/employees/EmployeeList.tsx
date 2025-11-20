@@ -1,29 +1,106 @@
-import { useState } from 'react';
-import { Search, Filter, Download, Plus, MoreVertical, Edit2, Eye, Users, TrendingUp, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import axiosInstance from '../../axiosInstance';
+import { Search, Filter, Download, Plus, Users, TrendingUp, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
+
+interface Department {
+  id: number;
+  name: string;
+}
+interface Designation {
+  id: number;
+  title: string;
+}
+interface TeamMembership {
+  teamId: number;
+  teamName: string;
+}
+interface Employee {
+  id: number;
+  employeeCode: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  designation?: Designation;
+  department?: Department;
+  teamMemberships?: TeamMembership[];
+  systemAccess?: string[];
+  joiningDate?: string;
+  status: string;
+}
+
+interface EmployeePage {
+  content: Employee[];
+  totalElements: number;
+  totalPages: number;
+  number: number; // current page (0-based)
+  size: number;
+}
 
 const EmployeeList = () => {
   const [showFilters, setShowFilters] = useState(false);
-  const [,] = useState([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: string }>({ key: null, direction: 'asc' });
+  const [page, setPage] = useState(0); // 0-based
+  const [size] = useState(8);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
 
-  // Mock data
-  const stats = [
-    { label: 'Total', value: '248', change: '+12', icon: Users, color: 'bg-navy-500' },
-    { label: 'Active', value: '232', change: '+8', icon: TrendingUp, color: 'bg-green-500' },
-    { label: 'On Leave', value: '12', change: '-3', icon: Calendar, color: 'bg-yellow-500' },
-    { label: 'New (30d)', value: '16', change: '+16', icon: Plus, color: 'bg-coral-500' }
-  ];
+  // Stats will be calculated from employees data
+  const [stats, setStats] = useState([
+    { label: 'Total', value: '0', change: '+0', icon: Users, color: 'bg-navy-500' },
+    { label: 'Active', value: '0', change: '+0', icon: TrendingUp, color: 'bg-green-500' },
+    { label: 'On Leave', value: '0', change: '-0', icon: Calendar, color: 'bg-yellow-500' },
+    { label: 'New (30d)', value: '0', change: '+0', icon: Plus, color: 'bg-coral-500' }
+  ]);
 
-  const employees = [
-    { id: 1, name: 'Sarah Mitchell', email: 's.mitchell@company.com', empId: 'EMP001', role: 'Senior Developer', department: 'Engineering', team: 'Core Platform', joining: '2022-03-15', status: 'Active', skills: ['React', 'Node.js', 'AWS'] },
-    { id: 2, name: 'James Rodriguez', email: 'j.rodriguez@company.com', empId: 'EMP002', role: 'Team Lead', department: 'Engineering', team: 'Mobile Apps', joining: '2021-08-20', status: 'Active', skills: ['Flutter', 'iOS', 'Android'] },
-    { id: 3, name: 'Emily Chen', email: 'e.chen@company.com', empId: 'EMP003', role: 'UX Designer', department: 'Design', team: 'Product Design', joining: '2023-01-10', status: 'Active', skills: ['Figma', 'UI/UX', 'Prototyping'] },
-    { id: 4, name: 'Michael Brown', email: 'm.brown@company.com', empId: 'EMP004', role: 'DevOps Engineer', department: 'Engineering', team: 'Infrastructure', joining: '2020-11-05', status: 'On Leave', skills: ['Docker', 'K8s', 'AWS'] },
-    { id: 5, name: 'Lisa Wang', email: 'l.wang@company.com', empId: 'EMP005', role: 'Product Manager', department: 'Product', team: 'Core Product', joining: '2021-06-12', status: 'Active', skills: ['Agile', 'JIRA', 'Analytics'] },
-    { id: 6, name: 'David Kim', email: 'd.kim@company.com', empId: 'EMP006', role: 'QA Engineer', department: 'Quality', team: 'Test Automation', joining: '2022-09-18', status: 'Active', skills: ['Selenium', 'Jest', 'Cypress'] },
-    { id: 7, name: 'Anna Kowalski', email: 'a.kowalski@company.com', empId: 'EMP007', role: 'Data Scientist', department: 'Data', team: 'ML Engineering', joining: '2023-02-28', status: 'Active', skills: ['Python', 'TensorFlow', 'SQL'] },
-    { id: 8, name: 'Robert Taylor', email: 'r.taylor@company.com', empId: 'EMP008', role: 'Backend Developer', department: 'Engineering', team: 'API Team', joining: '2022-05-03', status: 'Active', skills: ['Java', 'Spring Boot', 'MySQL'] }
-  ];
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // Replace organizationId with actual value as needed
+        const orgId = 1;
+        const res = await axiosInstance.get('/employees', {
+          params: {
+            organizationId: orgId,
+            page,
+            size,
+            sort: sortConfig.key ? `${sortConfig.key},${sortConfig.direction}` : undefined
+          }
+        });
+        // Spring returns a Page object in res.data.data
+        const pageData: EmployeePage = res.data?.data;
+        setEmployees(pageData.content);
+        setTotalPages(pageData.totalPages);
+        setTotalElements(pageData.totalElements);
+        // Calculate stats
+        const total = pageData.totalElements;
+        const active = pageData.content.filter((e) => e.status === 'ACTIVE').length;
+        const onLeave = pageData.content.filter((e) => e.status === 'ON_LEAVE').length;
+        // New (30d) logic can be improved if backend provides joiningDate
+        const new30d = pageData.content.filter((e) => {
+          if (!e.joiningDate) return false;
+          const joinDate = new Date(e.joiningDate);
+          const now = new Date();
+          const diff = (now.getTime() - joinDate.getTime()) / (1000 * 3600 * 24);
+          return diff <= 30;
+        }).length;
+        setStats([
+          { label: 'Total', value: String(total), change: '+0', icon: Users, color: 'bg-navy-500' },
+          { label: 'Active', value: String(active), change: '+0', icon: TrendingUp, color: 'bg-green-500' },
+          { label: 'On Leave', value: String(onLeave), change: '-0', icon: Calendar, color: 'bg-yellow-500' },
+          { label: 'New (30d)', value: String(new30d), change: `+${new30d}`, icon: Plus, color: 'bg-coral-500' }
+        ]);
+      } catch {
+        setError('Failed to fetch employees');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchEmployees();
+  }, [page, size, sortConfig]);
 
   const handleSort = (key: string) => {
     let direction = 'asc';
@@ -31,13 +108,14 @@ const EmployeeList = () => {
       direction = 'desc';
     }
     setSortConfig({ key, direction });
+    setPage(0); // Reset to first page on sort
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Active': return 'bg-green-100 text-green-700 border-green-200';
-      case 'On Leave': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-      case 'Inactive': return 'bg-gray-100 text-gray-700 border-gray-200';
+      case 'ACTIVE': return 'bg-green-100 text-green-700 border-green-200';
+      case 'ON_LEAVE': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+      case 'INACTIVE': return 'bg-gray-100 text-gray-700 border-gray-200';
       default: return 'bg-gray-100 text-gray-700 border-gray-200';
     }
   };
@@ -141,115 +219,116 @@ const EmployeeList = () => {
       {/* Table */}
       <div className="bg-white rounded border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="w-8 px-3 py-2">
-                  <input type="checkbox" className="rounded border-gray-300" />
-                </th>
-                <th className="px-3 py-2 text-left font-semibold text-gray-700 cursor-pointer hover:bg-gray-100" onClick={() => handleSort('empId')}>
-                  EMP ID
-                </th>
-                <th className="px-3 py-2 text-left font-semibold text-gray-700 cursor-pointer hover:bg-gray-100" onClick={() => handleSort('name')}>
-                  Name
-                </th>
-                <th className="px-3 py-2 text-left font-semibold text-gray-700">
-                  Email
-                </th>
-                <th className="px-3 py-2 text-left font-semibold text-gray-700">
-                  Role
-                </th>
-                <th className="px-3 py-2 text-left font-semibold text-gray-700">
-                  Department
-                </th>
-                <th className="px-3 py-2 text-left font-semibold text-gray-700">
-                  Team
-                </th>
-                <th className="px-3 py-2 text-left font-semibold text-gray-700">
-                  Skills
-                </th>
-                <th className="px-3 py-2 text-left font-semibold text-gray-700 cursor-pointer hover:bg-gray-100" onClick={() => handleSort('joining')}>
-                  Joining Date
-                </th>
-                <th className="px-3 py-2 text-left font-semibold text-gray-700">
-                  Status
-                </th>
-                <th className="px-3 py-2 text-center font-semibold text-gray-700">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {employees.map((emp) => (
-                <tr key={emp.id} className="hover:bg-gray-50">
-                  <td className="px-3 py-2">
-                    <input type="checkbox" className="rounded border-gray-300" />
-                  </td>
-                  <td className="px-3 py-2 font-medium text-gray-900">{emp.empId}</td>
-                  <td className="px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-burgundy-100 flex items-center justify-center text-burgundy-700 font-semibold text-xs">
-                        {emp.name.split(' ').map(n => n[0]).join('')}
-                      </div>
-                      <span className="font-medium text-gray-900">{emp.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-3 py-2 text-gray-600">{emp.email}</td>
-                  <td className="px-3 py-2 text-gray-900">{emp.role}</td>
-                  <td className="px-3 py-2 text-gray-600">{emp.department}</td>
-                  <td className="px-3 py-2 text-gray-600">{emp.team}</td>
-                  <td className="px-3 py-2">
-                    <div className="flex flex-wrap gap-1">
-                      {emp.skills.slice(0, 2).map((skill, idx) => (
-                        <span key={idx} className="px-1.5 py-0.5 bg-navy-50 text-navy-700 rounded text-xs">
-                          {skill}
-                        </span>
-                      ))}
-                      {emp.skills.length > 2 && (
-                        <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">
-                          +{emp.skills.length - 2}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-3 py-2 text-gray-600">{emp.joining}</td>
-                  <td className="px-3 py-2">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(emp.status)}`}>
-                      {emp.status}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="flex items-center justify-center gap-1">
-                      <button className="p-1 hover:bg-gray-100 rounded" title="View">
-                        <Eye size={14} className="text-gray-600" />
-                      </button>
-                      <button className="p-1 hover:bg-gray-100 rounded" title="Edit">
-                        <Edit2 size={14} className="text-gray-600" />
-                      </button>
-                      <button className="p-1 hover:bg-gray-100 rounded" title="More">
-                        <MoreVertical size={14} className="text-gray-600" />
-                      </button>
-                    </div>
-                  </td>
+          {loading ? (
+            <div className="p-6 text-center text-gray-500">Loading employees...</div>
+          ) : error ? (
+            <div className="p-6 text-center text-danger-600">{error}</div>
+          ) : (
+            <table className="w-full text-xs">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 cursor-pointer hover:bg-gray-100" onClick={() => handleSort('employeeCode')}>
+                    EMP ID
+                  </th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 cursor-pointer hover:bg-gray-100" onClick={() => handleSort('firstName')}>
+                    Name
+                  </th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700">
+                    Email
+                  </th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700">
+                    Role
+                  </th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700">
+                    Department
+                  </th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700">
+                    Team
+                  </th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700">
+                    Skills
+                  </th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700 cursor-pointer hover:bg-gray-100" onClick={() => handleSort('joiningDate')}>
+                    Joining Date
+                  </th>
+                  <th className="px-3 py-2 text-left font-semibold text-gray-700">
+                    Status
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {employees.map((emp) => (
+                  <tr key={emp.id} className="hover:bg-gray-50">
+                   
+                    <td className="px-3 py-2 font-medium text-gray-900">{emp.employeeCode}</td>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-burgundy-100 flex items-center justify-center text-burgundy-700 font-semibold text-xs">
+                          {emp.firstName?.[0]}{emp.lastName?.[0]}
+                        </div>
+                        <span className="font-medium text-gray-900">{emp.firstName} {emp.lastName}</span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 text-gray-600">{emp.email}</td>
+                    <td className="px-3 py-2 text-gray-900">{emp.designation?.title || '-'}</td>
+                    <td className="px-3 py-2 text-gray-600">{emp.department?.name || '-'}</td>
+                    <td className="px-3 py-2 text-gray-600">{emp.teamMemberships && emp.teamMemberships.length > 0 ? emp.teamMemberships.map((tm) => tm.teamName).join(', ') : '-'}</td>
+                    <td className="px-3 py-2">
+                      <div className="flex flex-wrap gap-1">
+                        {emp.systemAccess && emp.systemAccess.length > 0 ? emp.systemAccess.slice(0, 2).map((skill, idx) => (
+                          <span key={idx} className="px-1.5 py-0.5 bg-navy-50 text-navy-700 rounded text-xs">
+                            {skill}
+                          </span>
+                        )) : <span className="text-gray-400">-</span>}
+                        {emp.systemAccess && emp.systemAccess.length > 2 && (
+                          <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">
+                            +{emp.systemAccess.length - 2}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 text-gray-600">{emp.joiningDate}</td>
+                    <td className="px-3 py-2">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(emp.status)}`}>
+                        {emp.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
 
         {/* Pagination */}
         <div className="px-4 py-2 border-t border-gray-200 flex items-center justify-between bg-gray-50">
           <div className="text-xs text-gray-600">
-            Showing <span className="font-medium">1-8</span> of <span className="font-medium">248</span> employees
+            Showing <span className="font-medium">{page * size + 1}</span>-
+            <span className="font-medium">{Math.min((page + 1) * size, totalElements)}</span> of <span className="font-medium">{totalElements}</span> employees
           </div>
           <div className="flex gap-1">
-            <button className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-white disabled:opacity-50">
+            <button
+              className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-white disabled:opacity-50"
+              disabled={page === 0}
+              onClick={() => setPage(page - 1)}
+            >
               Previous
             </button>
-            <button className="px-2 py-1 text-xs bg-burgundy-600 text-white rounded">1</button>
-            <button className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-white">2</button>
-            <button className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-white">3</button>
-            <button className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-white">
+            {[...Array(totalPages)].map((_, idx) => (
+              <button
+                key={idx}
+                className={`px-2 py-1 text-xs rounded ${page === idx ? 'bg-burgundy-600 text-white' : 'border border-gray-300 hover:bg-white'}`}
+                onClick={() => setPage(idx)}
+              >
+                {idx + 1}
+              </button>
+            ))}
+            <button
+              className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-white disabled:opacity-50"
+              disabled={page === totalPages - 1 || totalPages === 0}
+              onClick={() => setPage(page + 1)}
+            >
               Next
             </button>
           </div>
@@ -259,23 +338,6 @@ const EmployeeList = () => {
   );
 };
 
-// Custom colors for Tailwind (add to tailwind.config.js)
-const style = document.createElement('style');
-style.textContent = `
-  .bg-burgundy-600 { background-color: #8B1538; }
-  .bg-burgundy-700 { background-color: #6B0E2A; }
-  .bg-burgundy-100 { background-color: #F5E6EA; }
-  .text-burgundy-600 { color: #8B1538; }
-  .text-burgundy-700 { color: #6B0E2A; }
-  .ring-burgundy-500 { --tw-ring-color: #8B1538; }
-  
-  .bg-coral-500 { background-color: #FF6B6B; }
-  .bg-navy-500 { background-color: #1E3A5F; }
-  .bg-navy-50 { background-color: #EFF3F8; }
-  .text-navy-700 { color: #1E3A5F; }
-  .bg-green-500 { background-color: #10B981; }
-  .bg-yellow-500 { background-color: #F59E0B; }
-`;
-document.head.appendChild(style);
+
 
 export default EmployeeList;

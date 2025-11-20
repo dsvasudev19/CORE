@@ -22,6 +22,8 @@ import org.springframework.web.multipart.MultipartFile;
 import com.dev.core.model.EmployeeDocumentDTO;
 import com.dev.core.service.EmployeeDocumentService;
 import com.dev.core.service.file.FileStorageService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 
@@ -36,10 +38,15 @@ public class EmployeeDocumentController {
     @PostMapping(consumes = {"multipart/form-data"})
     public ResponseEntity<EmployeeDocumentDTO> upload(
             @RequestPart("file") MultipartFile file,
-            @RequestPart("meta") EmployeeDocumentDTO dto
-    ) {
+            @RequestPart("meta") String metaJson
+    ) throws JsonProcessingException {
+
+        ObjectMapper mapper = new ObjectMapper();
+        EmployeeDocumentDTO dto = mapper.readValue(metaJson, EmployeeDocumentDTO.class);
+
         return ResponseEntity.ok(documentService.uploadDocument(file, dto));
     }
+
     @GetMapping("/{id}")
     public ResponseEntity<EmployeeDocumentDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(documentService.getDocumentById(id));

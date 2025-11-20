@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, Building2, Globe, MapPin, Briefcase, Flag, FileText, 
   Users, Edit, Archive, CheckCircle, Phone, Mail, User, Crown,
-  Calendar, Download, Eye, Trash2, Plus, Loader2, AlertCircle, X
+  Calendar, Download, Trash2, Plus, Loader2
 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axiosInstance from '../../axiosInstance';
@@ -48,8 +48,8 @@ const ClientDetailsPage: React.FC = () => {
     try {
       const res = await axiosInstance.get(`/client/${id}/detailed`);
       setClient(res.data);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load client');
+    } catch {
+      setError('Failed to load client');
     } finally {
       setLoading(false);
     }
@@ -60,8 +60,8 @@ const ClientDetailsPage: React.FC = () => {
       const endpoint = client.status === 'ACTIVE' ? 'deactivate' : 'activate';
       await axiosInstance.patch(`/client/${id}/${endpoint}`);
       setClient({ ...client, status: client.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' });
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to update status');
+    } catch {
+      alert('Failed to update status');
     }
   };
 
@@ -88,8 +88,8 @@ const ClientDetailsPage: React.FC = () => {
 
       setDocForm({ title: '', category: 'General', description: '', file: null });
       setShowAddDocument(false);
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Upload failed');
+    } catch {
+      alert('Upload failed');
     } finally {
       setUploading(false);
     }
@@ -102,9 +102,9 @@ const ClientDetailsPage: React.FC = () => {
       await axiosInstance.delete(`/client/${id}/documents/${docId}`);
       setClient({
         ...client,
-        documents: client.documents.filter((d: any) => d.id !== docId)
+        documents: client.documents.filter((d: { id: number }) => d.id !== docId)
       });
-    } catch (err: any) {
+    } catch {
       alert('Failed to delete document');
     }
   };
@@ -146,8 +146,8 @@ const ClientDetailsPage: React.FC = () => {
         contact: { name: '', email: '', phone: '', designation: '', department: '' }
       });
       setShowAddRep(false);
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to add representative');
+    } catch {
+      alert('Failed to add representative');
     }
   };
 
@@ -158,9 +158,9 @@ const ClientDetailsPage: React.FC = () => {
       await axiosInstance.delete(`/clients/${id}/representatives/${repId}`);
       setClient({
         ...client,
-        representatives: client.representatives.filter((r: any) => r.id !== repId)
+        representatives: client.representatives.filter((r: { id: number }) => r.id !== repId)
       });
-    } catch (err: any) {
+    } catch {
       alert('Failed to remove representative');
     }
   };
@@ -173,13 +173,13 @@ const ClientDetailsPage: React.FC = () => {
   };
 
   const getCategoryColor = (category: string) => {
-    const map: any = {
+    const map = {
       'Contract': 'bg-blue-50 text-blue-700 border-blue-200',
       'Legal': 'bg-purple-50 text-purple-700 border-purple-200',
       'Statement of Work': 'bg-indigo-50 text-indigo-700 border-indigo-200',
       'General': 'bg-slate-50 text-slate-700 border-slate-200'
     };
-    return map[category] || 'bg-gray-50 text-gray-700 border-gray-200';
+    return (map as Record<string, string>)[category] || 'bg-gray-50 text-gray-700 border-gray-200';
   };
 
   const formatDate = (dateString: string) => {
@@ -324,9 +324,9 @@ const ClientDetailsPage: React.FC = () => {
             <div className="space-y-6">
               <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-5">
                 <h2 className="text-lg font-semibold mb-4">Primary Contact</h2>
-                {client.representatives.find((r: any) => r.primaryContact) ? (
+                {client.representatives.find((r: { primaryContact: boolean }) => r.primaryContact) ? (
                   (() => {
-                    const primary = client.representatives.find((r: any) => r.primaryContact);
+                    const primary = client.representatives.find((r: { primaryContact: boolean }) => r.primaryContact);
                     return (
                       <div>
                         <div className="flex items-center gap-3 mb-3">
@@ -382,7 +382,7 @@ const ClientDetailsPage: React.FC = () => {
             )}
 
             <div className="space-y-3">
-              {client.documents.map((doc: any) => (
+              {client.documents.map((doc: { id: number; title: string; description?: string; category: string; createdAt: string; fileId: string }) => (
                 <div key={doc.id} className="bg-white border rounded-lg p-4 flex items-center justify-between hover:shadow-md transition-shadow">
                   <div className="flex items-center gap-4">
                     <FileText size={40} className="text-blue-700" />
@@ -436,7 +436,7 @@ const ClientDetailsPage: React.FC = () => {
             )}
 
             <div className="grid grid-cols-2 gap-4">
-              {client.representatives.map((rep: any) => (
+              {client.representatives.map((rep: { id: number; contact: { name: string; email: string; phone: string; designation: string; department: string }; role: string; primaryContact: boolean }) => (
                 <div key={rep.id} className="bg-white border rounded-lg p-5 hover:shadow-md transition-shadow">
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-3">

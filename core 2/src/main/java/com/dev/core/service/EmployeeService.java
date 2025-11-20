@@ -63,4 +63,5 @@ public interface EmployeeService {
     // ---------------------------
     List<EmployeeDTO> getEmployeesByDepartment(Long organizationId, Long departmentId);
     List<EmployeeDTO> getEmployeesByStatus(Long organizationId, String status);
+	Page<EmployeeDTO> getAllEmployees(Long organizationId, Pageable pageable);
 }

@@ -39,12 +39,7 @@ public class TeamValidator {
         if (!teamRepository.existsById(id))
             throw new ValidationFailedException("error.team.notfound", new Object[]{id});
 
-        // Optional: Validate team data consistency on update
-        if (dto != null && dto.getName() != null && !dto.getName().isBlank()) {
-            boolean exists = teamRepository.existsByNameAndOrganizationId(dto.getName(), dto.getOrganizationId());
-            if (exists)
-                throw new ValidationFailedException("error.team.name.exists", new Object[]{dto.getName()});
-        }
+        
     }
 
     public void validateAddMember(Long teamId, Long employeeId) {

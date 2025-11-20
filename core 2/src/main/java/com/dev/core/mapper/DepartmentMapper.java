@@ -1,8 +1,13 @@
 package com.dev.core.mapper;
 
-import com.dev.core.domain.Department;
-import com.dev.core.model.DepartmentDTO;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
+
+import com.dev.core.domain.Department;
+import com.dev.core.domain.Team;
+import com.dev.core.model.DepartmentDTO;
 
 public final class DepartmentMapper {
 
@@ -21,6 +26,8 @@ public final class DepartmentMapper {
 
     public static DepartmentDTO toDTO(Department entity) {
         if (entity == null) return null;
+  
+
         return DepartmentDTO.builder()
                 .id(entity.getId())
                 .organizationId(entity.getOrganizationId())
@@ -31,12 +38,21 @@ public final class DepartmentMapper {
                             .map(EmployeeMapper::toDTO)
                             .collect(Collectors.toSet())
                         : null)
-                .teams(entity.getTeams() != null
-                        ? entity.getTeams().stream()
-                            .map(TeamMapper::toDTO)
-                            .collect(Collectors.toSet())
-                        : null)
+
                 .code(entity.getCode())
                 .build();
     }
+    
+    public static DepartmentDTO toShallowDTO(Department entity) {
+        if (entity == null) return null;
+
+        return DepartmentDTO.builder()
+                .id(entity.getId())
+                .name(entity.getName())
+                .code(entity.getCode())
+                .description(entity.getDescription())
+                .organizationId(entity.getOrganizationId())
+                .build();
+    }
+
 }

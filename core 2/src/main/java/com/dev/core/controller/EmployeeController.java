@@ -54,10 +54,14 @@ public class EmployeeController {
     }
 
     @GetMapping
-    public ResponseEntity<?> getAll(@RequestParam Long organizationId) {
-        List<EmployeeDTO> list = employeeService.getAllEmployees(organizationId);
-        return helper.success("Employees fetched", list);
+    public ResponseEntity<?> getAll(
+            @RequestParam Long organizationId,
+            Pageable pageable // Spring automatically maps page, size, sort
+    ) {
+        Page<EmployeeDTO> page = employeeService.getAllEmployees(organizationId, pageable);
+        return helper.success("Employees fetched", page);
     }
+
 
     @GetMapping("/search")
     public ResponseEntity<?> search(

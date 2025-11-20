@@ -32,7 +32,7 @@ public class EmployeeDTO extends BaseDTO {
 
     // ⭐ Manager
     private Long managerId;
-    private EmployeeDTO manager; // optional — you may remove if you don't want recursive structures
+    private MinimalEmployeeDTO manager; // optional — you may remove if you don't want recursive structures
 
     // ⭐ Personal Details
     private LocalDate dob;

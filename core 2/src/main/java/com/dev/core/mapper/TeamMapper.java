@@ -27,14 +27,29 @@ public final class TeamMapper {
                 .description(entity.getDescription())
                 .departmentId(entity.getDepartment() != null ? entity.getDepartment().getId() : null)
                 .managerId(entity.getManager() != null ? entity.getManager().getId() : null)
-                .department(DepartmentMapper.toDTO(entity.getDepartment()))
                 .manager(EmployeeMapper.toDTO(entity.getManager()))
+                .department(DepartmentMapper.toShallowDTO(entity.getDepartment()))
                 .members(entity.getMembers() != null
                         ? entity.getMembers().stream()
                             .map(TeamMemberMapper::toDTO)
                             .collect(Collectors.toSet())
                         : null)
+
                 .build();
     }
+    
+    public static TeamDTO toShallowDTO(Team entity) {
+        if (entity == null) return null;
+
+        return TeamDTO.builder()
+                .id(entity.getId())
+                .name(entity.getName())
+                .organizationId(entity.getOrganizationId())
+                .description(entity.getDescription())
+                .departmentId(entity.getDepartment() != null ? entity.getDepartment().getId() : null)
+                .managerId(entity.getManager() != null ? entity.getManager().getId() : null)
+                .build();
+    }
+
 }
 
