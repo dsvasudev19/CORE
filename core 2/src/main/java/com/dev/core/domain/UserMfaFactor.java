@@ -1,8 +1,12 @@
 package com.dev.core.domain;
 
+import java.util.Map;
+
 import com.dev.core.constants.MfaType;
+import com.dev.core.converter.MapToJsonConverter;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -50,4 +54,9 @@ public class UserMfaFactor extends BaseEntity {
     // Backup Codes (JSON array, hashed or plain salted)
     @Column(name = "backup_codes_json", columnDefinition = "TEXT")
     private String backupCodesJson;
+    
+    @Column(name = "metadata", columnDefinition = "TEXT")
+    @Convert(converter = MapToJsonConverter.class)
+    private Map<String, Object> metadata;
+
 }

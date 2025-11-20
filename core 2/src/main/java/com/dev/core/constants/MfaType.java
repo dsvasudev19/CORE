@@ -4,5 +4,7 @@ public enum MfaType {
     TOTP,
     SMS,
     EMAIL,
-    BACKUP_CODES
+    BACKUP_CODES,
+    AUTHENTICATOR,
+    BACKUP
 }
