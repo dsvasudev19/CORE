@@ -260,10 +260,10 @@ import {
     Menu,
     X,
     Home,
-    // Users,
+    Users,
     FolderOpen,
     MessageSquare,
-    Calendar,
+    // Calendar,
     BarChart3,
     Settings,
     Bell,
@@ -302,7 +302,7 @@ const DashboardLayout = () => {
         { name: 'Training', href: '/a/training', icon: Shield },
         { name: 'Documents', href: '/a/documents', icon: FileText },
         { name: 'Communication', href: '/a/communication', icon: MessageSquare },
-        { name: 'Calendar', href: '/a/calendar', icon: Calendar },
+        { name: 'Clients', href: '/a/clients', icon: Users },
         { name: 'Announcements', href: '/a/announcements', icon: Zap },
         { name: 'Reports', href: '/a/reports', icon: BarChart3 },
         { name: 'Access Control', href: '/a/access-control', icon: Shield },
@@ -318,9 +318,8 @@ const DashboardLayout = () => {
     return (
         <div className="min-h-screen bg-steel-50">
             {/* Sidebar */}
-            <div className={`fixed inset-y-0 left-0 z-50 bg-white border-r border-steel-200 transition-all duration-300 ease-in-out ${
-                sidebarOpen ? 'w-64' : 'w-16'
-            } ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
+            <div className={`fixed inset-y-0 left-0 z-50 bg-white border-r border-steel-200 transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-64' : 'w-16'
+                } ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
                 <div className="flex flex-col h-full">
                     {/* Logo */}
                     <div className="flex items-center justify-between h-16 px-4 border-b border-steel-200">
@@ -364,11 +363,10 @@ const DashboardLayout = () => {
                                 <Link
                                     key={item.name}
                                     to={item.href}
-                                    className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${
-                                        isActive(item.href)
+                                    className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${isActive(item.href)
                                             ? 'bg-burgundy-50 text-burgundy-700 border-l-4 border-burgundy-600'
                                             : 'text-steel-600 hover:bg-steel-50 hover:text-steel-900'
-                                    } ${!sidebarOpen ? 'justify-center' : ''}`}
+                                        } ${!sidebarOpen ? 'justify-center' : ''}`}
                                     title={!sidebarOpen ? item.name : ''}
                                 >
                                     <Icon size={18} className="flex-shrink-0" />

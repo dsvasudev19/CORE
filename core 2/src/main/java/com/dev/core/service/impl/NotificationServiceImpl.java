@@ -1,14 +1,19 @@
 package com.dev.core.service.impl;
 
 
-import jakarta.mail.MessagingException;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.Map;
+
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import com.dev.core.service.NotificationService;
+import com.dev.core.service.TemplateRenderService;
+
+import jakarta.mail.internet.MimeMessage;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
@@ -16,6 +21,7 @@ import com.dev.core.service.NotificationService;
 public class NotificationServiceImpl implements NotificationService {
 
     private final JavaMailSender mailSender;
+    private final TemplateRenderService templateRenderService;
 
     @Override
     public void sendEmail(String to, String subject, String body) {
@@ -32,10 +38,30 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    public void sendTemplateEmail(String to, String subject, String templateName, Object variables) {
-        // Template handling can be added later (Thymeleaf, Freemarker, etc.)
-        log.warn("⚠️ Template-based emails not yet implemented (template: {})", templateName);
+    public void sendTemplateEmail(String to, String subject, String templateName, Object variablesObj) {
+
+        Map<String, Object> variables =
+                variablesObj instanceof Map ? (Map<String, Object>) variablesObj : Map.of("value", variablesObj);
+
+        try {
+            String html = templateRenderService.render(templateName, variables);
+
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(html, true);
+
+            mailSender.send(message);
+
+            log.info("📨 Template email '{}' sent to {}", templateName, to);
+
+        } catch (Exception e) {
+            log.error("❌ Failed to send template email {} → {}", templateName, e.getMessage(), e);
+        }
     }
+
 
     @Override
     public void handleNotificationFailure(String recipient, String reason, Exception ex) {

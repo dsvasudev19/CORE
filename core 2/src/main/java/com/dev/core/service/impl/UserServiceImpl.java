@@ -121,16 +121,19 @@ import com.dev.core.domain.Employee;
 import com.dev.core.domain.Permission;
 import com.dev.core.domain.Policy;
 import com.dev.core.domain.User;
+import com.dev.core.domain.Role;
 import com.dev.core.exception.BaseException;
 import com.dev.core.exception.ResourceNotFoundException;
 import com.dev.core.mapper.RoleMapper;
 import com.dev.core.mapper.UserMapper;
+import com.dev.core.model.RoleDTO;
 import com.dev.core.model.UserDTO;
 import com.dev.core.model.UserPermissionIdsDTO;
 import com.dev.core.repository.ClientRepresentativeRepository;
 import com.dev.core.repository.EmployeeRepository;
 import com.dev.core.repository.PermissionRepository;
 import com.dev.core.repository.PolicyRepository;
+import com.dev.core.repository.RoleRepository;
 import com.dev.core.repository.UserRepository;
 import com.dev.core.security.SecurityContextUtil;
 import com.dev.core.service.AuthorizationService; // ✅ Correct import
@@ -140,10 +143,12 @@ import com.dev.core.service.validation.UserValidator;
 import com.dev.core.specification.SpecificationBuilder;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
@@ -156,6 +161,7 @@ public class UserServiceImpl implements UserService {
     private final ClientRepresentativeRepository clientRepresentativeRepository;
     private final NotificationService notificationService;
     private final SecurityContextUtil securityContextUtil;
+    private final RoleRepository roleRepository;
     /**
      * Helper method to perform dynamic policy-based authorization.
      */
@@ -175,13 +181,18 @@ public class UserServiceImpl implements UserService {
         User entity = UserMapper.toEntity(dto);
         // If password hashing required, handle it here before saving.
         entity.setPassword(passwordEncoder.encode(dto.getPassword()));
+        entity.setRoles(
+        	    dto.getRoles().stream()
+        	        .map(r -> RoleMapper.toEntity(r))
+        	        .collect(Collectors.toSet())
+        	);
         User saved = userRepository.save(entity);
         return UserMapper.toDTO(saved);
     }
 
     @Override
     public UserDTO updateUser(Long id, UserDTO dto) {
-        authorize("UPDATE"); // ✅ Check if current user can UPDATE USER
+        authorize("UPDATE");
         userValidator.validateBeforeUpdate(id, dto);
 
         User existing = userRepository.findById(id)
@@ -191,16 +202,25 @@ public class UserServiceImpl implements UserService {
         existing.setEmail(dto.getEmail());
         existing.setStatus(dto.getStatus());
 
-        // Update roles if provided
-        if (dto.getRoles() != null) {
-            existing.setRoles(dto.getRoles().stream()
-                    .map(RoleMapper::toEntity)
-                    .collect(Collectors.toSet()));
+        if (dto.getRoles() != null && !dto.getRoles().isEmpty()) {
+
+            Set<Role> newRoles = new HashSet<>();
+
+            for (RoleDTO r : dto.getRoles()) {
+                Role role = roleRepository.findById(r.getId())
+                        .orElseThrow(() -> new BaseException("error.role.not.found",
+                                new Object[]{r.getId()}));
+                newRoles.add(role);
+            }
+            log.info("new roles",newRoles);
+            existing.getRoles().clear();
+            existing.getRoles().addAll(newRoles);
         }
 
         User updated = userRepository.save(existing);
         return UserMapper.toDTO(updated);
     }
+
 
     @Override
     public void deleteUser(Long id) {

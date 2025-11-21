@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.dev.core.exception.BaseException;
+import com.dev.core.exception.UnauthorizedAccessException;
 import com.dev.core.service.AuthorizationService;
 
 import jakarta.servlet.FilterChain;
@@ -21,6 +22,109 @@ import lombok.extern.slf4j.Slf4j;
  * Intercepts all API requests, determines resource & action,
  * and checks authorization dynamically.
  */
+//@Component
+//@RequiredArgsConstructor
+//@Slf4j
+//public class PolicyAuthorizationFilter extends OncePerRequestFilter {
+//
+//    private final AuthorizationService authorizationService;
+//
+//    @Override
+//    protected void doFilterInternal(HttpServletRequest request,
+//                                    HttpServletResponse response,
+//                                    FilterChain filterChain)
+//            throws ServletException, IOException {
+//
+//        String path = request.getRequestURI();
+//        String resource = extractResourceFromPath(path);
+//        String action = mapMethodToAction(request.getMethod());
+//        
+//
+//        log.debug("🔍 [PAUTHZ] Incoming → method={}, path={}, resource={}, action={}",
+//                request.getMethod(), path, resource, action);
+//
+//        // ✅ Only apply to API endpoints except auth, docs, or health
+//        if (path.startsWith("/api/") && !resource.equals("AUTH")) {
+//            try {
+//                log.info("🔐 [PAUTHZ] Checking authorization → resource='{}', action='{}'", resource, action);
+//                authorizationService.authorize(resource, action);
+//                log.info("✅ [PAUTHZ] Access GRANTED → resource='{}', action='{}'", resource, action);
+//            } catch (BaseException ex) {
+//                log.warn("🚫 [PAUTHZ] Access DENIED: {}", ex.getMessage());
+//                sendJsonError(response, HttpServletResponse.SC_FORBIDDEN, ex.getMessage());
+//                return;
+//            } catch (Exception ex) {
+//                log.error("💥 [PAUTHZ] Unexpected error during policy check", ex);
+//                sendJsonError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Internal Server Error");
+//                return;
+//            }
+//        } else {
+//            log.info("⏩ [PAUTHZ] Skipping policy check for path: {}", path);
+//        }
+//
+//        // ✅ Continue processing
+//        log.info("➡️ [PAUTHZ] Passing control to next filter/controller");
+//        filterChain.doFilter(request, response);
+//    }
+//
+//    /**
+//     * Skip filter for certain endpoints.
+//     */
+//    @Override
+//    protected boolean shouldNotFilter(HttpServletRequest request) {
+//        String path = request.getRequestURI();
+//        return path.startsWith("/api/auth/")
+//                || path.startsWith("/swagger-ui")
+//                || path.startsWith("/v3/api-docs")
+//                || path.startsWith("/actuator")
+//                || path.startsWith("/health")
+//                || path.startsWith("/error");
+//    }
+//
+//    private void sendJsonError(HttpServletResponse response, int status, String message) throws IOException {
+//        if (response.isCommitted()) return;
+//        response.resetBuffer();
+//        response.setStatus(status);
+//        response.setContentType("application/json");
+//        response.getWriter().write(String.format("{\"success\":false,\"message\":\"%s\"}", message));
+//        response.getWriter().flush();
+//        log.debug("🧱 [PAUTHZ] Response sent → status={}, message='{}'", status, message);
+//    }
+//
+//    private String extractResourceFromPath(String path) {
+//        // Example: /api/users/1 → USERS → USER
+//        String[] segments = path.split("/");
+//        if (segments.length > 2) {
+//            String raw = segments[2];
+//            return raw.replaceAll("s$", "").toUpperCase();
+//        }
+//        return "UNKNOWN";
+//    }
+//
+//  private String mapMethodToAction(String method) {
+//      if (method == null) {
+//          return "UNKNOWN";
+//      }
+//      try {
+//          HttpMethod httpMethod = HttpMethod.valueOf(method.toUpperCase());
+//          if (HttpMethod.POST.equals(httpMethod)) {
+//              return "CREATE";
+//          } else if (HttpMethod.PUT.equals(httpMethod) || HttpMethod.PATCH.equals(httpMethod)) {
+//              return "UPDATE";
+//          } else if (HttpMethod.DELETE.equals(httpMethod)) {
+//              return "DELETE";
+//          } else if (HttpMethod.GET.equals(httpMethod)) {
+//              return "READ";
+//          } else {
+//              return "UNKNOWN";
+//          }
+//      } catch (IllegalArgumentException e) {
+//          return "UNKNOWN";
+//      }
+//  }
+////
+//}
+
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -37,38 +141,34 @@ public class PolicyAuthorizationFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         String resource = extractResourceFromPath(path);
         String action = mapMethodToAction(request.getMethod());
-        
 
         log.debug("🔍 [PAUTHZ] Incoming → method={}, path={}, resource={}, action={}",
                 request.getMethod(), path, resource, action);
 
-        // ✅ Only apply to API endpoints except auth, docs, or health
         if (path.startsWith("/api/") && !resource.equals("AUTH")) {
             try {
-                log.info("🔐 [PAUTHZ] Checking authorization → resource='{}', action='{}'", resource, action);
                 authorizationService.authorize(resource, action);
                 log.info("✅ [PAUTHZ] Access GRANTED → resource='{}', action='{}'", resource, action);
+
             } catch (BaseException ex) {
-                log.warn("🚫 [PAUTHZ] Access DENIED: {}", ex.getMessage());
-                sendJsonError(response, HttpServletResponse.SC_FORBIDDEN, ex.getMessage());
-                return;
+                // 🛑 Don't write response — let global handler handle it
+                log.warn("🚫 [PAUTHZ] Access DENIED → throwing UnauthorizedAccessException");
+                throw ex;  // <--- IMPORTANT
+
             } catch (Exception ex) {
-                log.error("💥 [PAUTHZ] Unexpected error during policy check", ex);
-                sendJsonError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Internal Server Error");
-                return;
+                // 🛑 Wrap unexpected error as an authorization failure
+                log.error("💥 [PAUTHZ] Unexpected error during authorization", ex);
+                throw new UnauthorizedAccessException(
+                        "error.auth.access.denied",
+                        resource,
+                        action
+                );
             }
-        } else {
-            log.info("⏩ [PAUTHZ] Skipping policy check for path: {}", path);
         }
 
-        // ✅ Continue processing
-        log.info("➡️ [PAUTHZ] Passing control to next filter/controller");
         filterChain.doFilter(request, response);
     }
 
-    /**
-     * Skip filter for certain endpoints.
-     */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
@@ -80,18 +180,7 @@ public class PolicyAuthorizationFilter extends OncePerRequestFilter {
                 || path.startsWith("/error");
     }
 
-    private void sendJsonError(HttpServletResponse response, int status, String message) throws IOException {
-        if (response.isCommitted()) return;
-        response.resetBuffer();
-        response.setStatus(status);
-        response.setContentType("application/json");
-        response.getWriter().write(String.format("{\"success\":false,\"message\":\"%s\"}", message));
-        response.getWriter().flush();
-        log.debug("🧱 [PAUTHZ] Response sent → status={}, message='{}'", status, message);
-    }
-
     private String extractResourceFromPath(String path) {
-        // Example: /api/users/1 → USERS → USER
         String[] segments = path.split("/");
         if (segments.length > 2) {
             String raw = segments[2];
@@ -100,7 +189,7 @@ public class PolicyAuthorizationFilter extends OncePerRequestFilter {
         return "UNKNOWN";
     }
 
-  private String mapMethodToAction(String method) {
+    private String mapMethodToAction(String method) {
       if (method == null) {
           return "UNKNOWN";
       }
@@ -121,6 +210,6 @@ public class PolicyAuthorizationFilter extends OncePerRequestFilter {
           return "UNKNOWN";
       }
   }
-//
 }
+
 

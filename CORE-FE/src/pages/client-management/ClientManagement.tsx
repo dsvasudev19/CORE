@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Search, Plus, Building2, Globe, MapPin, MoreVertical, Eye, Edit, Archive,
+import {
+  Search, Plus, Building2, Globe, MapPin, Eye, Edit, Archive,
   CheckCircle, AlertCircle, Loader2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -24,15 +24,14 @@ interface Client {
 
 const ClientListingPage: React.FC = () => {
   const navigate = useNavigate();
-  
+
   const [clients, setClients] = useState<Client[]>([]);
   const [filteredClients, setFilteredClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
+
   const [searchKeyword, setSearchKeyword] = useState('');
   const [filterStatus] = useState('all');
-  const [activeMenu, setActiveMenu] = useState<number | null>(null);
 
   const organizationId = 1; // TODO: Get from auth context
 
@@ -61,7 +60,7 @@ const ClientListingPage: React.FC = () => {
 
     if (searchKeyword.trim()) {
       const kw = searchKeyword.toLowerCase();
-      filtered = filtered.filter(c => 
+      filtered = filtered.filter(c =>
         c.name?.toLowerCase().includes(kw) ||
         c.code?.toLowerCase().includes(kw) ||
         c.industry?.toLowerCase().includes(kw) ||
@@ -82,12 +81,10 @@ const ClientListingPage: React.FC = () => {
     try {
       const endpoint = activate ? `/clients/${clientId}/activate` : `/clients/${clientId}/deactivate`;
       await axiosInstance.patch(endpoint);
-      
-      setClients(prev => prev.map(c => 
+
+      setClients(prev => prev.map(c =>
         c.id === clientId ? { ...c, status: activate ? 'Active' : 'Inactive' } : c
       ));
-      
-      setActiveMenu(null);
     } catch {
       alert('Failed to update status');
     }
@@ -119,7 +116,7 @@ const ClientListingPage: React.FC = () => {
                   className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-transparent text-sm"
                 />
               </div>
-              <button 
+              <button
                 onClick={() => navigate('/a/clients/add')}
                 className="flex items-center gap-2 bg-red-900 hover:bg-red-800 text-white px-4 py-2 rounded-md font-medium transition-colors shadow-sm whitespace-nowrap"
               >
@@ -153,8 +150,8 @@ const ClientListingPage: React.FC = () => {
             <Building2 size={48} className="mx-auto text-slate-300 mb-3" />
             <h3 className="text-lg font-semibold text-slate-700 mb-1">No clients found</h3>
             <p className="text-slate-500 text-sm">
-              {searchKeyword || filterStatus !== 'all' 
-                ? 'Try adjusting your search or filters' 
+              {searchKeyword || filterStatus !== 'all'
+                ? 'Try adjusting your search or filters'
                 : 'Get started by creating your first client'}
             </p>
           </div>
@@ -174,8 +171,8 @@ const ClientListingPage: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredClients.map((client) => (
-                  <tr 
-                    key={client.id} 
+                  <tr
+                    key={client.id}
                     className="hover:bg-slate-50 transition-colors cursor-pointer"
                     onClick={() => navigate(`/a/clients/${client.id}`)}
                   >
@@ -208,9 +205,9 @@ const ClientListingPage: React.FC = () => {
                       {client.domain ? (
                         <div className="flex items-center gap-1.5 text-sm text-blue-900">
                           <Globe size={14} />
-                          <a 
-                            href={`https://${client.domain}`} 
-                            target="_blank" 
+                          <a
+                            href={`https://${client.domain}`}
+                            target="_blank"
                             rel="noopener noreferrer"
                             className="hover:underline"
                             onClick={(e) => e.stopPropagation()}
@@ -229,48 +226,37 @@ const ClientListingPage: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                      <div className="relative inline-block">
+                      <div className="flex items-center justify-end gap-2">
                         <button
-                          onClick={() => setActiveMenu(activeMenu === client.id ? null : client.id)}
-                          className="p-1.5 hover:bg-slate-200 rounded-md transition-colors"
+                          onClick={() => navigate(`/a/clients/${client.id}`)}
+                          className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                          title="View Details"
                         >
-                          <MoreVertical size={16} className="text-slate-600" />
+                          <Eye size={18} />
                         </button>
-                        
-                        {activeMenu === client.id && (
-                          <>
-                            <div className="fixed inset-0 z-10" onClick={() => setActiveMenu(null)}></div>
-                            <div className="absolute right-0 bottom-full mb-1 w-44 bg-white rounded-md shadow-lg border border-slate-200 z-20">
-                              <button
-                                onClick={() => navigate(`/a/clients/${client.id}`)}
-                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors text-left"
-                              >
-                                <Eye size={14} /> View Details
-                              </button>
-                              <button
-                                onClick={() => navigate(`/clients/${client.id}/edit`)}
-                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors text-left"
-                              >
-                                <Edit size={14} /> Edit
-                              </button>
-                              <div className="border-t border-slate-100"></div>
-                              {client.status?.toLowerCase() === 'active' ? (
-                                <button
-                                  onClick={() => handleStatusChange(client.id, false)}
-                                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-700 hover:bg-red-50 transition-colors text-left"
-                                >
-                                  <Archive size={14} /> Deactivate
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={() => handleStatusChange(client.id, true)}
-                                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-emerald-700 hover:bg-emerald-50 transition-colors text-left"
-                                >
-                                  <CheckCircle size={14} /> Activate
-                                </button>
-                              )}
-                            </div>
-                          </>
+                        <button
+                          onClick={() => navigate(`/clients/${client.id}/edit`)}
+                          className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                          title="Edit"
+                        >
+                          <Edit size={18} />
+                        </button>
+                        {client.status?.toLowerCase() === 'active' ? (
+                          <button
+                            onClick={() => handleStatusChange(client.id, false)}
+                            className="p-1.5 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                            title="Deactivate"
+                          >
+                            <Archive size={18} />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleStatusChange(client.id, true)}
+                            className="p-1.5 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors"
+                            title="Activate"
+                          >
+                            <CheckCircle size={18} />
+                          </button>
                         )}
                       </div>
                     </td>

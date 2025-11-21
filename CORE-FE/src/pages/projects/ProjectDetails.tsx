@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
     ArrowLeft,
@@ -15,57 +15,132 @@ import {
     Circle,
     AlertCircle,
     Plus,
-    Paperclip
+    Paperclip,
+    Loader2
 } from 'lucide-react';
+import { projectService, type ProjectDTO } from '../../services/project.service';
 
 const ProjectDetails = () => {
     const { id } = useParams();
     const [activeTab, setActiveTab] = useState<'overview' | 'tasks' | 'team' | 'files' | 'activity'>('overview');
+    const [project, setProject] = useState<ProjectDTO | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    // Mock project data
-    const project = {
-        id: id || '1',
-        name: 'E-Commerce Platform Redesign',
-        description: 'Complete overhaul of the existing e-commerce platform with modern UI/UX and improved performance.',
-        status: 'active',
-        priority: 'high',
-        progress: 75,
-        startDate: new Date('2024-01-15'),
-        endDate: new Date('2024-04-30'),
-        client: 'TechCorp Inc.',
-        budget: 150000,
-        spent: 112500,
-        color: 'bg-blue-500'
+    useEffect(() => {
+        fetchProjectDetails();
+    }, [id]);
+
+    const fetchProjectDetails = async () => {
+        if (!id) return;
+
+        try {
+            setLoading(true);
+            const data = await projectService.getProjectById(Number(id));
+            setProject(data);
+            setError(null);
+        } catch (err) {
+            console.error('Error fetching project details:', err);
+            setError('Failed to load project details');
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const team = [
-        { id: '1', name: 'John Doe', role: 'Project Lead', avatar: 'JD', status: 'online' },
-        { id: '2', name: 'Sarah Wilson', role: 'Frontend Dev', avatar: 'SW', status: 'online' },
-        { id: '3', name: 'Mike Johnson', role: 'Backend Dev', avatar: 'MJ', status: 'offline' },
-        { id: '4', name: 'Lisa Chen', role: 'UI/UX Designer', avatar: 'LC', status: 'online' }
-    ];
+    const handleToggleStar = async () => {
+        if (!project) return;
 
-    const tasks = [
-        { id: '1', title: 'Design homepage mockup', status: 'completed', assignee: 'Lisa Chen', dueDate: '2024-03-15' },
-        { id: '2', title: 'Implement product catalog', status: 'in-progress', assignee: 'Sarah Wilson', dueDate: '2024-03-20' },
-        { id: '3', title: 'Setup payment gateway', status: 'in-progress', assignee: 'Mike Johnson', dueDate: '2024-03-25' },
-        { id: '4', title: 'User authentication flow', status: 'todo', assignee: 'Mike Johnson', dueDate: '2024-03-30' }
-    ];
+        try {
+            await projectService.toggleStarred(project.id);
+            setProject({ ...project, isStarred: !project.isStarred });
+        } catch (err) {
+            console.error('Error toggling star:', err);
+        }
+    };
 
-    const activities = [
-        { id: '1', user: 'Sarah Wilson', action: 'completed task', target: 'Homepage responsive design', time: '2 hours ago' },
-        { id: '2', user: 'John Doe', action: 'added comment on', target: 'Product catalog implementation', time: '4 hours ago' },
-        { id: '3', user: 'Lisa Chen', action: 'uploaded file', target: 'Design_System_v2.fig', time: '1 day ago' }
-    ];
+    const getStatusBadge = (status: string) => {
+        const statusConfig: Record<string, { label: string; className: string }> = {
+            'IN_PROGRESS': { label: 'In Progress', className: 'bg-green-100 text-green-700' },
+            'COMPLETED': { label: 'Completed', className: 'bg-blue-100 text-blue-700' },
+            'ON_HOLD': { label: 'On Hold', className: 'bg-yellow-100 text-yellow-700' },
+            'PLANNING': { label: 'Planning', className: 'bg-purple-100 text-purple-700' },
+            'CANCELLED': { label: 'Cancelled', className: 'bg-red-100 text-red-700' },
+            'DRAFT': { label: 'Draft', className: 'bg-steel-100 text-steel-700' },
+            'ARCHIVED': { label: 'Archived', className: 'bg-steel-100 text-steel-700' },
+            'DELAYED': { label: 'Delayed', className: 'bg-orange-100 text-orange-700' }
+        };
+
+        const config = statusConfig[status] || { label: status, className: 'bg-steel-100 text-steel-700' };
+        return (
+            <span className={`inline-flex px-2 py-1 text-xs font-medium rounded ${config.className}`}>
+                {config.label}
+            </span>
+        );
+    };
+
+    const getPriorityBadge = (priority: string) => {
+        const priorityConfig: Record<string, { emoji: string; className: string }> = {
+            'CRITICAL': { emoji: '🔴', className: 'bg-red-100 text-red-700' },
+            'HIGH': { emoji: '🟠', className: 'bg-orange-100 text-orange-700' },
+            'MEDIUM': { emoji: '🟡', className: 'bg-yellow-100 text-yellow-700' },
+            'LOW': { emoji: '🟢', className: 'bg-blue-100 text-blue-700' }
+        };
+
+        const config = priorityConfig[priority] || { emoji: '', className: 'bg-steel-100 text-steel-700' };
+        return (
+            <span className={`inline-flex px-2 py-1 text-xs font-medium rounded ${config.className}`}>
+                {config.emoji} {priority}
+            </span>
+        );
+    };
 
     const getStatusIcon = (status: string) => {
         switch (status) {
-            case 'completed': return <CheckCircle size={16} className="text-green-600" />;
-            case 'in-progress': return <Circle size={16} className="text-blue-600" />;
-            case 'todo': return <Circle size={16} className="text-steel-400" />;
+            case 'COMPLETED': return <CheckCircle size={16} className="text-green-600" />;
+            case 'IN_PROGRESS': return <Circle size={16} className="text-blue-600" />;
+            case 'PENDING': return <Circle size={16} className="text-steel-400" />;
             default: return <AlertCircle size={16} className="text-yellow-600" />;
         }
     };
+
+    const formatDate = (dateString: string | null) => {
+        if (!dateString) return 'N/A';
+        return new Date(dateString).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+    };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-96">
+                <div className="text-center">
+                    <Loader2 size={48} className="text-burgundy-600 animate-spin mx-auto mb-4" />
+                    <p className="text-steel-600">Loading project details...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error || !project) {
+        return (
+            <div className="flex items-center justify-center h-96">
+                <div className="text-center">
+                    <AlertCircle size={48} className="text-red-600 mx-auto mb-4" />
+                    <p className="text-steel-900 font-semibold mb-2">Failed to load project</p>
+                    <p className="text-steel-600 mb-4">{error || 'Project not found'}</p>
+                    <Link
+                        to="/e/projects"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-burgundy-600 text-white rounded-lg hover:bg-burgundy-700"
+                    >
+                        <ArrowLeft size={16} />
+                        Back to Projects
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -78,11 +153,19 @@ const ProjectDetails = () => {
                     <div>
                         <div className="flex items-center gap-3">
                             <h1 className="text-2xl font-bold text-steel-900">{project.name}</h1>
-                            <button className="p-1 hover:bg-steel-100 rounded">
-                                <Star size={18} className="text-yellow-500 fill-yellow-500" />
+                            <button onClick={handleToggleStar} className="p-1 hover:bg-steel-100 rounded">
+                                <Star size={18} className={project.isStarred ? 'text-yellow-500 fill-yellow-500' : 'text-steel-400'} />
                             </button>
                         </div>
-                        <p className="text-sm text-steel-600 mt-1">{project.client}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                            <p className="text-sm text-steel-600">{project.code}</p>
+                            {project.client && (
+                                <>
+                                    <span className="text-steel-400">•</span>
+                                    <p className="text-sm text-steel-600">{project.client.name}</p>
+                                </>
+                            )}
+                        </div>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -102,14 +185,14 @@ const ProjectDetails = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm text-steel-600">Progress</p>
-                            <p className="text-2xl font-bold text-steel-900 mt-1">{project.progress}%</p>
+                            <p className="text-2xl font-bold text-steel-900 mt-1">{project.progressPercentage || 0}%</p>
                         </div>
                         <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                             <Target size={24} className="text-blue-600" />
                         </div>
                     </div>
                     <div className="mt-3 bg-steel-100 rounded-full h-2">
-                        <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${project.progress}%` }} />
+                        <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${project.progressPercentage || 0}%` }} />
                     </div>
                 </div>
 
@@ -117,39 +200,47 @@ const ProjectDetails = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm text-steel-600">Budget</p>
-                            <p className="text-2xl font-bold text-steel-900 mt-1">${(project.budget / 1000).toFixed(0)}K</p>
+                            <p className="text-2xl font-bold text-steel-900 mt-1">
+                                {project.budget ? `$${(project.budget / 1000).toFixed(0)}K` : 'N/A'}
+                            </p>
                         </div>
                         <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                             <DollarSign size={24} className="text-green-600" />
                         </div>
                     </div>
-                    <p className="text-xs text-steel-600 mt-2">Spent: ${(project.spent / 1000).toFixed(1)}K</p>
+                    <p className="text-xs text-steel-600 mt-2">
+                        Spent: {project.spent ? `$${(project.spent / 1000).toFixed(1)}K` : 'N/A'}
+                    </p>
                 </div>
 
                 <div className="bg-white p-4 rounded-lg border border-steel-200">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-sm text-steel-600">Team</p>
-                            <p className="text-2xl font-bold text-steel-900 mt-1">{team.length}</p>
+                            <p className="text-2xl font-bold text-steel-900 mt-1">{project.members?.length || 0}</p>
                         </div>
                         <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
                             <Users size={24} className="text-purple-600" />
                         </div>
                     </div>
-                    <p className="text-xs text-steel-600 mt-2">{team.filter(m => m.status === 'online').length} online</p>
+                    <p className="text-xs text-steel-600 mt-2">
+                        {project.members?.filter(m => m.activeMember).length || 0} active
+                    </p>
                 </div>
 
                 <div className="bg-white p-4 rounded-lg border border-steel-200">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-steel-600">Tasks</p>
-                            <p className="text-2xl font-bold text-steel-900 mt-1">{tasks.length}</p>
+                            <p className="text-sm text-steel-600">Phases</p>
+                            <p className="text-2xl font-bold text-steel-900 mt-1">{project.phases?.length || 0}</p>
                         </div>
                         <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
                             <CheckCircle size={24} className="text-orange-600" />
                         </div>
                     </div>
-                    <p className="text-xs text-steel-600 mt-2">{tasks.filter(t => t.status === 'completed').length} completed</p>
+                    <p className="text-xs text-steel-600 mt-2">
+                        {project.phases?.filter(p => p.status === 'COMPLETED').length || 0} completed
+                    </p>
                 </div>
             </div>
 
@@ -159,7 +250,7 @@ const ProjectDetails = () => {
                     <div className="flex gap-6">
                         {[
                             { key: 'overview', label: 'Overview', icon: FileText },
-                            { key: 'tasks', label: 'Tasks', icon: CheckCircle },
+                            { key: 'tasks', label: 'Phases', icon: CheckCircle },
                             { key: 'team', label: 'Team', icon: Users },
                             { key: 'files', label: 'Files', icon: Paperclip },
                             { key: 'activity', label: 'Activity', icon: Activity }
@@ -167,11 +258,10 @@ const ProjectDetails = () => {
                             <button
                                 key={key}
                                 onClick={() => setActiveTab(key as any)}
-                                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                                    activeTab === key
+                                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === key
                                         ? 'border-burgundy-600 text-burgundy-600'
                                         : 'border-transparent text-steel-600 hover:text-steel-900'
-                                }`}
+                                    }`}
                             >
                                 <Icon size={16} />
                                 {label}
@@ -185,29 +275,51 @@ const ProjectDetails = () => {
                         <div className="space-y-6">
                             <div>
                                 <h3 className="text-lg font-semibold text-steel-900 mb-2">Description</h3>
-                                <p className="text-steel-600">{project.description}</p>
+                                <p className="text-steel-600">{project.description || 'No description provided'}</p>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <p className="text-sm text-steel-600 mb-1">Start Date</p>
-                                    <p className="text-steel-900 font-medium">{project.startDate.toLocaleDateString()}</p>
+                                    <p className="text-steel-900 font-medium">{formatDate(project.startDate)}</p>
                                 </div>
                                 <div>
                                     <p className="text-sm text-steel-600 mb-1">End Date</p>
-                                    <p className="text-steel-900 font-medium">{project.endDate.toLocaleDateString()}</p>
+                                    <p className="text-steel-900 font-medium">{formatDate(project.endDate)}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-steel-600 mb-1">Expected Delivery</p>
+                                    <p className="text-steel-900 font-medium">{formatDate(project.expectedDeliveryDate)}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-steel-600 mb-1">Actual Delivery</p>
+                                    <p className="text-steel-900 font-medium">{formatDate(project.actualDeliveryDate)}</p>
                                 </div>
                                 <div>
                                     <p className="text-sm text-steel-600 mb-1">Status</p>
-                                    <span className="inline-flex px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded">
-                                        {project.status}
-                                    </span>
+                                    {getStatusBadge(project.status)}
                                 </div>
                                 <div>
                                     <p className="text-sm text-steel-600 mb-1">Priority</p>
-                                    <span className="inline-flex px-2 py-1 text-xs font-medium bg-red-100 text-red-700 rounded">
-                                        {project.priority}
+                                    {getPriorityBadge(project.priority)}
+                                </div>
+                                <div>
+                                    <p className="text-sm text-steel-600 mb-1">Project Type</p>
+                                    <span className="inline-flex px-2 py-1 text-xs font-medium bg-steel-100 text-steel-700 rounded">
+                                        {project.projectType}
                                     </span>
                                 </div>
+                                {project.tags && project.tags.length > 0 && (
+                                    <div>
+                                        <p className="text-sm text-steel-600 mb-1">Tags</p>
+                                        <div className="flex flex-wrap gap-1">
+                                            {project.tags.map((tag, index) => (
+                                                <span key={index} className="px-2 py-0.5 text-xs bg-burgundy-50 text-burgundy-700 rounded-full border border-burgundy-100">
+                                                    {tag}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -215,29 +327,40 @@ const ProjectDetails = () => {
                     {activeTab === 'tasks' && (
                         <div className="space-y-3">
                             <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-lg font-semibold text-steel-900">Tasks</h3>
+                                <h3 className="text-lg font-semibold text-steel-900">Project Phases</h3>
                                 <button className="px-3 py-1.5 text-sm font-medium bg-burgundy-600 text-white rounded-lg hover:bg-burgundy-700">
                                     <Plus size={16} className="inline mr-1" />
-                                    Add Task
+                                    Add Phase
                                 </button>
                             </div>
-                            {tasks.map((task) => (
-                                <div key={task.id} className="flex items-center justify-between p-4 bg-steel-50 rounded-lg">
-                                    <div className="flex items-center gap-3">
-                                        {getStatusIcon(task.status)}
-                                        <div>
-                                            <p className="font-medium text-steel-900">{task.title}</p>
-                                            <p className="text-sm text-steel-600">Assigned to {task.assignee}</p>
+                            {project.phases && project.phases.length > 0 ? (
+                                project.phases.map((phase, index) => (
+                                    <div key={index} className="flex items-center justify-between p-4 bg-steel-50 rounded-lg">
+                                        <div className="flex items-center gap-3">
+                                            {getStatusIcon(phase.status)}
+                                            <div>
+                                                <p className="font-medium text-steel-900">{phase.name}</p>
+                                                <p className="text-sm text-steel-600">{phase.description || 'No description'}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            <div className="text-right">
+                                                <div className="flex items-center gap-1 text-sm text-steel-600">
+                                                    <Calendar size={14} />
+                                                    {formatDate(phase.startDate)} - {formatDate(phase.endDate)}
+                                                </div>
+                                                <div className="text-sm font-medium text-steel-900 mt-1">
+                                                    {phase.progressPercentage || 0}% Complete
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-4">
-                                        <div className="flex items-center gap-1 text-sm text-steel-600">
-                                            <Calendar size={14} />
-                                            {task.dueDate}
-                                        </div>
-                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-center py-8 text-steel-500">
+                                    No phases added yet
                                 </div>
-                            ))}
+                            )}
                         </div>
                     )}
 
@@ -250,43 +373,49 @@ const ProjectDetails = () => {
                                     Add Member
                                 </button>
                             </div>
-                            {team.map((member) => (
-                                <div key={member.id} className="flex items-center justify-between p-4 bg-steel-50 rounded-lg">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-burgundy-100 rounded-full flex items-center justify-center">
-                                            <span className="text-sm font-semibold text-burgundy-600">{member.avatar}</span>
+                            {project.members && project.members.length > 0 ? (
+                                project.members.map((member) => (
+                                    <div key={member.id} className="flex items-center justify-between p-4 bg-steel-50 rounded-lg">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-burgundy-100 rounded-full flex items-center justify-center">
+                                                <span className="text-sm font-semibold text-burgundy-600">
+                                                    {member.userName?.substring(0, 2).toUpperCase() || 'U' + member.userId}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <p className="font-medium text-steel-900">{member.userName || `User ${member.userId}`}</p>
+                                                <p className="text-sm text-steel-600">{member.role}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="font-medium text-steel-900">{member.name}</p>
-                                            <p className="text-sm text-steel-600">{member.role}</p>
+                                        <div className="flex items-center gap-2">
+                                            {member.hourlyRate && (
+                                                <span className="text-sm text-steel-600">${member.hourlyRate}/hr</span>
+                                            )}
+                                            <div className={`w-2 h-2 rounded-full ${member.activeMember ? 'bg-green-500' : 'bg-steel-400'}`} />
+                                            <span className="text-sm text-steel-600">{member.activeMember ? 'Active' : 'Inactive'}</span>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className={`w-2 h-2 rounded-full ${member.status === 'online' ? 'bg-green-500' : 'bg-steel-400'}`} />
-                                        <span className="text-sm text-steel-600">{member.status}</span>
-                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-center py-8 text-steel-500">
+                                    No team members assigned yet
                                 </div>
-                            ))}
+                            )}
+                        </div>
+                    )}
+
+                    {activeTab === 'files' && (
+                        <div className="text-center py-8 text-steel-500">
+                            No files uploaded yet
                         </div>
                     )}
 
                     {activeTab === 'activity' && (
                         <div className="space-y-4">
                             <h3 className="text-lg font-semibold text-steel-900 mb-4">Recent Activity</h3>
-                            {activities.map((activity) => (
-                                <div key={activity.id} className="flex gap-3">
-                                    <div className="w-8 h-8 bg-steel-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                        <Activity size={14} className="text-steel-600" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <p className="text-sm text-steel-900">
-                                            <span className="font-medium">{activity.user}</span> {activity.action}{' '}
-                                            <span className="font-medium">{activity.target}</span>
-                                        </p>
-                                        <p className="text-xs text-steel-500 mt-1">{activity.time}</p>
-                                    </div>
-                                </div>
-                            ))}
+                            <div className="text-center py-8 text-steel-500">
+                                No recent activity
+                            </div>
                         </div>
                     )}
                 </div>

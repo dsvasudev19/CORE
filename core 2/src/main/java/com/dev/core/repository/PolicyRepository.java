@@ -32,7 +32,11 @@ public interface PolicyRepository extends JpaRepository<Policy, Long>, JpaSpecif
     void deleteByRoleIdAndResourceIdAndActionId(long roleId, long resourceId, long actionId);
     void deleteByUserIdAndResourceIdAndActionId(long userId, long resourceId, long actionId);
 
-
+    Optional<Policy> findByRoleIdAndResourceIdAndActionId(
+            Long roleId,
+            Long resourceId,
+            Long actionId
+    );
 
 }
 	

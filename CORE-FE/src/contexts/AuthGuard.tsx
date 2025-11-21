@@ -7,7 +7,7 @@ interface AuthGuardProps {
 }
 
 const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
-    const { isAuthenticated, isLoading } = useAuth();
+    const { isAuthenticated, isLoading, user } = useAuth();
     const location = useLocation();
 
     // Check if the current route is an auth route (e.g., /auth/login or /auth/register)
@@ -27,7 +27,10 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
         console.log("yes its a auth route")
         // If user is authenticated and trying to access auth routes, redirect to dashboard
         if (isAuthenticated) {
-            return <Navigate to="/a/dashboard" replace />;
+            if (user?.roles?.includes('SUPER_ADMIN')) {
+                return <Navigate to="/a/dashboard" replace />;
+            }
+            return <Navigate to="/e/dashboard" replace />;
         }
         return <>{children}</>;
     }

@@ -18,8 +18,7 @@ public class ProjectValidator {
         if (!StringUtils.hasText(dto.getName()))
             throw new ValidationFailedException("error.project.name.required",null);
 
-        if (dto.getClientId() == null)
-            throw new ValidationFailedException("error.project.client.required",null);
+       
 
         if (dto.getOrganizationId() == null)
             throw new ValidationFailedException("error.project.organization.required",null);

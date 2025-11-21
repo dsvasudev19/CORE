@@ -10,7 +10,7 @@ interface AuthContextType {
     refreshToken: string | null;
     isAuthenticated: boolean;
     isLoading: boolean;
-    login: (credentials: { email: string; password: string }) => Promise<{ success: boolean; message?: string }>;
+    login: (credentials: { email: string; password: string }) => Promise<{ success: boolean; message?: string; user?: any }>;
     logout: () => Promise<void>;
     refreshAccessToken: () => Promise<string | null>;
     updateUser: (user: any) => void;
@@ -41,7 +41,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             );
             console.log(res)
 
-            if (res.status===200) {
+            if (res.status === 200) {
                 const u = res.data.data;
                 console.log(u)
                 setUser(u);
@@ -58,7 +58,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     };
     useEffect(() => {
-       
+
 
         fetchCurrentUser();
     }, []); // 🔁 Run once on mount
@@ -83,7 +83,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     roles: data.roles,
                 });
 
-                return { success: true, message: res.data.message || 'Login successful' };
+                return {
+                    success: true, message: res.data.message || 'Login successful', user: {
+                        id: data.userId,
+                        email: data.email,
+                        organizationId: data.organizationId,
+                        roles: data.roles,
+                    }
+                };
             }
 
             return { success: false, message: res.data?.message || 'Login failed' };

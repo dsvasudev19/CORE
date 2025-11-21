@@ -24,7 +24,7 @@ import { TeamManagement, MyTeam } from "./pages/teams";
 import { EmployeeTasks, TaskDetails as TaskDetail, TodoManagement } from "./pages/tasks";
 
 // Projects
-import { MyProjects, ProjectDetails } from "./pages/projects";
+import { MyProjects, ProjectDetails, AddProject } from "./pages/projects";
 
 // Time Tracking
 import { EmployeeTimeTracking } from "./pages/time-tracking";
@@ -127,7 +127,9 @@ const Router = () => {
                     <Route path="settings" element={<Settings />} />
                     <Route path="access-control" element={<AccessControl />} />
                     {/* Placeholder routes for other admin sections */}
-                    <Route path="projects" element={<div className="p-6"><h1 className="text-2xl font-bold">Projects Management</h1><p className="text-steel-600 mt-2">Coming soon...</p></div>} />
+                    <Route path="projects" element={<MyProjects />} />
+                    <Route path="projects/add" element={<AddProject />} />
+                    <Route path="projects/:id" element={<ProjectDetails />} />
                     <Route path="clients" element={<ClientListingPage />} />
                     <Route path="clients/:id" element={<ClientDetailsPage />} />
                     <Route path="clients/add" element={<ClientAddPage />} />
@@ -141,10 +143,12 @@ const Router = () => {
                 </Route>
 
                 {/* Employee Routes */}
-                <Route path="/e" element={<EmployeeLayout />}>
+                <Route path="/e" element={<AuthGuard><EmployeeLayout /></AuthGuard>}>
                     <Route path="dashboard" element={<EmployeeHome />} />
                     <Route path="profile" element={<MyProfile />} />
                     <Route path="projects" element={<MyProjects />} />
+                    <Route path="projects/add" element={<AddProject />} />
+
                     <Route path="projects/:id" element={<ProjectDetails />} />
                     <Route path="tasks" element={<EmployeeTasks />} />
                     <Route path="todos" element={<TodoManagement />} />

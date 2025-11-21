@@ -127,13 +127,14 @@ public class EmployeeServiceImpl implements EmployeeService {
         entity.setProfileStatus(ProfileStatus.OPENED);
         entity.setOrganizationId(securityContext.getCurrentOrganizationId());
         entity.setJoiningDate(LocalDate.now());
+        entity.setWorkEmail(dto.getFirstName().replaceAll(" ", "")+"."+dto.getLastName().replaceAll(" ","")+"@yopmail.com");
         Employee saved = employeeRepository.save(entity);
         log.info("✅ Employee created: {} ({})", saved.getFirstName(), saved.getEmail());
         
         UserDTO userDto = new UserDTO();
         userDto.setOrganizationId(saved.getOrganizationId());
         userDto.setUsername(saved.getEmployeeCode());  // OR saved.getEmail() — your choice
-        userDto.setEmail(saved.getFirstName()+"."+saved.getLastName()+"@core.com");
+        userDto.setEmail(saved.getFirstName().replaceAll(" ", "")+"."+saved.getLastName().replaceAll(" ","")+"@yopmail.com");
         userDto.setPassword(PasswordGenerator.generatePassword()); // or auto-generate
         userDto.setStatus(UserStatus.ACTIVE);
 

@@ -22,13 +22,16 @@ const Login = () => {
 
         try {
             const result = await login({ email, password });
-
+            console.log(result)
             if (result.success) {
                 console.log('Login successful');
 
                 // Redirect user based on role or dashboard
-                // You can check user.roles after login if needed
-                navigate('/a/dashboard');
+                if (result.user?.roles?.includes('SUPER_ADMIN')) {
+                    navigate('/a/dashboard');
+                } else {
+                    navigate('/e/dashboard');
+                }
             } else {
                 setError(result.message || 'Login failed. Please try again.');
             }

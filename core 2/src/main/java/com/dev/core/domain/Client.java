@@ -63,6 +63,10 @@ public class Client extends BaseEntity {
     @Builder.Default
     private List<ClientRepresentative> representatives = new ArrayList<>();
     
+    @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = false)
+    private List<Project> projects = new ArrayList<>();
+
+    
 
 
 }
