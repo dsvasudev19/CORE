@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Building2, Users } from 'lucide-react';
 import DepartmentList from '../departments/DepartmentList';
 import DesignationList from '../designations/DesignationList';

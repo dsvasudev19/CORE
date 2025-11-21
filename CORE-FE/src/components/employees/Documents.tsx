@@ -15,10 +15,10 @@ interface DocumentsProps {
   savedEmployee: any;
 }
 
-const Documents: React.FC<DocumentsProps> = ({ savedEmployee }) => {
+const Documents: React.FC<DocumentsProps> = () => {
   const [documentStatus, setDocumentStatus] = useState(initialDocumentStatus);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, docId: string) => {
+  const handleFileUpload = (_e: React.ChangeEvent<HTMLInputElement>, docId: string) => {
     // Only update status locally, do not integrate API
     setDocumentStatus(prev =>
       prev.map(doc => doc.id === docId ? { ...doc, status: 'uploaded' } : doc)

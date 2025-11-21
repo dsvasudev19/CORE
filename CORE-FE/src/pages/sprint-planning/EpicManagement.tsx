@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Plus, Search, Filter, MoreHorizontal, ChevronDown, ChevronRight, X, PlayCircle, CheckCircle2, MoreVertical, GripVertical, Trash2, Loader2, CheckCircle2 as CheckIcon, AlertCircle } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Plus, Search, ChevronDown, ChevronRight, X, GripVertical, Loader2, CheckCircle2 as CheckIcon, AlertCircle } from 'lucide-react';
 
 const EpicManagement = () => {
-  const [expandedSprints, setExpandedSprints] = useState({ sprint1: true, sprint2: true });
-  const [expandedEpics, setExpandedEpics] = useState({ 1: true, 2: true, backlog: true, noepic: true });
+  const [expandedSprints, setExpandedSprints] = useState<Record<string, boolean>>({ sprint1: true, sprint2: true });
+  const [expandedEpics, setExpandedEpics] = useState<Record<string | number, boolean>>({ 1: true, 2: true, backlog: true, noepic: true });
   const [selectedIssues, setSelectedIssues] = useState<string[]>([]);
   const [draggedIssue, setDraggedIssue] = useState<any>(null);
   const [dragOverSprint, setDragOverSprint] = useState<string | null>(null);
@@ -31,17 +31,30 @@ const EpicManagement = () => {
   };
 
   // Sample data (unchanged)
-  const [sprints, setSprints] = useState([
+  const sprints = [
     { id: 'sprint1', name: 'Sprint 23', status: 'active', startDate: '2025-11-10', endDate: '2025-11-24', goal: 'Complete user authentication and payment setup', issues: ['PROJ-101', 'PROJ-102', 'PROJ-104'] },
     { id: 'sprint2', name: 'Sprint 24', status: 'future', startDate: null, endDate: null, goal: '', issues: ['PROJ-105'] }
-  ]);
+  ];
 
   const epics = [
     { id: 1, key: 'PROJ-1', name: 'User Authentication System', color: '#6554C0' },
     { id: 2, key: 'PROJ-2', name: 'Payment Integration', color: '#00875A' }
   ];
 
-  const [issues, setIssues] = useState([
+  type Issue = {
+    id: number;
+    key: string;
+    type: string;
+    summary: string;
+    epicId: number | null;
+    priority: string;
+    assignee: string | null;
+    storyPoints: number;
+    status: string;
+    sprintId: string | null;
+  };
+
+  const [issues, setIssues] = useState<Issue[]>([
     { id: 1, key: 'PROJ-101', type: 'Story', summary: 'Implement OAuth2 authentication flow', epicId: 1, priority: 'Highest', assignee: 'Sarah Chen', storyPoints: 8, status: 'In Progress', sprintId: 'sprint1' },
     { id: 2, key: 'PROJ-102', type: 'Story', summary: 'Design login and registration screens', epicId: 1, priority: 'High', assignee: 'Mike Johnson', storyPoints: 5, status: 'Done', sprintId: 'sprint1' },
     { id: 3, key: 'PROJ-103', type: 'Bug', summary: 'Login button not responsive on mobile', epicId: 1, priority: 'Highest', assignee: null, storyPoints: 3, status: 'To Do', sprintId: null },
@@ -55,8 +68,8 @@ const EpicManagement = () => {
   // Real-time search & filter
   const filteredIssues = useMemo(() => {
     return issues.filter(issue =>
-      (issue.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
-       issue.key.toLowerCase().includes(searchQuery.toLowerCase()))
+    (issue.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      issue.key.toLowerCase().includes(searchQuery.toLowerCase()))
     );
   }, [issues, searchQuery]);
 

@@ -7,7 +7,6 @@ import type { UserDTO, UserStatus } from '../../types/user.types';
 import type { RoleDTO } from '../../types/role.types';
 import { ConfirmDialog } from '../../components';
 import { useConfirmDialog } from '../../hooks';
-import MultiSelectDropdown from '../../components/MultiSelectDropdown';
 import { permissionService } from '../../services/permission.service';
 
 const UserManagement = () => {
@@ -105,7 +104,7 @@ const UserManagement = () => {
 
     const handleEdit = (user: UserDTO) => {
         setEditingUser(user);
-        
+
         // Map roleNames to roleIds
         const roleIds = user.roleNames?.map(roleName => {
             const role = roles.find(r => r.name === roleName);
@@ -114,7 +113,7 @@ const UserManagement = () => {
 
         // Map permissionKeys to permissionIds
         const permissionIds = user.permissionKeys?.map(key => {
-            const permission = permissions.find(p => 
+            const permission = permissions.find(p =>
                 `${p.resource?.code}-${p.action?.code}` === key
             );
             return permission?.id;
@@ -521,7 +520,7 @@ const UserManagement = () => {
                                         placeholder="Link to employee"
                                     />
                                 </div>
-                                
+
                                 {/* Roles Section */}
                                 <div className="pb-3">
                                     <label className="block text-xs font-medium text-steel-700 mb-1">
@@ -560,7 +559,7 @@ const UserManagement = () => {
                                                             <input
                                                                 type="checkbox"
                                                                 checked={isSelected}
-                                                                onChange={() => {}}
+                                                                onChange={() => { }}
                                                                 className="w-3.5 h-3.5 text-burgundy-600 border-steel-300 rounded focus:ring-burgundy-500"
                                                             />
                                                             <span className={isSelected ? 'font-medium text-steel-900' : 'text-steel-700'}>
@@ -663,7 +662,7 @@ const UserManagement = () => {
                                                             data-permission-item
                                                             data-permission-label={label}
                                                             onClick={() => handlePermissionsChange(
-                                                                isSelected 
+                                                                isSelected
                                                                     ? formData.permissionIds.filter(id => id !== p.id)
                                                                     : [...formData.permissionIds, p.id!]
                                                             )}
@@ -672,7 +671,7 @@ const UserManagement = () => {
                                                             <input
                                                                 type="checkbox"
                                                                 checked={isSelected}
-                                                                onChange={() => {}}
+                                                                onChange={() => { }}
                                                                 className="w-3.5 h-3.5 text-burgundy-600 border-steel-300 rounded focus:ring-burgundy-500"
                                                             />
                                                             <span className={isSelected ? 'font-medium text-steel-900' : 'text-steel-700'}>
