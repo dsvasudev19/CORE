@@ -276,7 +276,7 @@ const MyProjects = () => {
                         <div>
                             <p className="text-sm text-steel-600">Total Budget</p>
                             <p className="text-2xl font-bold text-steel-900">
-                                ${projects.reduce((sum, p) => sum + (p.budget || 0), 0).toLocaleString()}
+                                ₹{projects.reduce((sum, p) => sum + (p.budget || 0), 0).toLocaleString()}
                             </p>
                         </div>
                         <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -494,7 +494,7 @@ const MyProjects = () => {
                                         <div className="text-right">
                                             <p className="text-xs text-steel-500">Budget</p>
                                             <p className="text-xs font-medium text-steel-900">
-                                                ${(project.spent || 0).toLocaleString()} / ${project.budget.toLocaleString()}
+                                                ₹{(project.spent || 0).toLocaleString()} / ₹{project.budget.toLocaleString()}
                                             </p>
                                         </div>
                                     )}
