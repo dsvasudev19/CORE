@@ -10,8 +10,8 @@ import java.nio.file.Paths;
 @Configuration
 public class FileUploadConfig implements WebMvcConfigurer {
 
-    private static final String UPLOAD_DIR =  "/app/uploads/clients";
-    private static final String SERVE_PATH = "/uploads/clients/**";
+    private static final String UPLOAD_DIR =  "app/uploads";
+    private static final String SERVE_PATH = "app/uploads/**";
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {

@@ -1,20 +1,29 @@
 package com.dev.core.mapper;
 
+import org.springframework.stereotype.Component;
+
+import com.dev.core.domain.Employee;
 import com.dev.core.domain.Project;
 import com.dev.core.domain.ProjectMember;
-import com.dev.core.domain.User;
+import com.dev.core.model.EmployeeDTO;
+import com.dev.core.model.MinimalEmployeeDTO;
 import com.dev.core.model.ProjectMemberDTO;
+import com.dev.core.service.EmployeeService;
 
+import lombok.RequiredArgsConstructor;
+
+@Component
+@RequiredArgsConstructor
 public final class ProjectMemberMapper {
 
-    private ProjectMemberMapper() {}
+
 
     // ------------------------------------------------------------
     // DEEP MAPPERS (Includes Project, User)
     // ------------------------------------------------------------
 
     public static ProjectMemberDTO toDTO(ProjectMember entity) {
-        if (entity == null) return null;
+    	if (entity == null) return null;
 
         return ProjectMemberDTO.builder()
                 // Base fields
@@ -28,13 +37,15 @@ public final class ProjectMemberMapper {
 
                 // Member fields
                 .projectId(entity.getProject() != null ? entity.getProject().getId() : null)
-                .userId(entity.getUser() != null ? entity.getUser().getId() : null)
+                .userId(entity.getEmployee() != null ? entity.getEmployee().getId() : null)
                 .role(entity.getRole())
                 .hourlyRate(entity.getHourlyRate())
                 .activeMember(entity.getActiveMember())
                 .joinedAt(entity.getJoinedAt())
+                .employee(entity.getEmployee() != null 
+                ? new MinimalEmployeeDTO(entity.getEmployee().getId(),entity.getEmployee().getEmployeeCode(), entity.getEmployee().getFirstName(),entity.getEmployee().getLastName(),entity.getEmployee().getEmail(),entity.getEmployee().getPhone())                : null)
                 .lastActivity(entity.getLastActivity())
-                .build();
+                   .build();
     }
 
     public static ProjectMember toEntity(ProjectMemberDTO dto) {
@@ -59,9 +70,9 @@ public final class ProjectMemberMapper {
         }
 
         if (dto.getUserId() != null) {
-            User u = new User();
-            u.setId(dto.getUserId());
-            entity.setUser(u);
+            Employee u = new Employee();
+            u.setId(dto.getId());
+            entity.setEmployee(u);
         }
 
         // Member fields
@@ -96,6 +107,8 @@ public final class ProjectMemberMapper {
                 .activeMember(entity.getActiveMember())
                 .joinedAt(entity.getJoinedAt())
                 .lastActivity(entity.getLastActivity())
+                .employee(entity.getEmployee() != null 
+                ? new MinimalEmployeeDTO(entity.getEmployee().getId(), entity.getEmployee().getFirstName(),entity.getEmployee().getLastName(),entity.getEmployee().getEmail(),entity.getEmployee().getEmployeeCode(),entity.getEmployee().getPhone())                : null)
                 .build();
     }
 
@@ -142,9 +155,9 @@ public final class ProjectMemberMapper {
         }
 
         if (dto.getUserId() != null) {
-            User u = new User();
-            u.setId(dto.getUserId());
-            entity.setUser(u);
+        	Employee u = new Employee();
+            u.setId(dto.getId());
+            entity.setEmployee(u);
         }
 
         // Member data
@@ -154,4 +167,6 @@ public final class ProjectMemberMapper {
         entity.setJoinedAt(dto.getJoinedAt());
         entity.setLastActivity(dto.getLastActivity());
     }
+    
+    
 }

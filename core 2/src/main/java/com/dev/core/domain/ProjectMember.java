@@ -35,8 +35,8 @@ public class ProjectMember extends BaseEntity {
     private Project project;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @JoinColumn(name = "employee_id", nullable = false)
+    private Employee employee;
 
     @Enumerated(EnumType.STRING)
     @Column(length = 40, nullable = false)

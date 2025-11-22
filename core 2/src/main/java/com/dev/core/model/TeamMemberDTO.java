@@ -15,7 +15,7 @@ public class TeamMemberDTO extends BaseDTO {
     private TeamDTO team;
 
     private Long employeeId;
-    private EmployeeDTO employee;
+    private MinimalEmployeeDTO employee;
 
     private boolean isLead;
     private boolean isManager;

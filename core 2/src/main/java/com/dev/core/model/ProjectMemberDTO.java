@@ -24,6 +24,7 @@ public class ProjectMemberDTO extends BaseDTO {
 
     private Double hourlyRate;
     private Boolean activeMember;
+    private MinimalEmployeeDTO employee;
 
     private LocalDateTime joinedAt;
     private LocalDateTime lastActivity;

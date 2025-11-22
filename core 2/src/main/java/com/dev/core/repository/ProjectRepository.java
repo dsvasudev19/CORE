@@ -51,7 +51,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long>, JpaSpec
 	@Query("""
 			    select p from Project p
 			    join p.members m
-			    where m.user.id = :userId
+			    where m.employee.id = :userId
 			      and p.organizationId = :organizationId
 			""")
 	List<Project> findByOrganizationIdAndMember(Long organizationId, Long userId);
@@ -75,7 +75,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long>, JpaSpec
 	@Query("""
 			    select p from Project p
 			    join p.members m
-			    where p.organizationId = :orgId and m.user.id = :userId and m.activeMember = true
+			    where p.organizationId = :orgId and m.employee.id = :userId and m.activeMember = true
 			""")
 	List<Project> findProjectsForMember(Long orgId, Long userId);
 

@@ -1,11 +1,25 @@
 package com.dev.core.mapper;
 
+import org.springframework.stereotype.Component;
+
 import com.dev.core.domain.TeamMember;
+import com.dev.core.model.EmployeeDTO;
+import com.dev.core.model.MinimalEmployeeDTO;
 import com.dev.core.model.TeamMemberDTO;
+import com.dev.core.service.EmployeeService;
 
+import lombok.RequiredArgsConstructor;
+
+
+
+@Component
+@RequiredArgsConstructor
 public final class TeamMemberMapper {
+	
+	
+	private static EmployeeService employeeService;
 
-    private TeamMemberMapper() {}
+
 
     public static TeamMember toEntity(TeamMemberDTO dto) {
         if (dto == null) return null;
@@ -18,6 +32,7 @@ public final class TeamMemberMapper {
     }
 
     public static TeamMemberDTO toDTO(TeamMember entity) {
+    	EmployeeDTO emp=getEmployeeDetails(entity.getEmployee().getId());
         if (entity == null) return null;
         return TeamMemberDTO.builder()
                 .id(entity.getId())
@@ -27,7 +42,11 @@ public final class TeamMemberMapper {
                 .teamId(entity.getTeam() != null ? entity.getTeam().getId() : null)
                 .employeeId(entity.getEmployee() != null ? entity.getEmployee().getId() : null)
                 .team(TeamMapper.toDTO(entity.getTeam()))
-                .employee(EmployeeMapper.toDTO(entity.getEmployee()))
+                .employee(MinimalEmployeeDTO.builder().email(emp.getEmail())
+                		.phone(emp.getPhone()).firstName(emp.getFirstName()).lastName(emp.getLastName()).employeeCode(emp.getEmployeeCode()).build())
                 .build();
+    }
+    public static EmployeeDTO getEmployeeDetails(long employeeId) {
+    	return employeeService.getEmployeeById(employeeId);
     }
 }

@@ -11,6 +11,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class MinimalEmployeeDTO {
     private Long id;
+    private String employeeCode;
     private String firstName;
     private String lastName;
+    private String email;
+    private String phone;
 }

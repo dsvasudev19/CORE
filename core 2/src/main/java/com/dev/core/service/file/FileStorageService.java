@@ -43,6 +43,7 @@ public class FileStorageService {
             return fileId; // This is what you store in DB as fileId
 
         } catch (IOException ex) {
+        	ex.printStackTrace();
             throw new BaseException("error.file.upload.failed", new Object[]{file.getOriginalFilename()});
         }
     }

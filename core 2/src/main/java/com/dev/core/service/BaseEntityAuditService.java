@@ -23,6 +23,8 @@ public class BaseEntityAuditService {
 
         if (operation == OperationType.CREATE) {
             entity.setCreatedAt(LocalDateTime.now());
+            entity.setUpdatedAt(LocalDateTime.now());
+            entity.setUpdatedBy(currentUserId);
             entity.setCreatedBy(currentUserId);
             entity.setOrganizationId(currentOrgId);
             entity.setActive(true); // default
