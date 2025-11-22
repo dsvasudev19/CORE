@@ -49,7 +49,8 @@ public class FileStorageService {
     }
 
     public Path getFilePath(String fileId, Long clientId) {
-        return Paths.get(uploadDir, clientId.toString(), fileId);
+        return Paths.get(uploadDir
+        		, clientId.toString(), fileId);
     }
 
     public void deleteFile(String fileId, Long clientId) {

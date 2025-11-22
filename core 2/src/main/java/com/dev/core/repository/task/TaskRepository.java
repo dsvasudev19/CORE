@@ -53,4 +53,15 @@ public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificat
     @Query("SELECT t FROM Task t WHERE t.status <> 'DONE' AND t.dueDate BETWEEN CURRENT_TIMESTAMP AND :upcoming")
     List<Task> findTasksDueBefore(@Param("upcoming") LocalDateTime upcoming);
 
+    
+    @Query("""
+    	    SELECT DISTINCT t
+    	    FROM Task t
+    	    LEFT JOIN t.assignees a
+    	    WHERE t.organizationId = :orgId
+    	      AND (t.ownerId = :employeeId OR a.id = :employeeId)
+    	    ORDER BY t.dueDate ASC
+    	""")
+    	List<Task> findMyTasks(Long orgId, Long employeeId);
+
 }

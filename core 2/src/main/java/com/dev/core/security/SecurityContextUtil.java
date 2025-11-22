@@ -2,6 +2,8 @@ package com.dev.core.security;
 
 
 import com.dev.core.exception.BaseException;
+import com.dev.core.model.MinimalEmployeeDTO;
+
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -37,4 +39,19 @@ public class SecurityContextUtil {
 
         throw new BaseException("error.auth.orginfo.invalid");
     }
+    
+    public MinimalEmployeeDTO getCurrentEmployee() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        if (auth == null || auth.getPrincipal() == null) {
+            throw new BaseException("error.auth.unauthenticated");
+        }
+
+        if (auth.getPrincipal() instanceof CustomUserDetails userDetails) {
+            return userDetails.getEmployee();
+        }
+
+        throw new BaseException("error.auth.employee.invalid");
+    }
+
 }

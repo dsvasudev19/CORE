@@ -1,12 +1,12 @@
+package com.dev.core.domain.minimal;
 
-package com.dev.core.model.task;
+
 
 import java.time.LocalDateTime;
-import java.util.Set;
+
 
 import com.dev.core.constants.TaskPriority;
 import com.dev.core.constants.TaskStatus;
-import com.dev.core.domain.minimal.MinimalTask;
 import com.dev.core.model.BaseDTO;
 import com.dev.core.model.EmployeeDTO;
 import com.dev.core.model.MinimalEmployeeDTO;
@@ -19,10 +19,10 @@ import lombok.experimental.SuperBuilder;
 
 @Getter
 @Setter
-@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TaskDTO extends BaseDTO {
+@SuperBuilder
+public class MinimalTask {
 
     private String title;
     private String description;
@@ -42,19 +42,9 @@ public class TaskDTO extends BaseDTO {
 
     // Old: ownerId
     private Long ownerId;          // still needed for saving
-    private EmployeeDTO owner;     // NEW - full object returned
+    private MinimalEmployeeDTO owner;     // NEW - full object returned
 
     private Integer progressPercentage;
 
-    // Old: Set<Long> assigneeIds
-    private Set<Long> assigneeIds;            // still needed for sending
-    private Set<MinimalEmployeeDTO> assignees;       // NEW - full objects returned
-
-    private Set<TaskTagDTO> tags;
-    private Set<TaskDependencyDTO> dependencies;
-    private Set<TaskCommentDTO> comments;
-    private Set<TaskAttachmentDTO> attachments;
-
-    private Set<MinimalTask> subtasks;
 }
 

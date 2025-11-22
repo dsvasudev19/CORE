@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 import {
     ArrowLeft,
     User,
-    MessageSquare,
-    Paperclip,
     CheckCircle,
     Edit3,
     Trash2,
@@ -14,234 +13,246 @@ import {
     Calendar,
     Flag,
     AlertCircle,
-    Circle,
-    TrendingUp,
     Plus,
+    Loader2,
+    Clock,
+    Save,
+    X,
+    MessageSquare,
+    Send,
+    Users,
+    Tag,
+    BarChart3,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { taskService } from '../../services/task.service';
+import { taskCommentService, type TaskCommentDTO } from '../../services/taskComment.service';
+import type { TaskDTO } from '../../types/task.types';
+import { TaskStatus } from '../../types/task.types';
+import { useAuth } from '../../contexts/AuthContext';
 
-/* --------------------------------------------------------------
-   Helper: className merger
-   -------------------------------------------------------------- */
 const cn = (...inputs: (string | undefined | null | false)[]) =>
     inputs.filter(Boolean).join(' ');
 
-/* --------------------------------------------------------------
-   Types
-   -------------------------------------------------------------- */
-type Subtask = {
-    id: number;
-    title: string;
-    completed: boolean;
-};
-
-type Comment = {
-    id: number;
-    author: string;
-    content: string;
-    timestamp: string;
-    attachments?: number;
-};
-
-type Task = {
-    id: number;
-    title: string;
-    description: string;
-    project: string;
-    status: string;
-    priority: string;
-    dueDate: string;
-    assignedBy: string;
-    estimatedHours: number;
-    loggedHours: number;
-    progress: number;
-    tags: string[];
-    comments: number;
-    attachments: number;
-    subtasks: {
-        completed: number;
-        total: number;
-        items: Subtask[];
-    };
-};
-
-/* --------------------------------------------------------------
-   Component
-   -------------------------------------------------------------- */
 const TaskDetail = () => {
-    /* --------------------- Routing --------------------- */
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const { user } = useAuth();
 
-    /* --------------------- State --------------------- */
-    const [task, setTask] = useState<Task | null>(null);
+    // State
+    const [task, setTask] = useState<TaskDTO | null>(null);
+    const [comments, setComments] = useState<TaskCommentDTO[]>([]);
     const [loading, setLoading] = useState(true);
     const [showSubtasks, setShowSubtasks] = useState(true);
     const [showComments, setShowComments] = useState(true);
-    const [editing, setEditing] = useState(false);
+
+    // Editing states
+    const [editingTitle, setEditingTitle] = useState(false);
     const [editedTitle, setEditedTitle] = useState('');
+    const [editingDescription, setEditingDescription] = useState(false);
+    const [editedDescription, setEditedDescription] = useState('');
+    const [editingProgress, setEditingProgress] = useState(false);
+    const [editedProgress, setEditedProgress] = useState(0);
+    const [isDraggingProgress, setIsDraggingProgress] = useState(false);
+    const [isUpdatingProgress, setIsUpdatingProgress] = useState(false);
 
-    /* --------------------- Mock Data Loader --------------------- */
+    // Comment state
+    const [newComment, setNewComment] = useState('');
+    const [submittingComment, setSubmittingComment] = useState(false);
+
     useEffect(() => {
-        // Simulate API call
-        const mockTasks: Task[] = [
-            {
-                id: 1,
-                title: 'Implement user authentication flow',
-                description: 'Design and develop the complete user authentication system including login, registration, and password recovery. Ensure JWT token security and OAuth integration for social logins.',
-                project: 'CORE Platform',
-                status: 'In Progress',
-                priority: 'High',
-                dueDate: '2025-11-08',
-                assignedBy: 'James Rodriguez',
-                estimatedHours: 16,
-                loggedHours: 12,
-                progress: 75,
-                tags: ['Frontend', 'Security', 'React', 'JWT'],
-                comments: 3,
-                attachments: 2,
-                subtasks: {
-                    completed: 4,
-                    total: 6,
-                    items: [
-                        { id: 1, title: 'Set up auth routes', completed: true },
-                        { id: 2, title: 'Implement login form', completed: true },
-                        { id: 3, title: 'Create registration component', completed: true },
-                        { id: 4, title: 'Add password recovery', completed: true },
-                        { id: 5, title: 'Integrate OAuth', completed: false },
-                        { id: 6, title: 'Test edge cases', completed: false },
-                    ],
-                },
-            },
-            {
-                id: 2,
-                title: 'Design mobile responsive layout',
-                description: 'Create responsive design components for mobile devices ensuring optimal user experience. Focus on touch-friendly interactions and adaptive grids.',
-                project: 'Mobile App Redesign',
-                status: 'To Do',
-                priority: 'Medium',
-                dueDate: '2025-11-12',
-                assignedBy: 'Sarah Chen',
-                estimatedHours: 24,
-                loggedHours: 0,
-                progress: 0,
-                tags: ['Design', 'Mobile', 'UI/UX', 'Figma'],
-                comments: 1,
-                attachments: 0,
-                subtasks: {
-                    completed: 0,
-                    total: 8,
-                    items: [
-                        { id: 1, title: 'Audit current mobile views', completed: false },
-                        { id: 2, title: 'Sketch wireframes', completed: false },
-                        { id: 3, title: 'Design navigation', completed: false },
-                        { id: 4, title: 'Create component library', completed: false },
-                        { id: 5, title: 'Test on devices', completed: false },
-                        { id: 6, title: 'Optimize images', completed: false },
-                        { id: 7, title: 'Add animations', completed: false },
-                        { id: 8, title: 'Document guidelines', completed: false },
-                    ],
-                },
-            },
-            {
-                id: 3,
-                title: 'Code review for API endpoints',
-                description: 'Review and optimize existing API endpoints for better performance and security. Check for SQL injection vulnerabilities and implement rate limiting.',
-                project: 'Client Portal',
-                status: 'In Review',
-                priority: 'Low',
-                dueDate: '2025-11-15',
-                assignedBy: 'Michael Brown',
-                estimatedHours: 8,
-                loggedHours: 6,
-                progress: 90,
-                tags: ['Backend', 'API', 'Review', 'Node.js'],
-                comments: 5,
-                attachments: 1,
-                subtasks: {
-                    completed: 3,
-                    total: 3,
-                    items: [
-                        { id: 1, title: 'Review auth endpoints', completed: true },
-                        { id: 2, title: 'Optimize queries', completed: true },
-                        { id: 3, title: 'Add security checks', completed: true },
-                    ],
-                },
-            },
-            {
-                id: 4,
-                title: 'Update documentation for new features',
-                description: 'Create comprehensive documentation for recently implemented features. Include API references, usage examples, and troubleshooting guides.',
-                project: 'CORE Platform',
-                status: 'Completed',
-                priority: 'Medium',
-                dueDate: '2025-11-05',
-                assignedBy: 'Lisa Wang',
-                estimatedHours: 12,
-                loggedHours: 10,
-                progress: 100,
-                tags: ['Documentation', 'Technical Writing', 'Markdown'],
-                comments: 2,
-                attachments: 3,
-                subtasks: {
-                    completed: 5,
-                    total: 5,
-                    items: [
-                        { id: 1, title: 'Outline structure', completed: true },
-                        { id: 2, title: 'Write API docs', completed: true },
-                        { id: 3, title: 'Add examples', completed: true },
-                        { id: 4, title: 'Review content', completed: true },
-                        { id: 5, title: 'Publish to wiki', completed: true },
-                    ],
-                },
-            },
-            {
-                id: 5,
-                title: 'Fix critical bug in payment processing',
-                description: 'Urgent fix required for payment gateway integration causing transaction failures. Investigate Stripe webhook issues and implement retry logic.',
-                project: 'E-commerce Platform',
-                status: 'In Progress',
-                priority: 'Critical',
-                dueDate: '2025-11-07',
-                assignedBy: 'David Kim',
-                estimatedHours: 6,
-                loggedHours: 4,
-                progress: 60,
-                tags: ['Bug Fix', 'Payment', 'Critical', 'Stripe'],
-                comments: 8,
-                attachments: 1,
-                subtasks: {
-                    completed: 2,
-                    total: 4,
-                    items: [
-                        { id: 1, title: 'Reproduce bug', completed: true },
-                        { id: 2, title: 'Analyze logs', completed: true },
-                        { id: 3, title: 'Implement fix', completed: false },
-                        { id: 4, title: 'Test transactions', completed: false },
-                    ],
-                },
-            },
-        ];
-
-        const taskId = parseInt(id || '0', 10);
-        const foundTask = mockTasks.find((t) => t.id === taskId);
-
-        setTimeout(() => {
-            if (foundTask) {
-                setTask(foundTask);
-                setEditedTitle(foundTask.title);
-            }
-            setLoading(false);
-        }, 500); // Simulate network delay
+        if (id) {
+            fetchTaskDetails();
+            fetchComments();
+        }
     }, [id]);
 
-    /* --------------------- Handlers --------------------- */
+    const fetchTaskDetails = async () => {
+        try {
+            setLoading(true);
+            const taskId = parseInt(id || '0', 10);
+            const data = await taskService.getTaskById(taskId, true);
+            setTask(data);
+            setEditedTitle(data.title);
+            setEditedDescription(data.description || '');
+            setEditedProgress(data.progressPercentage || 0);
+        } catch (err) {
+            console.error('Error fetching task details:', err);
+            toast.error('Failed to load task details');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchComments = async () => {
+        try {
+            const taskId = parseInt(id || '0', 10);
+            const data = await taskCommentService.getCommentsByTask(taskId);
+            setComments(data);
+        } catch (err) {
+            console.error('Error fetching comments:', err);
+        }
+    };
+
+    const handleSaveTitle = async () => {
+        if (!task) return;
+
+        try {
+            await taskService.updateTask(task.id, { title: editedTitle });
+            setTask({ ...task, title: editedTitle });
+            setEditingTitle(false);
+            toast.success('Task title updated');
+        } catch (err) {
+            console.error('Error updating title:', err);
+            toast.error('Failed to update title');
+        }
+    };
+
+    const handleSaveDescription = async () => {
+        if (!task) return;
+
+        try {
+            await taskService.updateTask(task.id, { description: editedDescription });
+            setTask({ ...task, description: editedDescription });
+            setEditingDescription(false);
+            toast.success('Description updated');
+        } catch (err) {
+            console.error('Error updating description:', err);
+            toast.error('Failed to update description');
+        }
+    };
+
+    const handleSaveProgress = async (newProgress: number) => {
+        if (!task || isUpdatingProgress) return;
+
+        try {
+            setIsUpdatingProgress(true);
+            await taskService.updateTask(task.id, { progressPercentage: newProgress });
+            setTask({ ...task, progressPercentage: newProgress });
+            toast.success('Progress updated');
+        } catch (err) {
+            console.error('Error updating progress:', err);
+            toast.error('Failed to update progress');
+            setEditedProgress(task.progressPercentage || 0);
+        } finally {
+            setIsUpdatingProgress(false);
+        }
+    };
+
+    useEffect(() => {
+        if (!editingProgress || isDraggingProgress) return;
+
+        const timeoutId = setTimeout(() => {
+            if (editedProgress !== (task?.progressPercentage || 0)) {
+                handleSaveProgress(editedProgress);
+            }
+        }, 500);
+
+        return () => clearTimeout(timeoutId);
+    }, [editedProgress, editingProgress, isDraggingProgress]);
+
+    const handleProgressBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!editingProgress || isUpdatingProgress) return;
+
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const percentage = Math.round((x / rect.width) * 100);
+        const clampedPercentage = Math.min(100, Math.max(0, percentage));
+        setEditedProgress(clampedPercentage);
+    };
+
+    const handleProgressDragStart = () => {
+        if (!editingProgress || isUpdatingProgress) return;
+        setIsDraggingProgress(true);
+    };
+
+    const handleProgressDrag = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!isDraggingProgress || isUpdatingProgress) return;
+
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const percentage = Math.round((x / rect.width) * 100);
+        const clampedPercentage = Math.min(100, Math.max(0, percentage));
+        setEditedProgress(clampedPercentage);
+    };
+
+    useEffect(() => {
+        if (isDraggingProgress) {
+            const handleMouseUp = () => setIsDraggingProgress(false);
+            window.addEventListener('mouseup', handleMouseUp);
+            return () => window.removeEventListener('mouseup', handleMouseUp);
+        }
+    }, [isDraggingProgress]);
+
+    const handleDelete = async () => {
+        if (!task) return;
+        if (!confirm('Are you sure you want to delete this task?')) return;
+
+        try {
+            await taskService.deleteTask(task.id, false);
+            toast.success('Task deleted');
+            navigate('/e/tasks');
+        } catch (err) {
+            console.error('Error deleting task:', err);
+            toast.error('Failed to delete task');
+        }
+    };
+
+    const handleMarkComplete = async () => {
+        if (!task) return;
+
+        try {
+            await taskService.markTaskComplete(task.id);
+            toast.success('Task marked as complete');
+            await fetchTaskDetails();
+        } catch (err) {
+            console.error('Error marking complete:', err);
+            toast.error('Failed to mark task as complete');
+        }
+    };
+
+    const handleAddComment = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!task || !newComment.trim()) return;
+
+        try {
+            setSubmittingComment(true);
+            await taskCommentService.addComment(task.id, {
+                taskId: task.id,
+                commentText: newComment,
+                commentedBy: user?.id || 1,
+            });
+            setNewComment('');
+            toast.success('Comment added');
+            await fetchComments();
+        } catch (err) {
+            console.error('Error adding comment:', err);
+            toast.error('Failed to add comment');
+        } finally {
+            setSubmittingComment(false);
+        }
+    };
+
+    const handleDeleteComment = async (commentId: number) => {
+        if (!task) return;
+        if (!confirm('Are you sure you want to delete this comment?')) return;
+
+        try {
+            await taskCommentService.deleteComment(task.id, commentId);
+            toast.success('Comment deleted');
+            await fetchComments();
+        } catch (err) {
+            console.error('Error deleting comment:', err);
+            toast.error('Failed to delete comment');
+        }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-steel-50 flex items-center justify-center">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-burgundy-600 mx-auto mb-4"></div>
-                    <p className="text-steel-600">Loading task details...</p>
+                    <Loader2 size={48} className="text-burgundy-600 animate-spin mx-auto mb-4" />
+                    <p className="text-steel-600 text-sm">Loading task details...</p>
                 </div>
             </div>
         );
@@ -253,10 +264,7 @@ const TaskDetail = () => {
                 <div className="text-center">
                     <AlertCircle size={48} className="mx-auto text-steel-300 mb-4" />
                     <h2 className="text-xl font-medium text-steel-900 mb-2">Task not found</h2>
-                    <Link
-                        to="/tasks"
-                        className="btn-primary flex items-center gap-2 mx-auto"
-                    >
+                    <Link to="/e/tasks" className="btn-primary inline-flex items-center gap-2">
                         <ArrowLeft size={16} />
                         Back to Tasks
                     </Link>
@@ -265,348 +273,566 @@ const TaskDetail = () => {
         );
     }
 
-    const handleSave = () => {
-        setTask((prev) => prev ? { ...prev, title: editedTitle } : null);
-        setEditing(false);
-    };
+    const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== TaskStatus.DONE;
 
-    const handleDelete = () => {
-        if (confirm('Are you sure you want to delete this task?')) {
-            navigate('/tasks');
-        }
-    };
-
-    const isOverdue = new Date(task.dueDate) < new Date('2025-11-06'); // Current date: Nov 6, 2025
-
-    /* --------------------- Helpers --------------------- */
     const getStatusColor = (status: string) => {
         const map: Record<string, string> = {
-            'To Do': 'bg-steel-100 text-steel-700 border-steel-200',
-            'In Progress': 'bg-warning-100 text-warning-700 border-warning-200',
-            'In Review': 'bg-info-100 text-info-700 border-info-200',
-            Completed: 'bg-success-100 text-success-700 border-success-200',
-            Blocked: 'bg-danger-100 text-danger-700 border-danger-200',
+            BACKLOG: 'bg-steel-100 text-steel-700 border-steel-300',
+            IN_PROGRESS: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+            REVIEW: 'bg-blue-100 text-blue-800 border-blue-300',
+            DONE: 'bg-green-100 text-green-800 border-green-300',
+            BLOCKED: 'bg-red-100 text-red-800 border-red-300',
+            REOPENED: 'bg-orange-100 text-orange-800 border-orange-300',
         };
-        return map[status] ?? map['To Do'];
+        return map[status] ?? map['BACKLOG'];
     };
 
     const getPriorityColor = (priority: string) => {
         const map: Record<string, string> = {
-            Critical: 'text-danger-600 bg-danger-50 border-danger-200',
-            High: 'text-coral-600 bg-coral-50 border-coral-200',
-            Medium: 'text-warning-600 bg-warning-50 border-warning-200',
-            Low: 'text-success-600 bg-success-50 border-success-200',
+            CRITICAL: 'text-red-700 bg-red-50 border-red-300',
+            HIGH: 'text-orange-700 bg-orange-50 border-orange-300',
+            MEDIUM: 'text-yellow-700 bg-yellow-50 border-yellow-300',
+            LOW: 'text-green-700 bg-green-50 border-green-300',
         };
-        return map[priority] ?? 'text-steel-600 bg-steel-50 border-steel-200';
+        return map[priority] ?? 'text-steel-600 bg-steel-50 border-steel-300';
     };
 
-    const mockComments: Comment[] = [
-        {
-            id: 1,
-            author: 'James Rodriguez',
-            content: 'Great progress on the auth routes! Let\'s discuss the OAuth integration in our next standup.',
-            timestamp: '2025-11-05T10:30:00Z',
-            attachments: 0,
-        },
-        {
-            id: 2,
-            author: 'Sarah Chen',
-            content: 'Any blockers on the password recovery flow? Need help with the email templates?',
-            timestamp: '2025-11-04T14:15:00Z',
-            attachments: 1,
-        },
-        {
-            id: 3,
-            author: 'You',
-            content: 'Updated the JWT implementation based on feedback. Tests passing at 95%.',
-            timestamp: '2025-11-03T16:45:00Z',
-            attachments: 0,
-        },
-    ];
+    const formatDate = (dateString?: string) => {
+        if (!dateString) return 'N/A';
+        return format(new Date(dateString), 'MMM d, yyyy HH:mm');
+    };
 
-    /* --------------------------------------------------------------
-       Render
-       -------------------------------------------------------------- */
     return (
-        <div className="min-h-screen bg-steel-50">
-            {/* Header */}
-            <header className="bg-white border-b border-steel-200">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <Link
-                                to="/tasks"
-                                className="p-2 rounded-lg hover:bg-steel-100 text-steel-600"
-                            >
-                                <ArrowLeft size={20} />
-                            </Link>
-                            <div>
-                                {editing ? (
+        <div className="min-h-screen bg-gradient-to-br from-steel-50 to-steel-100">
+            {/* Executive Header */}
+            <header className="bg-white border-b border-steel-200 shadow-sm sticky top-0 z-10">
+                {/* Top Bar - Breadcrumb & Actions */}
+                <div className="border-b border-steel-100 bg-steel-50/50">
+                    <div className="max-w-7xl mx-auto px-6 py-2">
+                        <div className="flex items-center justify-between">
+                            {/* Breadcrumb */}
+                            <div className="flex items-center gap-2 text-xs text-steel-600">
+                                <Link to="/e/tasks" className="hover:text-burgundy-600 transition-colors font-medium">
+                                    Tasks
+                                </Link>
+                                <span>/</span>
+                                <span className="text-steel-900 font-semibold">Task #{task.id}</span>
+                                {task.projectId && (
+                                    <>
+                                        <span>•</span>
+                                        <span className="flex items-center gap-1">
+                                            <BarChart3 size={12} />
+                                            Project #{task.projectId}
+                                        </span>
+                                    </>
+                                )}
+                            </div>
+
+                            {/* Quick Actions */}
+                            <div className="flex items-center gap-2">
+                                {task.status !== TaskStatus.DONE && (
+                                    <button
+                                        onClick={handleMarkComplete}
+                                        className="px-3 py-1 text-xs font-medium bg-green-50 text-green-700 hover:bg-green-100 rounded-md border border-green-200 transition-colors flex items-center gap-1.5"
+                                    >
+                                        <CheckCircle size={12} />
+                                        Mark Complete
+                                    </button>
+                                )}
+                                <button
+                                    onClick={handleDelete}
+                                    className="px-3 py-1 text-xs font-medium bg-red-50 text-red-700 hover:bg-red-100 rounded-md border border-red-200 transition-colors flex items-center gap-1.5"
+                                >
+                                    <Trash2 size={12} />
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Main Header Content */}
+                <div className="max-w-7xl mx-auto px-6 py-4">
+                    <div className="flex items-start gap-6">
+                        {/* Left: Back Button */}
+                        <Link
+                            to="/e/tasks"
+                            className="mt-1 p-2.5 rounded-lg hover:bg-steel-100 text-steel-600 transition-colors flex-shrink-0 border border-steel-200"
+                        >
+                            <ArrowLeft size={18} />
+                        </Link>
+
+                        {/* Center: Title & Meta */}
+                        <div className="flex-1 min-w-0">
+                            {/* Title */}
+                            {editingTitle ? (
+                                <div className="flex items-center gap-3 mb-3">
                                     <input
                                         type="text"
                                         value={editedTitle}
                                         onChange={(e) => setEditedTitle(e.target.value)}
-                                        onBlur={handleSave}
-                                        onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-                                        className="text-2xl font-bold text-steel-900 border-0 bg-transparent focus:outline-none focus:ring-2 focus:ring-burgundy-500 rounded pr-2"
+                                        className="text-2xl font-bold text-steel-900 border-b-2 border-burgundy-500 bg-transparent focus:outline-none w-full pb-1"
                                         autoFocus
                                     />
-                                ) : (
-                                    <h1 className="text-2xl font-bold text-steel-900">
-                                        {task.title}
-                                    </h1>
-                                )}
-                                <p className="text-steel-600 mt-1">
-                                    {task.project} • Assigned by {task.assignedBy}
-                                </p>
+                                    <button onClick={handleSaveTitle} className="p-2 text-green-600 hover:bg-green-50 rounded-lg border border-green-200">
+                                        <Save size={16} />
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setEditingTitle(false);
+                                            setEditedTitle(task.title);
+                                        }}
+                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg border border-red-200"
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                </div>
+                            ) : (
+                                <h1
+                                    className="text-2xl font-bold text-steel-900 mb-3 group cursor-pointer hover:text-burgundy-700 transition-colors"
+                                    onClick={() => setEditingTitle(true)}
+                                >
+                                    {task.title}
+                                    <Edit3 size={14} className="inline ml-2 opacity-0 group-hover:opacity-100 transition-opacity text-steel-400" />
+                                </h1>
+                            )}
+
+                            {/* Meta Grid */}
+                            <div className="grid grid-cols-4 gap-4 mb-3">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 bg-burgundy-100 rounded-lg flex items-center justify-center">
+                                        <User size={14} className="text-burgundy-600" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-steel-500 font-medium">Owner</p>
+                                        <p className="text-sm font-semibold text-steel-900">
+                                            {task.owner ? `${task.owner.firstName} ${task.owner.lastName}` : 'Unassigned'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", isOverdue ? "bg-red-100" : "bg-blue-100")}>
+                                        <Calendar size={14} className={cn(isOverdue ? "text-red-600" : "text-blue-600")} />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-steel-500 font-medium">Due Date</p>
+                                        <p className={cn("text-sm font-semibold", isOverdue ? "text-red-600" : "text-steel-900")}>
+                                            {task.dueDate ? formatDate(task.dueDate) : 'Not set'}
+                                            {isOverdue && <AlertCircle size={12} className="inline ml-1" />}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                                        <Clock size={14} className="text-purple-600" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-steel-500 font-medium">Time</p>
+                                        <p className="text-sm font-semibold text-steel-900">
+                                            {task.actualHours || 0}h / {task.estimatedHours || 0}h
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                                        <BarChart3 size={14} className="text-green-600" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-steel-500 font-medium">Progress</p>
+                                        <p className="text-sm font-semibold text-steel-900">{task.progressPercentage || 0}%</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Progress Bar */}
+                            <div className="relative h-1.5 bg-steel-200 rounded-full overflow-hidden">
+                                <div
+                                    className="absolute top-0 left-0 h-full bg-gradient-to-r from-burgundy-500 to-burgundy-600 rounded-full transition-all duration-300"
+                                    style={{ width: `${task.progressPercentage || 0}%` }}
+                                />
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-3">
-                            <span className={cn('badge', getStatusColor(task.status))}>
-                                {task.status}
-                            </span>
-                            <span className={cn('badge flex items-center gap-1', getPriorityColor(task.priority))}>
-                                <Flag size={14} />
-                                {task.priority}
-                            </span>
-                            <div className="flex items-center gap-1 text-sm text-steel-500">
-                                <Calendar size={16} />
-                                Due {format(new Date(task.dueDate), 'MMM d, yyyy')}
-                                {isOverdue && (
-                                    <AlertCircle size={16} className="text-danger-500 ml-1" />
-                                )}
+                        {/* Right: Status & Priority */}
+                        <div className="flex flex-col gap-2 flex-shrink-0">
+                            <div className={cn('px-4 py-2 text-xs font-bold rounded-lg border-2 text-center min-w-[120px]', getStatusColor(task.status))}>
+                                {task.status.replace('_', ' ')}
                             </div>
-
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={() => setEditing(!editing)}
-                                    className="p-2 hover:bg-steel-100 rounded-lg"
-                                >
-                                    <Edit3 size={16} className="text-steel-600" />
-                                </button>
-                                <button
-                                    onClick={handleDelete}
-                                    className="p-2 hover:bg-steel-100 rounded-lg text-danger-600"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
+                            <div className={cn('px-4 py-2 text-xs font-bold rounded-lg border-2 flex items-center justify-center gap-1.5 min-w-[120px]', getPriorityColor(task.priority))}>
+                                <Flag size={12} />
+                                {task.priority}
                             </div>
                         </div>
                     </div>
                 </div>
             </header>
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-                {/* Main Content */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Left Column: Description & Progress */}
-                    <div className="lg:col-span-2 space-y-6">
-                        {/* Description */}
-                        <div className="card p-6">
-                            <h2 className="text-lg font-semibold text-steel-900 mb-3">Description</h2>
-                            <p className="text-steel-700 whitespace-pre-wrap">{task.description}</p>
-                        </div>
-
-                        {/* Progress */}
-                        <div className="card p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-lg font-semibold text-steel-900">Progress</h2>
-                                <div className="flex items-center gap-2 text-sm font-medium">
-                                    <span className="text-steel-900">{task.progress}%</span>
-                                    <span className="text-steel-500">({task.loggedHours}/{task.estimatedHours} hours)</span>
+            <div className="mx-auto py-8">
+                <div className="grid grid-cols-12 gap-6">
+                    {/* Main Content - 8 columns */}
+                    <div className="col-span-12 lg:col-span-8 space-y-4">
+                        {/* Description & Progress - Compact Card */}
+                        <div className="card p-5">
+                            <div className="grid grid-cols-2 gap-6">
+                                {/* Description */}
+                                <div>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h3 className="text-sm font-semibold text-steel-900 uppercase tracking-wide">Description</h3>
+                                        {!editingDescription && (
+                                            <button onClick={() => setEditingDescription(true)} className="p-1 text-steel-400 hover:text-burgundy-600 rounded">
+                                                <Edit3 size={12} />
+                                            </button>
+                                        )}
+                                    </div>
+                                    {editingDescription ? (
+                                        <div>
+                                            <textarea
+                                                value={editedDescription}
+                                                onChange={(e) => setEditedDescription(e.target.value)}
+                                                className="w-full px-2 py-1.5 text-sm border border-burgundy-300 rounded focus:ring-1 focus:ring-burgundy-500"
+                                                rows={4}
+                                                autoFocus
+                                            />
+                                            <div className="flex gap-2 mt-2">
+                                                <button onClick={handleSaveDescription} className="px-3 py-1 text-xs bg-burgundy-600 text-white rounded hover:bg-burgundy-700">
+                                                    Save
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingDescription(false);
+                                                        setEditedDescription(task.description || '');
+                                                    }}
+                                                    className="px-3 py-1 text-xs bg-steel-200 text-steel-700 rounded hover:bg-steel-300"
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-steel-700 leading-relaxed">{task.description || 'No description provided'}</p>
+                                    )}
                                 </div>
-                            </div>
-                            <div className="w-full bg-steel-200 rounded-full h-2">
-                                <div
-                                    className="bg-burgundy-600 h-2 rounded-full transition-all"
-                                    style={{ width: `${task.progress}%` }}
-                                />
-                            </div>
-                        </div>
 
-                        {/* Tags */}
-                        {task.tags.length > 0 && (
-                            <div className="card p-6">
-                                <h3 className="text-lg font-semibold text-steel-900 mb-3">Tags</h3>
-                                <div className="flex flex-wrap gap-2">
-                                    {task.tags.map((tag, index) => (
-                                        <span
-                                            key={index}
-                                            className="px-3 py-1 bg-steel-100 text-steel-700 text-sm rounded-full"
+                                {/* Progress */}
+                                <div>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h3 className="text-sm font-semibold text-steel-900 uppercase tracking-wide">Progress</h3>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-lg font-bold text-burgundy-600">{editingProgress ? editedProgress : (task.progressPercentage || 0)}%</span>
+                                            {!editingProgress ? (
+                                                <button onClick={() => setEditingProgress(true)} className="p-1 text-steel-400 hover:text-burgundy-600 rounded" disabled={isUpdatingProgress}>
+                                                    <Edit3 size={12} />
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingProgress(false);
+                                                        setEditedProgress(task.progressPercentage || 0);
+                                                    }}
+                                                    className="p-1 text-red-600 hover:bg-red-50 rounded"
+                                                    disabled={isUpdatingProgress}
+                                                >
+                                                    <X size={12} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="relative mb-3">
+                                        <div
+                                            className={cn(
+                                                "w-full bg-steel-200 rounded-full h-2.5 relative overflow-hidden",
+                                                editingProgress && !isUpdatingProgress && "cursor-pointer hover:bg-steel-300"
+                                            )}
+                                            onClick={handleProgressBarClick}
+                                            onMouseDown={handleProgressDragStart}
+                                            onMouseMove={handleProgressDrag}
+                                            style={{ userSelect: 'none' }}
                                         >
-                                            {tag}
-                                        </span>
-                                    ))}
+                                            <div
+                                                className={cn("h-2.5 rounded-full transition-all", editingProgress ? "bg-burgundy-500" : "bg-burgundy-600", isUpdatingProgress && "opacity-50")}
+                                                style={{
+                                                    width: `${editingProgress ? editedProgress : (task.progressPercentage || 0)}%`,
+                                                    transition: isDraggingProgress ? 'none' : 'width 0.3s ease'
+                                                }}
+                                            />
+                                            {editingProgress && !isUpdatingProgress && (
+                                                <div
+                                                    className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-burgundy-600 rounded-full shadow-md cursor-grab active:cursor-grabbing"
+                                                    style={{
+                                                        left: `calc(${editedProgress}% - 8px)`,
+                                                        transition: isDraggingProgress ? 'none' : 'left 0.3s ease'
+                                                    }}
+                                                    onMouseDown={(e) => {
+                                                        e.stopPropagation();
+                                                        handleProgressDragStart();
+                                                    }}
+                                                />
+                                            )}
+                                        </div>
+                                        {isUpdatingProgress && (
+                                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                                                <Loader2 size={14} className="text-burgundy-600 animate-spin" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    {task.estimatedHours && (
+                                        <div className="text-xs text-steel-600">
+                                            <span className="font-medium">{task.actualHours || 0}h</span> / {task.estimatedHours}h estimated
+                                        </div>
+                                    )}
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* Time & Details Grid */}
+                        <div className="grid grid-cols-4 gap-4">
+                            <div className="card p-4">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Calendar size={14} className="text-steel-500" />
+                                    <p className="text-xs text-steel-600 font-medium uppercase">Start</p>
+                                </div>
+                                <p className="text-sm font-semibold text-steel-900">{formatDate(task.startDate)}</p>
+                            </div>
+                            <div className="card p-4">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Clock size={14} className="text-steel-500" />
+                                    <p className="text-xs text-steel-600 font-medium uppercase">Due</p>
+                                </div>
+                                <p className="text-sm font-semibold text-steel-900">{formatDate(task.dueDate)}</p>
+                            </div>
+                            <div className="card p-4">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Clock size={14} className="text-steel-500" />
+                                    <p className="text-xs text-steel-600 font-medium uppercase">Estimated</p>
+                                </div>
+                                <p className="text-sm font-semibold text-steel-900">{task.estimatedHours || 'N/A'}h</p>
+                            </div>
+                            <div className="card p-4">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <CheckCircle size={14} className="text-steel-500" />
+                                    <p className="text-xs text-steel-600 font-medium uppercase">Actual</p>
+                                </div>
+                                <p className="text-sm font-semibold text-steel-900">{task.actualHours || 'N/A'}h</p>
+                            </div>
+                        </div>
+
+                        {/* Tags & Assignees Row */}
+                        {((task.tags && task.tags.length > 0) || (task.assignees && task.assignees.length > 0)) && (
+                            <div className="grid grid-cols-2 gap-4">
+                                {task.tags && task.tags.length > 0 && (
+                                    <div className="card p-4">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <Tag size={14} className="text-steel-500" />
+                                            <h3 className="text-xs font-semibold text-steel-900 uppercase tracking-wide">Tags</h3>
+                                        </div>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {task.tags.map((tag, index) => (
+                                                <span
+                                                    key={index}
+                                                    className="px-2 py-0.5 text-xs font-medium rounded"
+                                                    style={{
+                                                        backgroundColor: tag.color ? `${tag.color}20` : '#f1f5f9',
+                                                        color: tag.color || '#64748b',
+                                                        border: `1px solid ${tag.color || '#cbd5e1'}`
+                                                    }}
+                                                >
+                                                    {tag.name}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                {task.assignees && task.assignees.length > 0 && (
+                                    <div className="card p-4">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <Users size={14} className="text-steel-500" />
+                                            <h3 className="text-xs font-semibold text-steel-900 uppercase tracking-wide">Assignees</h3>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            {task.assignees.map((assignee) => (
+                                                <div key={assignee.id} className="flex items-center gap-2">
+                                                    <div className="w-6 h-6 bg-burgundy-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                                        <User size={12} className="text-burgundy-600" />
+                                                    </div>
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="text-sm font-medium text-steel-900 truncate">
+                                                            {assignee.firstName} {assignee.lastName}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
+
+                        {/* Subtasks */}
+                        {task.subtasks && task.subtasks.length > 0 && (
+                            <div className="card">
+                                <div className="flex items-center justify-between px-5 py-3 border-b border-steel-200">
+                                    <h3 className="text-sm font-semibold text-steel-900 uppercase tracking-wide">
+                                        Subtasks ({task.subtasks.length})
+                                    </h3>
+                                    <button onClick={() => setShowSubtasks(!showSubtasks)} className="p-1 rounded hover:bg-steel-100">
+                                        {showSubtasks ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                    </button>
+                                </div>
+                                {showSubtasks && (
+                                    <div className="p-4 space-y-2">
+                                        {task.subtasks.map((subtask) => (
+                                            <div key={subtask.id} className="p-3 bg-steel-50 rounded-lg border border-steel-200">
+                                                <div className="flex items-start justify-between mb-1">
+                                                    <h4 className="text-sm font-medium text-steel-900">{subtask.title}</h4>
+                                                    <span className={cn('px-2 py-0.5 text-xs font-medium rounded border', getStatusColor(subtask.status))}>
+                                                        {subtask.status.replace('_', ' ')}
+                                                    </span>
+                                                </div>
+                                                {subtask.description && <p className="text-xs text-steel-600 mb-2">{subtask.description}</p>}
+                                                <div className="flex items-center gap-3 text-xs text-steel-500">
+                                                    <span className="flex items-center gap-1">
+                                                        <Flag size={10} />
+                                                        {subtask.priority}
+                                                    </span>
+                                                    {subtask.dueDate && (
+                                                        <span className="flex items-center gap-1">
+                                                            <Calendar size={10} />
+                                                            {formatDate(subtask.dueDate)}
+                                                        </span>
+                                                    )}
+                                                    {subtask.estimatedHours && (
+                                                        <span className="flex items-center gap-1">
+                                                            <Clock size={10} />
+                                                            {subtask.estimatedHours}h
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Comments */}
+                        <div className="card">
+                            <div className="flex items-center justify-between px-5 py-3 border-b border-steel-200">
+                                <h3 className="text-sm font-semibold text-steel-900 uppercase tracking-wide flex items-center gap-2">
+                                    <MessageSquare size={16} />
+                                    Comments ({comments.length})
+                                </h3>
+                                <button onClick={() => setShowComments(!showComments)} className="p-1 rounded hover:bg-steel-100">
+                                    {showComments ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                </button>
+                            </div>
+                            {showComments && (
+                                <div className="p-4">
+                                    <form onSubmit={handleAddComment} className="mb-4">
+                                        <div className="flex items-center gap-2 p-2 bg-steel-50 rounded-lg border border-steel-200">
+                                            <div className="w-7 h-7 bg-burgundy-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                                <User size={12} className="text-burgundy-600" />
+                                            </div>
+                                            <input
+                                                type="text"
+                                                value={newComment}
+                                                onChange={(e) => setNewComment(e.target.value)}
+                                                placeholder="Add a comment..."
+                                                className="flex-1 px-2 py-1.5 text-sm border-0 bg-transparent focus:outline-none focus:ring-0"
+                                            />
+                                            <button
+                                                type="submit"
+                                                disabled={!newComment.trim() || submittingComment}
+                                                className="px-3 py-1.5 bg-burgundy-600 text-white rounded text-xs font-medium hover:bg-burgundy-700 disabled:opacity-50 flex items-center gap-1"
+                                            >
+                                                {submittingComment ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+                                                Post
+                                            </button>
+                                        </div>
+                                    </form>
+
+                                    {comments.length > 0 ? (
+                                        <div className="space-y-1.5">
+                                            {comments.map((comment) => (
+                                                <div key={comment.id} className="flex items-center gap-2 p-2 hover:bg-steel-50 rounded border border-steel-200 transition-colors">
+                                                    <div className="w-7 h-7 bg-burgundy-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                                        <User size={12} className="text-burgundy-600" />
+                                                    </div>
+                                                    <div className="w-32 flex-shrink-0">
+                                                        <p className="text-xs font-medium text-steel-900 truncate">
+                                                            {comment.commenter ? `${comment.commenter.firstName} ${comment.commenter.lastName}` : `User #${comment.commentedBy}`}
+                                                        </p>
+                                                        <p className="text-xs text-steel-500">{comment.commenter?.employeeCode || ''}</p>
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-xs text-steel-700 truncate">{comment.commentText}</p>
+                                                    </div>
+                                                    <div className="w-24 flex-shrink-0 text-right">
+                                                        <p className="text-xs text-steel-500">{comment.commentedAt ? formatDate(comment.commentedAt) : 'Just now'}</p>
+                                                    </div>
+                                                    {comment.commentedBy === user?.id && (
+                                                        <button onClick={() => handleDeleteComment(comment.id!)} className="p-1.5 text-red-600 hover:bg-red-50 rounded flex-shrink-0">
+                                                            <Trash2 size={12} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-6 text-steel-500 text-xs">No comments yet</div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
-                    {/* Right Column: Sidebar */}
-                    <div className="space-y-6">
+                    {/* Sidebar - 4 columns */}
+                    <div className="col-span-12 lg:col-span-4 space-y-4">
                         {/* Quick Actions */}
                         <div className="card p-4">
-                            <h3 className="font-semibold text-steel-900 mb-3">Quick Actions</h3>
+                            <h3 className="text-xs font-semibold text-steel-900 uppercase tracking-wide mb-3">Quick Actions</h3>
                             <div className="space-y-2">
-                                <button className="btn-primary w-full flex items-center gap-2 justify-center">
-                                    <Plus size={16} />
+                                {task.status !== TaskStatus.DONE && (
+                                    <button onClick={handleMarkComplete} className="btn-primary w-full text-sm py-2 flex items-center gap-2 justify-center">
+                                        <CheckCircle size={14} />
+                                        Mark Complete
+                                    </button>
+                                )}
+                                <button className="btn-secondary w-full text-sm py-2 flex items-center gap-2 justify-center">
+                                    <Plus size={14} />
                                     Add Time
                                 </button>
-                                <button className="btn-secondary w-full flex items-center gap-2 justify-center">
-                                    <Zap size={16} />
+                                <button className="btn-secondary w-full text-sm py-2 flex items-center gap-2 justify-center">
+                                    <Zap size={14} />
                                     Move to Next
                                 </button>
                             </div>
                         </div>
 
-                        {/* Activity (Placeholder) */}
+                        {/* Task Info */}
                         <div className="card p-4">
-                            <h3 className="font-semibold text-steel-900 mb-3">Recent Activity</h3>
-                            <div className="space-y-3 text-sm text-steel-600">
-                                <div className="flex items-center gap-2">
-                                    <TrendingUp size={14} className="text-success-500" />
-                                    Progress updated to 75%
-                                    <span className="ml-auto text-xs">2 hours ago</span>
+                            <h3 className="text-xs font-semibold text-steel-900 uppercase tracking-wide mb-3">Task Information</h3>
+                            <div className="space-y-3 text-xs">
+                                <div>
+                                    <p className="text-steel-600 mb-0.5 uppercase font-medium">Created</p>
+                                    <p className="text-steel-900 font-semibold">{formatDate(task.createdAt)}</p>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <MessageSquare size={14} className="text-burgundy-500" />
-                                    New comment added
-                                    <span className="ml-auto text-xs">1 day ago</span>
+                                <div>
+                                    <p className="text-steel-600 mb-0.5 uppercase font-medium">Last Updated</p>
+                                    <p className="text-steel-900 font-semibold">{formatDate(task.updatedAt)}</p>
                                 </div>
+                                {task.completedAt && (
+                                    <div>
+                                        <p className="text-steel-600 mb-0.5 uppercase font-medium">Completed</p>
+                                        <p className="text-steel-900 font-semibold">{formatDate(task.completedAt)}</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
                 </div>
-
-                {/* Subtasks */}
-                <div className="card">
-                    <div className="flex items-center justify-between p-6 border-b border-steel-200">
-                        <h2 className="text-lg font-semibold text-steel-900">
-                            Subtasks ({task.subtasks.completed}/{task.subtasks.total})
-                        </h2>
-                        <button
-                            onClick={() => setShowSubtasks(!showSubtasks)}
-                            className="p-1 rounded-lg hover:bg-steel-100"
-                        >
-                            {showSubtasks ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                        </button>
-                    </div>
-                    {showSubtasks && (
-                        <div className="p-6">
-                            <div className="space-y-3">
-                                {task.subtasks.items.map((subtask) => (
-                                    <div
-                                        key={subtask.id}
-                                        className="flex items-center gap-3 p-3 bg-steel-50 rounded-lg"
-                                    >
-                                        <button className="flex-shrink-0">
-                                            {subtask.completed ? (
-                                                <CheckCircle size={20} className="text-success-500" />
-                                            ) : (
-                                                <Circle size={20} className="text-steel-400" />
-                                            )}
-                                        </button>
-                                        <span
-                                            className={cn(
-                                                'flex-1 text-sm',
-                                                subtask.completed && 'line-through text-steel-500'
-                                            )}
-                                        >
-                                            {subtask.title}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                            {task.subtasks.total === 0 && (
-                                <p className="text-center text-steel-500 py-8">No subtasks yet. Add one to get started!</p>
-                            )}
-                        </div>
-                    )}
-                </div>
-
-                {/* Comments */}
-                <div className="card">
-                    <div className="flex items-center justify-between p-6 border-b border-steel-200">
-                        <h2 className="text-lg font-semibold text-steel-900">
-                            Comments ({task.comments})
-                        </h2>
-                        <button
-                            onClick={() => setShowComments(!showComments)}
-                            className="p-1 rounded-lg hover:bg-steel-100"
-                        >
-                            {showComments ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                        </button>
-                    </div>
-                    {showComments && (
-                        <div className="p-6 space-y-4">
-                            {mockComments.map((comment: any) => (
-                                <div key={comment.id} className="flex gap-4">
-                                    <div className="w-10 h-10 bg-burgundy-100 rounded-full flex items-center justify-center">
-                                        <User size={16} className="text-burgundy-600" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className="font-medium text-steel-900">{comment.author}</span>
-                                            <span className="text-xs text-steel-500">
-                                                {format(new Date(comment.timestamp), 'MMM d, yyyy HH:mm')}
-                                            </span>
-                                        </div>
-                                        <p className="text-steel-700 mb-2">{comment.content}</p>
-                                        {comment?.attachments > 0 && (
-                                            <div className="flex items-center gap-2 text-xs text-steel-500">
-                                                <Paperclip size={14} />
-                                                {comment.attachments} attachment{comment.attachments > 1 ? 's' : ''}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                            {task.comments === 0 && (
-                                <p className="text-center text-steel-500 py-8">No comments yet. Be the first to comment!</p>
-                            )}
-                            <div className="pt-4 border-t border-steel-200">
-                                <div className="flex gap-3">
-                                    <div className="flex-1">
-                                        <textarea
-                                            placeholder="Add a comment..."
-                                            className="w-full p-3 border border-steel-200 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500"
-                                            rows={3}
-                                        />
-                                    </div>
-                                    <button className="btn-primary flex items-center gap-2 px-6">
-                                        <MessageSquare size={16} />
-                                        Post
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* Attachments (if any) */}
-                {task.attachments > 0 && (
-                    <div className="card">
-                        <h2 className="text-lg font-semibold text-steel-900 p-6 border-b border-steel-200">
-                            Attachments ({task.attachments})
-                        </h2>
-                        <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {Array.from({ length: task.attachments }, (_, i) => (
-                                <div key={i} className="border border-steel-200 rounded-lg p-4">
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <Paperclip size={16} className="text-steel-500" />
-                                        <span className="text-sm font-medium text-steel-900">Document_{i + 1}.pdf</span>
-                                    </div>
-                                    <p className="text-xs text-steel-500 mb-3">2.3 MB</p>
-                                    <div className="flex gap-2">
-                                        <button className="text-xs text-burgundy-600 hover:underline">Download</button>
-                                        <button className="text-xs text-steel-500 hover:underline">View</button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );

@@ -71,7 +71,7 @@ public class Task extends BaseEntity {
     private Long phaseId; // optional link to ProjectPhase
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_id", nullable = false)
+    @JoinColumn(name = "project_id", nullable = true)
     private Project project;
 
     /**
@@ -93,15 +93,18 @@ public class Task extends BaseEntity {
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "task_assignees",
             joinColumns = @JoinColumn(name = "task_id"),
-            inverseJoinColumns = @JoinColumn(name = "user_id"),
-            uniqueConstraints = {@UniqueConstraint(columnNames = {"task_id", "user_id"})})
-    private Set<User> assignees = new HashSet<>();
+            inverseJoinColumns = @JoinColumn(name = "employee_id"),
+            uniqueConstraints = {@UniqueConstraint(columnNames = {"task_id", "employee_id"})})
+    private Set<Employee> assignees = new HashSet<>();
 
     /**
      * Primary owner
      */
     @Column(name = "owner_id")
     private Long ownerId;
+    
+    
+   
 
     /**
      * Tags for categorization

@@ -30,5 +30,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
 
     List<Employee> findByOrganizationIdAndStatus(Long organizationId, EmployeeStatus status);
     
+    Employee findByUserId(Long employeeId);
+    
 
 }

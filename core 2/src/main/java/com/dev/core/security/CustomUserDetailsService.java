@@ -11,8 +11,11 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import com.dev.core.domain.Employee;
 import com.dev.core.domain.Role;
 import com.dev.core.domain.User;
+import com.dev.core.model.MinimalEmployeeDTO;
+import com.dev.core.repository.EmployeeRepository;
 import com.dev.core.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -25,35 +28,26 @@ import lombok.RequiredArgsConstructor;
 public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
+    private final EmployeeRepository employeeRepository;
 
-    /**
-     * Loads user by username (or email) for authentication.
-     */
-//    @Override
-//    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-//        // You can choose whether username or email is used for login
-//        User user = userRepository.findByUsernameOrEmail(username, username)
-//                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
-//
-//        // Convert roles → authorities
-//        Set<GrantedAuthority> authorities = user.getRoles().stream()
-//                .map(Role::getName)
-//                .map(SimpleGrantedAuthority::new)
-//                .collect(Collectors.toSet());
-//
-//        // Build CustomUserDetails for SecurityContext
-//        return new CustomUserDetails(
-//                user.getId(),
-//                user.getOrganizationId() != null ? user.getOrganizationId() : null,
-//                user.getUsername(),
-//                user.getPassword(),
-//                authorities
-//        );
-//    }
+   
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userRepository.findByUsernameOrEmailWithRoles(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+        
+        Employee emp = employeeRepository.findByUserId(user.getId());
+        MinimalEmployeeDTO empDto = null;
+        if (emp != null) {
+            empDto = MinimalEmployeeDTO.builder()
+                    .id(emp.getId())
+                    .employeeCode(emp.getEmployeeCode())
+                    .firstName(emp.getFirstName())
+                    .lastName(emp.getLastName())
+                    .email(emp.getEmail())
+                    .phone(emp.getPhone())
+                    .build();
+        }
 
         Set<GrantedAuthority> authorities = user.getRoles().stream()
                 .map(Role::getName)
@@ -65,6 +59,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                 user.getOrganizationId(),
                 user.getUsername(),
                 user.getPassword(),
+                empDto,
                 authorities
         );
     }

@@ -23,14 +23,14 @@ public class TaskValidator {
         if (dto == null) {
             throw new ValidationFailedException("Task details cannot be null");
         }
-        if (dto.getProjectId() == null) {
-            throw new ValidationFailedException("Project ID is required to create a task");
-        }
-
-        Optional<Project> projectOpt = projectRepository.findById(dto.getProjectId());
-        if (projectOpt.isEmpty()) {
-            throw new ValidationFailedException("Invalid Project ID: " + dto.getProjectId());
-        }
+//        if (dto.getProjectId() == null) {
+//            throw new ValidationFailedException("Project ID is required to create a task");
+//        }
+//
+//        Optional<Project> projectOpt = projectRepository.findById(dto.getProjectId());
+//        if (projectOpt.isEmpty()) {
+//            throw new ValidationFailedException("Invalid Project ID: " + dto.getProjectId());
+//        }
 
         if (dto.getTitle() == null || dto.getTitle().isBlank()) {
             throw new ValidationFailedException("Task title is required");

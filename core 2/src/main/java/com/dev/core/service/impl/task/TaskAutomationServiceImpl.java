@@ -1,19 +1,23 @@
 package com.dev.core.service.impl.task;
 
-import com.dev.core.domain.Task;
-import com.dev.core.domain.User;
-import com.dev.core.exception.BaseException;
-import com.dev.core.repository.task.TaskRepository;
-import com.dev.core.repository.UserRepository;
-import com.dev.core.service.NotificationService;
-import com.dev.core.service.task.TaskAutomationService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import com.dev.core.domain.Employee;
+import com.dev.core.domain.Task;
+import com.dev.core.domain.User;
+import com.dev.core.exception.BaseException;
+import com.dev.core.repository.EmployeeRepository;
+import com.dev.core.repository.UserRepository;
+import com.dev.core.repository.task.TaskRepository;
+import com.dev.core.service.NotificationService;
+import com.dev.core.service.task.TaskAutomationService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Handles all automation events related to tasks — notifications, reminders,
@@ -30,6 +34,7 @@ public class TaskAutomationServiceImpl implements TaskAutomationService {
 	private final TaskRepository taskRepository;
 	private final UserRepository userRepository;
 	private final NotificationService notificationService; // ✅ Injected instead of extended
+	private final EmployeeRepository employeeRepository;
 
 	// --------------------------------------------------------------
 	// TASK CREATED
@@ -52,11 +57,14 @@ public class TaskAutomationServiceImpl implements TaskAutomationService {
 	public void onTaskAssigned(Long taskId, Long userId) {
 		Task task = findTask(taskId);
 		User user = findUser(userId);
+		Employee employee = findEmployee(userId);
+
+		
 
 		log.info("📩 [Automation] Task [{}] assigned to [{}]", task.getTitle(), user.getEmail());
 
-		notificationService.sendEmail(user.getEmail(), "📋 Task Assignment: " + task.getTitle(),
-				"You have been assigned to the task '" + task.getTitle() + "'.");
+		notificationService.sendEmail(employee.getEmail(), "📋 Task Assignment: " + task.getTitle(),
+		        "You have been assigned to the task '" + task.getTitle() + "'.");
 	}
 
 	// --------------------------------------------------------------
@@ -166,16 +174,24 @@ public class TaskAutomationServiceImpl implements TaskAutomationService {
 				.orElseThrow(() -> new BaseException("error.user.not.found", new Object[] { id }));
 	}
 
-	private void notifyAssignees(Task task, String subject, String body) {
-		List<String> recipients = task.getAssignees().stream().map(User::getEmail).collect(Collectors.toList());
-
-		recipients.forEach(email -> notificationService.sendEmail(email, subject, body));
+	private Employee findEmployee(Long id) {
+	    return employeeRepository.findById(id)
+	            .orElseThrow(() -> new BaseException("error.employee.not.found", new Object[] { id }));
 	}
+	private void notifyAssignees(Task task, String subject, String body) {
+	    List<String> recipients = task.getAssignees().stream()
+	            .map(Employee::getEmail)
+	            .collect(Collectors.toList());
+
+	    recipients.forEach(email -> notificationService.sendEmail(email, subject, body));
+	}
+
 
 	private void sendEmailToOwner(Task task, String subject, String body) {
 		if (task.getOwnerId() != null) {
-			userRepository.findById(task.getOwnerId())
-					.ifPresent(owner -> notificationService.sendEmail(owner.getEmail(), subject, body));
+			employeeRepository.findById(task.getOwnerId())
+	        .ifPresent(owner -> notificationService.sendEmail(owner.getEmail(), subject, body));
+
 		}
 	}
 

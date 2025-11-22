@@ -1,5 +1,6 @@
 package com.dev.core.service.impl.task;
 
+import com.dev.core.constants.OperationType;
 import com.dev.core.domain.Task;
 import com.dev.core.domain.TaskComment;
 import com.dev.core.exception.BaseException;
@@ -7,7 +8,9 @@ import com.dev.core.mapper.task.TaskCommentMapper;
 import com.dev.core.model.task.TaskCommentDTO;
 import com.dev.core.repository.task.TaskCommentRepository;
 import com.dev.core.repository.task.TaskRepository;
+import com.dev.core.security.SecurityContextUtil;
 import com.dev.core.service.AuthorizationService;
+import com.dev.core.service.BaseEntityAuditService;
 import com.dev.core.service.task.TaskAutomationService;
 import com.dev.core.service.task.TaskCommentService;
 import com.dev.core.service.validation.task.TaskCommentValidator;
@@ -16,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -30,6 +34,9 @@ public class TaskCommentServiceImpl implements TaskCommentService {
     private final TaskCommentValidator commentValidator;
     private final AuthorizationService authorizationService;
     private final TaskAutomationService taskAutomationService;
+    private final SecurityContextUtil securityContextUtil;
+    private final BaseEntityAuditService baseAuditService;
+    private final TaskCommentMapper taskCommentMapper;
 
     // --- AUTHORIZATION WRAPPER ---
     private void authorize(String action) {
@@ -51,15 +58,18 @@ public class TaskCommentServiceImpl implements TaskCommentService {
         Task task = taskRepository.findById(dto.getTaskId())
                 .orElseThrow(() -> new BaseException("error.task.not.found", new Object[]{dto.getTaskId()}));
 
-        TaskComment entity = TaskCommentMapper.toEntity(dto);
+        TaskComment entity = taskCommentMapper.toEntity(dto);
         entity.setTask(task);
+        baseAuditService.applyAudit(entity, OperationType.CREATE);
+        entity.setCommentedBy(securityContextUtil.getCurrentEmployee().getId());
+        entity.setCommentedAt(LocalDateTime.now());
 
         TaskComment saved = commentRepository.save(entity);
 
         // Notify watchers/participants
         taskAutomationService.onTaskCommentAdded(task.getId(), saved.getId());
 
-        return TaskCommentMapper.toDTO(saved);
+        return taskCommentMapper.toDTO(saved);
     }
 
     // --------------------------------------------------------------
@@ -74,15 +84,17 @@ public class TaskCommentServiceImpl implements TaskCommentService {
                 .orElseThrow(() -> new BaseException("error.parent.comment.not.found", new Object[]{parentCommentId}));
 
         dto.setTaskId(parent.getTask().getId());
-        TaskComment reply = TaskCommentMapper.toEntity(dto);
+        TaskComment reply = taskCommentMapper.toEntity(dto);
         reply.setTask(parent.getTask());
         reply.setParentCommentId(parentCommentId);
+        baseAuditService.applyAudit(reply, OperationType.CREATE);
+        reply.setCommentedBy(securityContextUtil.getCurrentEmployee().getId());
 
         TaskComment saved = commentRepository.save(reply);
 
         taskAutomationService.onTaskCommentAdded(parent.getTask().getId(), saved.getId());
 
-        return TaskCommentMapper.toDTO(saved);
+        return taskCommentMapper.toDTO(saved);
     }
 
     // --------------------------------------------------------------
@@ -97,7 +109,7 @@ public class TaskCommentServiceImpl implements TaskCommentService {
         // Map comments to DTOs
         List<TaskCommentDTO> topLevel = comments.stream()
                 .filter(c -> c.getParentCommentId() == null)
-                .map(TaskCommentMapper::toDTO)
+                .map(taskCommentMapper::toDTO)
                 .collect(Collectors.toList());
 
         // Build reply hierarchy
@@ -111,7 +123,7 @@ public class TaskCommentServiceImpl implements TaskCommentService {
     private List<TaskCommentDTO> getRepliesRecursive(Long parentId, List<TaskComment> all) {
         return all.stream()
                 .filter(c -> parentId.equals(c.getParentCommentId()))
-                .map(TaskCommentMapper::toDTO)
+                .map(taskCommentMapper::toDTO)
                 .peek(dto -> dto.setReplies(getRepliesRecursive(dto.getId(), all)))
                 .collect(Collectors.toList());
     }

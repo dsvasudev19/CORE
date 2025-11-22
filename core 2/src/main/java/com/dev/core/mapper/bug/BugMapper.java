@@ -5,17 +5,23 @@ import com.dev.core.mapper.ProjectMapper;
 import com.dev.core.mapper.options.BugMapperOptions;
 import com.dev.core.mapper.task.TaskMapper;
 import com.dev.core.model.bug.*;
+
+import lombok.RequiredArgsConstructor;
+
 import java.util.stream.Collectors;
 
+import org.springframework.stereotype.Component;
+@RequiredArgsConstructor
+@Component
 public class BugMapper {
 
-    private BugMapper() {}
+    private final TaskMapper taskmapper;
 
-    public static BugDTO toDTO(Bug entity) {
+    public BugDTO toDTO(Bug entity) {
         return toDTO(entity, BugMapperOptions.builder().build());
     }
 
-    public static BugDTO toDTO(Bug entity, BugMapperOptions options) {
+    public BugDTO toDTO(Bug entity, BugMapperOptions options) {
         if (entity == null) return null;
         if (options == null) options = BugMapperOptions.builder().build();
 
@@ -45,7 +51,7 @@ public class BugMapper {
             builder.project(ProjectMapper.toDTO(entity.getProject()));
 
         if (options.isIncludeLinkedTask() && entity.getLinkedTask() != null)
-            builder.linkedTask(TaskMapper.toDTO(entity.getLinkedTask()));
+            builder.linkedTask(taskmapper.toDTO(entity.getLinkedTask()));
 
         if (options.isIncludeComments() && entity.getComments() != null)
             builder.comments(entity.getComments().stream()
@@ -65,7 +71,7 @@ public class BugMapper {
         return builder.build();
     }
 
-    public static Bug toEntity(BugDTO dto) {
+    public Bug toEntity(BugDTO dto) {
         if (dto == null) return null;
 
         Bug entity = new Bug();

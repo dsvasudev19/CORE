@@ -5,6 +5,8 @@ import lombok.Data;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import com.dev.core.model.MinimalEmployeeDTO;
+
 import java.util.Collection;
 
 @Data
@@ -15,6 +17,7 @@ public class CustomUserDetails implements UserDetails {
     private Long organizationId;
     private String username;
     private String password;
+    private MinimalEmployeeDTO employee;
     private Collection<? extends GrantedAuthority> authorities;
 
     @Override public boolean isAccountNonExpired() { return true; }

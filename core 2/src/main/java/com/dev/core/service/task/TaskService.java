@@ -87,4 +87,7 @@ public interface TaskService {
      * Auto-close parent if all subtasks are completed.
      */
     void checkAndAutoCloseParent(Long parentTaskId);
+    
+    List<TaskDTO> getMyTasks(Long organizationId);
+
 }

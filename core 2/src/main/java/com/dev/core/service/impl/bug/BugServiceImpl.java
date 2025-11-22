@@ -15,6 +15,7 @@ import com.dev.core.domain.Task;
 import com.dev.core.exception.BaseException;
 import com.dev.core.mapper.bug.BugMapper;
 import com.dev.core.mapper.options.BugMapperOptions;
+import com.dev.core.mapper.task.TaskMapper;
 import com.dev.core.model.bug.BugDTO;
 import com.dev.core.model.bug.BugHistoryDTO;
 import com.dev.core.repository.bug.BugRepository;
@@ -42,6 +43,8 @@ public class BugServiceImpl implements BugService {
     private final BugAutomationService bugAutomationService;
     private final AuthorizationService authorizationService;
     private final TaskRepository taskRepository;
+    private final TaskMapper taskMapper;
+    private final BugMapper bugMapper;
 
     // 🔒 Authorization Helper
     private void authorize(String action) {
@@ -56,7 +59,7 @@ public class BugServiceImpl implements BugService {
         authorize("CREATE");
         bugValidator.validateBeforeCreate(dto);
 
-        Bug entity = BugMapper.toEntity(dto);
+        Bug entity = bugMapper.toEntity(dto);
         entity.setStatus(BugStatus.OPEN);
         entity.setCreatedAt(LocalDateTime.now());
 
@@ -65,7 +68,7 @@ public class BugServiceImpl implements BugService {
         bugAutomationService.onBugReported(saved.getId());
         logHistory(saved.getId(), "status", null, BugStatus.OPEN.name(), "Bug created");
 
-        return BugMapper.toDTO(saved, BugMapperOptions.builder().includeProject(true).build());
+        return bugMapper.toDTO(saved, BugMapperOptions.builder().includeProject(true).build());
     }
 
     // --------------------------------------------------------------
@@ -99,7 +102,7 @@ public class BugServiceImpl implements BugService {
             bugAutomationService.onBugSeverityChanged(id, oldSeverity, newSeverity);
         }
 
-        return BugMapper.toDTO(updated, BugMapperOptions.builder().includeProject(true).build());
+        return bugMapper.toDTO(updated, BugMapperOptions.builder().includeProject(true).build());
     }
 
     // --------------------------------------------------------------
@@ -133,7 +136,7 @@ public class BugServiceImpl implements BugService {
                 .includeLinkedTask(true)
                 .build();
 
-        return BugMapper.toDTO(bug, opts);
+        return bugMapper.toDTO(bug, opts);
     }
 
     // --------------------------------------------------------------
@@ -151,7 +154,7 @@ public class BugServiceImpl implements BugService {
                 pageable
         );
 
-        return page.map(bug -> BugMapper.toDTO(bug, BugMapperOptions.builder().includeProject(true).build()));
+        return page.map(bug -> bugMapper.toDTO(bug, BugMapperOptions.builder().includeProject(true).build()));
     }
 
     // --------------------------------------------------------------
@@ -162,7 +165,7 @@ public class BugServiceImpl implements BugService {
         authorize("READ");
         return bugRepository.findByProject_Id(projectId)
                 .stream()
-                .map(bug -> BugMapper.toDTO(bug, BugMapperOptions.builder().build()))
+                .map(bug -> bugMapper.toDTO(bug, BugMapperOptions.builder().build()))
                 .toList();
     }
 
@@ -171,7 +174,7 @@ public class BugServiceImpl implements BugService {
         authorize("READ");
         return bugRepository.findByAssignedTo(userId)
                 .stream()
-                .map(bug -> BugMapper.toDTO(bug, BugMapperOptions.builder().includeProject(true).build()))
+                .map(bug -> bugMapper.toDTO(bug, BugMapperOptions.builder().includeProject(true).build()))
                 .toList();
     }
 
@@ -205,7 +208,7 @@ public class BugServiceImpl implements BugService {
         else if (status == BugStatus.REOPENED)
             bugAutomationService.onBugReopened(bugId);
 
-        return BugMapper.toDTO(updated, BugMapperOptions.builder().includeProject(true).build());
+        return bugMapper.toDTO(updated, BugMapperOptions.builder().includeProject(true).build());
     }
 
     // --------------------------------------------------------------
@@ -229,7 +232,7 @@ public class BugServiceImpl implements BugService {
 
         bugAutomationService.onBugSeverityChanged(bugId, oldSeverity, newSeverity);
 
-        return BugMapper.toDTO(updated, BugMapperOptions.builder().includeProject(true).build());
+        return bugMapper.toDTO(updated, BugMapperOptions.builder().includeProject(true).build());
     }
 
     // --------------------------------------------------------------

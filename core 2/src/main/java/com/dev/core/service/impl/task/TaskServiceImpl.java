@@ -10,7 +10,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.dev.core.constants.OperationType;
+import com.dev.core.constants.TaskPriority;
 import com.dev.core.constants.TaskStatus;
+import com.dev.core.domain.Employee;
 import com.dev.core.domain.Project;
 import com.dev.core.domain.Task;
 import com.dev.core.domain.User;
@@ -18,10 +21,13 @@ import com.dev.core.exception.BaseException;
 import com.dev.core.mapper.options.TaskMapperOptions;
 import com.dev.core.mapper.task.TaskMapper;
 import com.dev.core.model.task.TaskDTO;
+import com.dev.core.repository.EmployeeRepository;
 import com.dev.core.repository.ProjectRepository;
 import com.dev.core.repository.UserRepository;
 import com.dev.core.repository.task.TaskRepository;
+import com.dev.core.security.SecurityContextUtil;
 import com.dev.core.service.AuthorizationService;
+import com.dev.core.service.BaseEntityAuditService;
 import com.dev.core.service.task.TaskAutomationService;
 import com.dev.core.service.task.TaskService;
 import com.dev.core.service.validation.task.TaskValidator;
@@ -38,10 +44,13 @@ public class TaskServiceImpl implements TaskService {
 
     private final TaskRepository taskRepository;
     private final ProjectRepository projectRepository;
-    private final UserRepository userRepository;
     private final TaskValidator taskValidator;
     private final AuthorizationService authorizationService;
     private final TaskAutomationService taskAutomationService;
+    private final EmployeeRepository employeeRepository;
+    private final SecurityContextUtil securityContextUtil;
+    private final BaseEntityAuditService baseAuditService;
+    private final TaskMapper taskMapper;
 
     // ✅ Authorization wrapper for all actions
     private void authorize(String action) {
@@ -65,7 +74,7 @@ public class TaskServiceImpl implements TaskService {
         Project project = projectRepository.findById(dto.getProjectId())
                 .orElseThrow(() -> new BaseException("error.project.not.found", new Object[]{dto.getProjectId()}));
 
-        Task entity = TaskMapper.toEntity(dto, project);
+        Task entity = taskMapper.toEntity(dto, project);
 
         // Set parent task if applicable
         if (dto.getParentTaskId() != null) {
@@ -76,16 +85,20 @@ public class TaskServiceImpl implements TaskService {
 
         // Set assignees
         if (dto.getAssigneeIds() != null && !dto.getAssigneeIds().isEmpty()) {
-            Set<User> assignees = new HashSet<>(userRepository.findAllById(dto.getAssigneeIds()));
-            entity.setAssignees(assignees);
+        	Set<Employee> assignees = new HashSet<>(employeeRepository.findAllById(dto.getAssigneeIds()));
+        	entity.setAssignees(assignees);
+
+
         }
+        baseAuditService.applyAudit(entity, OperationType.CREATE);
+        entity.setOwnerId(securityContextUtil.getCurrentEmployee().getId());
 
         Task saved = taskRepository.save(entity);
 
         // Fire automation hook
         taskAutomationService.onTaskCreated(saved.getId());
 
-        return TaskMapper.toDTO(saved);
+        return taskMapper.toDTO(saved);
     }
 
     // --------------------------------------------------------------
@@ -107,15 +120,16 @@ public class TaskServiceImpl implements TaskService {
         if (dto.getDueDate() != null) existing.setDueDate(dto.getDueDate());
         if (dto.getEstimatedHours() != null) existing.setEstimatedHours(dto.getEstimatedHours());
         if (dto.getOwnerId() != null) existing.setOwnerId(dto.getOwnerId());
-
-        // Update assignees if provided
+        if (dto.getProgressPercentage() !=null ) existing.setProgressPercentage(dto.getProgressPercentage());        // Update assignees if provided
         if (dto.getAssigneeIds() != null) {
-            Set<User> users = new HashSet<>(userRepository.findAllById(dto.getAssigneeIds()));
-            existing.setAssignees(users);
-        }
+        	Set<Employee> employees = new HashSet<>(employeeRepository.findAllById(dto.getAssigneeIds()));
+        	existing.setAssignees(employees);
 
+        }
+        baseAuditService.applyAudit(existing, OperationType.UPDATE);
+        
         Task updated = taskRepository.save(existing);
-        return TaskMapper.toDTO(updated);
+        return taskMapper.toDTO(updated);
     }
 
     // --------------------------------------------------------------
@@ -133,8 +147,9 @@ public class TaskServiceImpl implements TaskService {
             taskRepository.findByParentTaskId(id)
                     .forEach(sub -> taskRepository.deleteById(sub.getId()));
         }
+        baseAuditService.applyAudit(task, OperationType.DELETE);
 
-        taskRepository.deleteById(id);
+//        taskRepository.deleteById(id);
         taskAutomationService.onTaskDeleted(id);
     }
 
@@ -165,7 +180,7 @@ public class TaskServiceImpl implements TaskService {
                     .includeSubtasks(false)
                     .build();
 
-        return TaskMapper.toDTO(task, options);
+        return taskMapper.toDTO(task, options);
     }
 
     // --------------------------------------------------------------
@@ -177,7 +192,7 @@ public class TaskServiceImpl implements TaskService {
         authorize("READ");
         return taskRepository.findByProjectId(projectId)
                 .stream()
-                .map(TaskMapper::toDTO)
+                .map(taskMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
@@ -195,7 +210,7 @@ public class TaskServiceImpl implements TaskService {
                         .build(),
                 pageable
         );
-        return page.map(TaskMapper::toDTO);
+        return page.map(taskMapper::toDTO);
     }
 
     // --------------------------------------------------------------
@@ -211,13 +226,17 @@ public class TaskServiceImpl implements TaskService {
         if (userIds == null || userIds.isEmpty())
             throw new BaseException("error.task.assignees.required");
 
-        Set<User> users = new HashSet<>(userRepository.findAllById(userIds));
-        task.setAssignees(users);
+        Set<Employee> employees = new HashSet<>(employeeRepository.findAllById(userIds));
+        task.setAssignees(employees);
+        
+
 
         Task saved = taskRepository.save(task);
-        users.forEach(u -> taskAutomationService.onTaskAssigned(taskId, u.getId()));
+        employees.forEach(e -> taskAutomationService.onTaskAssigned(taskId, e.getId()));
 
-        return TaskMapper.toDTO(saved);
+        baseAuditService.applyAudit(saved, OperationType.UPDATE);
+
+        return taskMapper.toDTO(saved);
     }
 
     // --------------------------------------------------------------
@@ -247,6 +266,8 @@ public class TaskServiceImpl implements TaskService {
             recalculateTaskProgress(task.getId());
             taskAutomationService.onTaskCompleted(task.getId());
         }
+        baseAuditService.applyAudit(task, OperationType.UPDATE);
+
 
         Task updated = taskRepository.save(task);
         taskAutomationService.onTaskStatusChanged(taskId, oldStatus.name(), newStatus.name());
@@ -256,7 +277,7 @@ public class TaskServiceImpl implements TaskService {
             checkAndAutoCloseParent(task.getParentTask().getId());
         }
 
-        return TaskMapper.toDTO(updated);
+        return taskMapper.toDTO(updated);
     }
 
     // --------------------------------------------------------------
@@ -270,13 +291,17 @@ public class TaskServiceImpl implements TaskService {
                 .orElseThrow(() -> new BaseException("error.task.not.found", new Object[]{taskId}));
 
         String oldPriority = task.getPriority().name();
-//        task.setPriority(Enum.valueOf(task.getPriority().getClass(), priorityStr.toUpperCase()));
+
+        task.setPriority(TaskPriority.valueOf(priorityStr.toUpperCase()));
+
+        baseAuditService.applyAudit(task, OperationType.UPDATE);
 
         Task updated = taskRepository.save(task);
         taskAutomationService.onTaskPriorityChanged(taskId, oldPriority, priorityStr);
 
-        return TaskMapper.toDTO(updated);
+        return taskMapper.toDTO(updated);
     }
+
 
     // --------------------------------------------------------------
     // PROGRESS RECALCULATION
@@ -293,6 +318,9 @@ public class TaskServiceImpl implements TaskService {
         Task parent = taskRepository.findById(taskId).orElseThrow();
         parent.setProgressPercentage(progress);
 
+        baseAuditService.applyAudit(parent, OperationType.UPDATE);
+
+        
         taskRepository.save(parent);
 
         if (done == total) {
@@ -336,7 +364,7 @@ public class TaskServiceImpl implements TaskService {
         authorize("READ");
         Task task = taskRepository.findById(taskId).orElseThrow();
         return task.getDependencies().stream()
-                .map(dep -> TaskMapper.toDTO(dep.getDependsOn()))
+                .map(dep -> taskMapper.toDTO(dep.getDependsOn()))
                 .collect(Collectors.toList());
     }
 
@@ -356,9 +384,22 @@ public class TaskServiceImpl implements TaskService {
         authorize("READ");
         return taskRepository.findByAssignees_Id(userId)
                 .stream()
-                .map(TaskMapper::toDTO)
+                .map(taskMapper::toDTO)
                 .collect(Collectors.toList());
     }
+    
+    @Override
+    public List<TaskDTO> getMyTasks(Long organizationId) {
+
+        Long employeeId = securityContextUtil.getCurrentEmployee().getId();
+
+        List<Task> tasks = taskRepository.findMyTasks(organizationId, employeeId);
+
+        return tasks.stream()
+                .map(taskMapper::toDTO)
+                .collect(Collectors.toList());
+    }
+
 
     // --------------------------------------------------------------
     // AUTO CLOSE PARENT

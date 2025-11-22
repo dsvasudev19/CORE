@@ -49,17 +49,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 username = jwtTokenProvider.extractUsername(token);
             }
 
-//            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-//                var userDetails = userDetailsService.loadUserByUsername(username);
-//                if (jwtTokenProvider.validateToken(token, userDetails)) {
-//                    UsernamePasswordAuthenticationToken auth =
-//                            new UsernamePasswordAuthenticationToken(
-//                                    userDetails, null, userDetails.getAuthorities());
-//                    auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-//                    SecurityContextHolder.getContext().setAuthentication(auth);
-//                    log.info("✅ JWT validated successfully for user: {}", username);
-//                }
-//            }
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 var userDetails = userDetailsService.loadUserByUsername(username);
 
