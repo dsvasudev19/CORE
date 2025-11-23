@@ -110,11 +110,15 @@ public class Task extends BaseEntity {
      * Tags for categorization
      */
     @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(name = "task_tags",
-            joinColumns = @JoinColumn(name = "task_id"),
-            inverseJoinColumns = @JoinColumn(name = "tag_id"))
+    @JoinTable(
+    	    name = "task_tag_links",  // ← NEW NAME
+    	    joinColumns = @JoinColumn(name = "task_id"),
+    	    inverseJoinColumns = @JoinColumn(name = "tag_id")
+    	)
+
     private Set<TaskTag> tags = new HashSet<>();
 
+   
     /**
      * Dependencies (tasks this one depends on)
      */

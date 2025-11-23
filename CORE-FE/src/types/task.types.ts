@@ -32,6 +32,11 @@ export interface TaskDependencyDTO {
     taskId: number;
     dependsOnTaskId: number;
     dependencyType: string;
+    // Additional fields from backend
+    dependsOnTask?: TaskDTO; // Full task object for the dependency
+    task?: TaskDTO; // Full task object for the dependent task
+    createdAt?: string;
+    createdBy?: number;
 }
 
 export interface TaskCommentDTO {
@@ -60,10 +65,15 @@ export interface TaskAttachmentDTO {
     id?: number;
     taskId: number;
     fileName: string;
-    fileUrl: string;
+    fileUrl?: string; // Legacy field
+    storedPath?: string; // Actual field from backend
+    contentType?: string;
     fileSize?: number;
     uploadedBy?: number;
     uploadedAt?: string;
+    description?: string;
+    visibility?: string; // INTERNAL or PUBLIC
+    uploadedByUser?: EmployeeDTO;
 }
 
 export interface MinimalEmployeeDTO {

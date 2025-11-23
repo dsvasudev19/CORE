@@ -7,16 +7,20 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.dev.core.auth.service.AuthService;
 import com.dev.core.service.validation.AuthValidator;
+import com.dev.core.domain.PasswordResetToken;
 import com.dev.core.domain.Role;
 import com.dev.core.domain.User;
+import com.dev.core.exception.BaseException;
 import com.dev.core.mapper.UserMapper;
 import com.dev.core.model.AuthRequest;
 import com.dev.core.model.AuthResponse;
@@ -24,8 +28,10 @@ import com.dev.core.model.CurrentUserResponse;
 import com.dev.core.model.RefreshTokenDTO;
 import com.dev.core.model.RoleSummary;
 import com.dev.core.model.UserDTO;
+import com.dev.core.repository.PasswordResetTokenRepository;
 import com.dev.core.repository.UserRepository;
 import com.dev.core.security.JwtTokenProvider;
+import com.dev.core.service.NotificationService;
 import com.dev.core.service.RefreshTokenService;
 
 import io.jsonwebtoken.ExpiredJwtException;
@@ -44,8 +50,14 @@ public class AuthServiceImpl implements AuthService {
     private final RefreshTokenService refreshTokenService;
     private final UserRepository userRepository;
     private final AuthValidator validator;
+    private final PasswordResetTokenRepository tokenRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final NotificationService notificationService;
 
     private static final long ACCESS_TOKEN_EXPIRATION_MINUTES = 60;
+    
+    @Value("${app.frontend.baseurl}")
+    private String baseUrl;
 
     @Override
     public AuthResponse login(AuthRequest request, String userAgent, String ipAddress) {
@@ -173,4 +185,91 @@ public class AuthServiceImpl implements AuthService {
                 .permissions(permissions)
                 .build();
     }
+    
+    @Override
+    public void initiateForgotPassword(String email) {
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BaseException("error.user.not.found"));
+
+        // Create a secure random token
+        String tokenValue = UUID.randomUUID().toString();
+
+        PasswordResetToken token = new PasswordResetToken();
+        token.setToken(tokenValue);
+        token.setUser(user);
+        token.setExpiresAt(LocalDateTime.now().plusMinutes(20));
+        token.setActive(true); // newly created token is active
+
+        tokenRepository.save(token);
+
+        // Build final URL for frontend
+        String resetLink = baseUrl + "/auth/reset-password?token" + tokenValue;
+
+        log.info("Sending password reset link to {}", user.getEmail());
+
+        // send email
+        notificationService.sendEmail(user.getEmail(),"Password Reset ", resetLink);
+    }
+
+    // -----------------------------------------------------
+    // 2. Verify Token (frontend calls this to display email)
+    // -----------------------------------------------------
+    @Override
+    public UserDTO verifyResetToken(String tokenValue) {
+
+        PasswordResetToken token = tokenRepository.findByToken(tokenValue)
+                .orElseThrow(() -> new BaseException("error.token.invalid"));
+
+        // inactive token means used or manually deactivated
+        if (!token.getActive()) {
+            throw new BaseException("error.token.used.or.invalid");
+        }
+
+        // expired token → mark inactive, fail request
+        if (token.getExpiresAt().isBefore(LocalDateTime.now())) {
+            token.setActive(false);
+            tokenRepository.save(token);
+            throw new BaseException("error.token.expired");
+        }
+
+        // success → return user details
+        return UserMapper.toDTO(token.getUser());
+    }
+
+    // -----------------------------------------------------
+    // 3. Reset Password With Token
+    // -----------------------------------------------------
+    @Override
+    public void resetPasswordWithToken(String tokenValue, String newPassword) {
+
+        PasswordResetToken token = tokenRepository.findByToken(tokenValue)
+                .orElseThrow(() -> new BaseException("error.token.invalid"));
+
+        // token validity checks
+        if (!token.getActive()) {
+            throw new BaseException("error.token.used.or.invalid");
+        }
+
+        if (token.getExpiresAt().isBefore(LocalDateTime.now())) {
+            token.setActive(false);
+            tokenRepository.save(token);
+            throw new BaseException("error.token.expired");
+        }
+
+        // IMPORTANT: Reload the user fully to avoid null password issue
+        Long userId = token.getUser().getId();
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BaseException("error.user.not.found"));
+
+        // Update password safely
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        // Mark token inactive
+        token.setActive(false);
+        tokenRepository.save(token);
+    }
+
 }

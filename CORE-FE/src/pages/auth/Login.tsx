@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Eye, EyeOff, Lock, Mail, Building2, ArrowRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Login = () => {
@@ -110,12 +110,12 @@ const Login = () => {
                                 />
                                 <span className="text-sm text-steel-700">Remember me</span>
                             </label>
-                            <button
-                                type="button"
+                            <Link
+                                to="/auth/forgot-password"
                                 className="text-sm font-medium text-burgundy-600 hover:text-burgundy-700"
                             >
                                 Forgot password?
-                            </button>
+                            </Link>
                         </div>
 
                         {/* Error */}

@@ -5,6 +5,8 @@ import ClientLayout from "./layouts/ClientLayout";
 
 // Auth
 import { Login } from "./pages/auth";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
 
 // Dashboard
 import { Dashboard, EmployeeHome } from "./pages/dashboard";
@@ -91,6 +93,7 @@ import ClientAddPage from "./pages/client-management/AddClient";
 import DepartmentList from "./pages/departments/DepartmentList";
 import DesignationList from "./pages/designations/DesignationList";
 import OrganizationSettings from "./pages/organization-settings/OrganizationSettings";
+import EmptyLayout from "./layouts/EmptyLayout";
 
 const Router = () => {
     return (
@@ -102,7 +105,11 @@ const Router = () => {
                 <Route path="/" element={<Navigate to="/a/dashboard" replace />} />
 
                 {/* Login Route */}
-                <Route path="/auth/login" element={<AuthGuard><Login /></AuthGuard>} />
+                <Route path="/auth" element={<AuthGuard><EmptyLayout /></AuthGuard>} >
+                <Route path="login" element={<Login />} />
+                <Route path="forgot-password" element={<ForgotPassword />} />
+                <Route path="reset-password" element={<ResetPassword />} />
+                </Route>    
 
                 {/* Admin Routes */}
                 <Route path="/a" element={<AuthGuard><DashboardLayout /></AuthGuard>}>

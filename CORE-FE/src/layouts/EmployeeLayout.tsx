@@ -1,7 +1,7 @@
 
 
 import { useState, useEffect, useRef } from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     X,
     Home,
@@ -24,10 +24,9 @@ import {
 } from 'lucide-react';
 
 import { TimerWidget } from '../components/timer';
-
-
 import { AIAgent, ChatToggle } from '../components/chat';
 import ClockInModal from '../modals/ClockInModal';
+import { useAuth } from '../contexts/AuthContext';
 
 const EmployeeLayout = () => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -37,6 +36,15 @@ const EmployeeLayout = () => {
     const [chatOpen, setChatOpen] = useState(false);
     const [clockInModalOpen, setClockInModalOpen] = useState(false);
     const location = useLocation();
+    const navigate = useNavigate();
+    const { user, logout } = useAuth();
+
+    const handleLogout = async () => {
+        if (confirm('Are you sure you want to logout?')) {
+            await logout();
+            navigate('/login');
+        }
+    };
 
     const userMenuRef = useRef<HTMLDivElement>(null);
     const notificationRef = useRef<HTMLDivElement>(null);
@@ -125,8 +133,8 @@ const EmployeeLayout = () => {
                                     key={item.name}
                                     to={item.href}
                                     className={`group flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${active
-                                            ? 'bg-burgundy-50 text-burgundy-700 shadow-sm border-l-4 border-l-burgundy-700'
-                                            : 'text-steel-600 hover:bg-steel-50 hover:text-steel-900'
+                                        ? 'bg-burgundy-50 text-burgundy-700 shadow-sm border-l-4 border-l-burgundy-700'
+                                        : 'text-steel-600 hover:bg-steel-50 hover:text-steel-900'
                                         } ${sidebarCollapsed ? 'justify-center' : ''}`}
                                     title={sidebarCollapsed ? item.name : ''}
                                 >
@@ -158,8 +166,14 @@ const EmployeeLayout = () => {
                             </div>
                             {!sidebarCollapsed && (
                                 <div className="flex-1 min-w-0 transition-opacity duration-200">
-                                    <p className="text-sm font-semibold text-steel-900 truncate">Sarah Chen</p>
-                                    <p className="text-xs text-steel-500 truncate">Frontend Developer</p>
+                                    <p className="text-sm font-semibold text-steel-900 truncate">
+                                        {user?.firstName && user?.lastName
+                                            ? `${user.firstName} ${user.lastName}`
+                                            : user?.email || 'User'}
+                                    </p>
+                                    <p className="text-xs text-steel-500 truncate">
+                                        {user?.roles?.[0]?.name || 'Employee'}
+                                    </p>
                                 </div>
                             )}
                         </div>
@@ -288,8 +302,14 @@ const EmployeeLayout = () => {
                                         <User size={18} className="text-burgundy-600" strokeWidth={2.5} />
                                     </div>
                                     <div className="hidden md:block text-left">
-                                        <p className="text-sm font-semibold text-gray-900">Sarah Chen</p>
-                                        <p className="text-xs text-gray-500">Frontend Developer</p>
+                                        <p className="text-sm font-semibold text-gray-900">
+                                            {user?.firstName && user?.lastName
+                                                ? `${user.firstName} ${user.lastName}`
+                                                : user?.email || 'User'}
+                                        </p>
+                                        <p className="text-xs text-gray-500">
+                                            {user?.roles?.[0]?.name || 'Employee'}
+                                        </p>
                                     </div>
                                     <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`} strokeWidth={2} />
                                 </button>
@@ -297,8 +317,12 @@ const EmployeeLayout = () => {
                                 {userMenuOpen && (
                                     <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border-2 border-gray-300 py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                                         <div className="px-4 py-3 border-b-2 border-gray-300">
-                                            <p className="text-sm font-semibold text-gray-900">Sarah Chen</p>
-                                            <p className="text-xs text-gray-500">sarah.chen@company.com</p>
+                                            <p className="text-sm font-semibold text-gray-900">
+                                                {user?.firstName && user?.lastName
+                                                    ? `${user.firstName} ${user.lastName}`
+                                                    : user?.email || 'User'}
+                                            </p>
+                                            <p className="text-xs text-gray-500">{user?.email || 'user@company.com'}</p>
                                         </div>
                                         <Link
                                             to="/e/profile"
@@ -315,7 +339,10 @@ const EmployeeLayout = () => {
                                             Settings
                                         </Link>
                                         <hr className="my-1 border-gray-300" />
-                                        <button className="flex items-center gap-3 px-4 py-2.5 text-sm text-coral-600 hover:bg-coral-50 w-full text-left transition-colors">
+                                        <button
+                                            onClick={handleLogout}
+                                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-coral-600 hover:bg-coral-50 w-full text-left transition-colors"
+                                        >
                                             <LogOut size={16} strokeWidth={2} />
                                             Sign Out
                                         </button>

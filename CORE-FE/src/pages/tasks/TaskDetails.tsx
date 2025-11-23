@@ -23,11 +23,18 @@ import {
     Users,
     Tag,
     BarChart3,
+    GitBranch,
+    Search,
+    Paperclip,
+    Upload,
+    FileText,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { taskService } from '../../services/task.service';
 import { taskCommentService, type TaskCommentDTO } from '../../services/taskComment.service';
-import type { TaskDTO } from '../../types/task.types';
+import { taskDependencyService } from '../../services/taskDependency.service';
+import { taskAttachmentService } from '../../services/taskAttachment.service';
+import type { TaskDTO, TaskDependencyDTO, TaskAttachmentDTO } from '../../types/task.types';
 import { TaskStatus } from '../../types/task.types';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -60,10 +67,29 @@ const TaskDetail = () => {
     const [newComment, setNewComment] = useState('');
     const [submittingComment, setSubmittingComment] = useState(false);
 
+    // Dependency state
+    const [dependencies, setDependencies] = useState<TaskDependencyDTO[]>([]);
+    const [dependents, setDependents] = useState<TaskDependencyDTO[]>([]);
+    const [showDependencies, setShowDependencies] = useState(true);
+    const [showAddDependency, setShowAddDependency] = useState(false);
+    const [dependencyType, setDependencyType] = useState('BLOCKER');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<TaskDTO[]>([]);
+    const [searchingTasks, setSearchingTasks] = useState(false);
+
+    // Attachment state
+    const [attachments, setAttachments] = useState<TaskAttachmentDTO[]>([]);
+    const [showAttachments, setShowAttachments] = useState(true);
+    const [uploadingFile, setUploadingFile] = useState(false);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [fileDescription, setFileDescription] = useState('');
+
     useEffect(() => {
         if (id) {
             fetchTaskDetails();
             fetchComments();
+            fetchDependencies();
+            fetchAttachments();
         }
     }, [id]);
 
@@ -92,6 +118,158 @@ const TaskDetail = () => {
         } catch (err) {
             console.error('Error fetching comments:', err);
         }
+    };
+
+    const fetchDependencies = async () => {
+        try {
+            const taskId = parseInt(id || '0', 10);
+            const [deps, depts] = await Promise.all([
+                taskDependencyService.getDependenciesByTask(taskId),
+                taskDependencyService.getDependents(taskId),
+            ]);
+            setDependencies(deps);
+            setDependents(depts);
+        } catch (err) {
+            console.error('Error fetching dependencies:', err);
+        }
+    };
+
+    const handleAddDependency = async (dependsOnTaskId: number) => {
+        if (!task) return;
+
+        try {
+            await taskDependencyService.createDependency(task.id, {
+                taskId: task.id,
+                dependsOnTaskId,
+                dependencyType,
+            });
+            toast.success('Dependency added');
+            setShowAddDependency(false);
+            setSearchQuery('');
+            setSearchResults([]);
+            await fetchDependencies();
+        } catch (err) {
+            console.error('Error adding dependency:', err);
+            toast.error('Failed to add dependency');
+        }
+    };
+
+    const handleRemoveDependency = async (dependencyId: number) => {
+        if (!task) return;
+        if (!confirm('Are you sure you want to remove this dependency?')) return;
+
+        try {
+            await taskDependencyService.deleteDependency(task.id, dependencyId);
+            toast.success('Dependency removed');
+            await fetchDependencies();
+        } catch (err) {
+            console.error('Error removing dependency:', err);
+            toast.error('Failed to remove dependency');
+        }
+    };
+
+    const searchTasks = async (query: string) => {
+        if (!query.trim() || !user?.organizationId) {
+            setSearchResults([]);
+            return;
+        }
+
+        try {
+            setSearchingTasks(true);
+            const results = await taskService.searchTasks({
+                organizationId: user.organizationId,
+                keyword: query,
+                page: 0,
+                size: 10,
+            });
+            // Filter out current task and already added dependencies
+            const filtered = results.content.filter(
+                (t) =>
+                    t.id !== task?.id &&
+                    !dependencies.some((d) => d.dependsOnTaskId === t.id)
+            );
+            setSearchResults(filtered);
+        } catch (err) {
+            console.error('Error searching tasks:', err);
+        } finally {
+            setSearchingTasks(false);
+        }
+    };
+
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            if (showAddDependency && searchQuery) {
+                searchTasks(searchQuery);
+            }
+        }, 300);
+
+        return () => clearTimeout(timeoutId);
+    }, [searchQuery, showAddDependency]);
+
+    const fetchAttachments = async () => {
+        try {
+            const taskId = parseInt(id || '0', 10);
+            const data = await taskAttachmentService.getAttachmentsByTask(taskId);
+            setAttachments(data);
+        } catch (err) {
+            console.error('Error fetching attachments:', err);
+        }
+    };
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setSelectedFile(file);
+        }
+    };
+
+    const handleFileUpload = async () => {
+        if (!task || !selectedFile) return;
+
+        try {
+            setUploadingFile(true);
+            await taskAttachmentService.uploadAttachment(
+                task.id,
+                selectedFile,
+                fileDescription || undefined,
+                'INTERNAL'
+            );
+            toast.success('File uploaded successfully');
+            setSelectedFile(null);
+            setFileDescription('');
+            await fetchAttachments();
+        } catch (err) {
+            console.error('Error uploading file:', err);
+            toast.error('Failed to upload file');
+        } finally {
+            setUploadingFile(false);
+        }
+    };
+
+    const handleDeleteAttachment = async (attachmentId: number) => {
+        if (!task) return;
+        if (!confirm('Are you sure you want to delete this attachment?')) return;
+
+        try {
+            await taskAttachmentService.deleteAttachment(task.id, attachmentId);
+            toast.success('Attachment deleted');
+            await fetchAttachments();
+        } catch (err) {
+            console.error('Error deleting attachment:', err);
+            toast.error('Failed to delete attachment');
+        }
+    };
+
+    const formatFileSize = (bytes?: number) => {
+        if (!bytes) return 'Unknown size';
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    };
+
+    const getFileIcon = (fileName: string) => {
+        // You can expand this with more specific icons based on file extension
+        return <FileText size={16} className="text-burgundy-600" />;
     };
 
     const handleSaveTitle = async () => {
@@ -670,6 +848,220 @@ const TaskDetail = () => {
                             </div>
                         )}
 
+                        {/* Dependencies */}
+                        <div className="card">
+                            <div className="flex items-center justify-between px-5 py-3 border-b border-steel-200">
+                                <h3 className="text-sm font-semibold text-steel-900 uppercase tracking-wide flex items-center gap-2">
+                                    <GitBranch size={16} />
+                                    Dependencies
+                                </h3>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setShowAddDependency(true)}
+                                        className="px-3 py-1 text-xs font-medium bg-burgundy-50 text-burgundy-700 hover:bg-burgundy-100 rounded border border-burgundy-200 transition-colors flex items-center gap-1"
+                                    >
+                                        <Plus size={12} />
+                                        Add Dependency
+                                    </button>
+                                    <button onClick={() => setShowDependencies(!showDependencies)} className="p-1 rounded hover:bg-steel-100">
+                                        {showDependencies ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                    </button>
+                                </div>
+                            </div>
+                            {showDependencies && (
+                                <div className="p-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {/* Dependencies (Tasks this task depends on) */}
+                                        <div>
+                                            <h4 className="text-xs font-semibold text-steel-700 uppercase tracking-wide mb-2">Depends On ({dependencies.length})</h4>
+                                            {dependencies.length > 0 ? (
+                                                <div className="space-y-1.5">
+                                                    {dependencies.map((dep) => {
+                                                        // The API returns the task object in the 'task' field
+                                                        const depTask = dep.task;
+                                                        return (
+                                                            <div key={dep.id} className="p-2 bg-steel-50 rounded border border-steel-200 hover:border-burgundy-300 transition-colors">
+                                                                <div className="flex items-start justify-between mb-1">
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <div className="flex items-center gap-2 mb-0.5">
+                                                                            <span className="text-xs font-medium text-steel-900 truncate">
+                                                                                {depTask?.title || `Task #${dep.dependsOnTaskId}`}
+                                                                            </span>
+                                                                            {depTask && (
+                                                                                <span className={cn('px-1.5 py-0.5 text-xs font-medium rounded border', getStatusColor(depTask.status))}>
+                                                                                    {depTask.status.replace('_', ' ')}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="flex items-center gap-2 text-xs text-steel-500">
+                                                                            <span className="flex items-center gap-1">
+                                                                                <Tag size={10} />
+                                                                                {dep.dependencyType}
+                                                                            </span>
+                                                                            {depTask?.priority && (
+                                                                                <span className="flex items-center gap-1">
+                                                                                    <Flag size={10} />
+                                                                                    {depTask.priority}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                    <button
+                                                                        onClick={() => handleRemoveDependency(dep.id!)}
+                                                                        className="p-1 text-red-600 hover:bg-red-50 rounded flex-shrink-0 ml-2"
+                                                                    >
+                                                                        <Trash2 size={12} />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            ) : (
+                                                <div className="text-center py-4 text-steel-500 text-xs bg-steel-50 rounded border border-steel-200">
+                                                    No dependencies
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Dependents (Tasks that depend on this task) */}
+                                        <div>
+                                            <h4 className="text-xs font-semibold text-steel-700 uppercase tracking-wide mb-2">Dependents ({dependents.length})</h4>
+                                            {dependents.length > 0 ? (
+                                                <div className="space-y-1.5">
+                                                    {dependents.map((dep) => (
+                                                        <div key={dep.id} className="p-2 bg-steel-50 rounded border border-steel-200">
+                                                            <div className="flex items-start justify-between mb-1">
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="flex items-center gap-2 mb-0.5">
+                                                                        <span className="text-xs font-medium text-steel-900 truncate">
+                                                                            {dep.task?.title || `Task #${dep.taskId}`}
+                                                                        </span>
+                                                                        {dep.task && (
+                                                                            <span className={cn('px-1.5 py-0.5 text-xs font-medium rounded border', getStatusColor(dep.task.status))}>
+                                                                                {dep.task.status.replace('_', ' ')}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2 text-xs text-steel-500">
+                                                                        <span className="flex items-center gap-1">
+                                                                            <Tag size={10} />
+                                                                            {dep.dependencyType}
+                                                                        </span>
+                                                                        {dep.task?.priority && (
+                                                                            <span className="flex items-center gap-1">
+                                                                                <Flag size={10} />
+                                                                                {dep.task.priority}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="text-center py-4 text-steel-500 text-xs bg-steel-50 rounded border border-steel-200">
+                                                    No dependents
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Add Dependency Modal */}
+                        {showAddDependency && (
+                            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowAddDependency(false)}>
+                                <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4" onClick={(e) => e.stopPropagation()}>
+                                    <div className="flex items-center justify-between px-6 py-4 border-b border-steel-200">
+                                        <h3 className="text-lg font-semibold text-steel-900">Add Dependency</h3>
+                                        <button onClick={() => setShowAddDependency(false)} className="p-1 text-steel-400 hover:text-steel-600 rounded">
+                                            <X size={20} />
+                                        </button>
+                                    </div>
+                                    <div className="p-6">
+                                        {/* Dependency Type */}
+                                        <div className="mb-4">
+                                            <label className="block text-sm font-medium text-steel-700 mb-2">Dependency Type</label>
+                                            <select
+                                                value={dependencyType}
+                                                onChange={(e) => setDependencyType(e.target.value)}
+                                                className="w-full px-3 py-2 border border-steel-300 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500 text-sm"
+                                            >
+                                                <option value="BLOCKER">Blocker</option>
+                                                <option value="BLOCKED_BY">Blocked By</option>
+                                                <option value="RELATED">Related</option>
+                                                <option value="DEPENDS_ON">Depends On</option>
+                                            </select>
+                                        </div>
+
+                                        {/* Task Search */}
+                                        <div className="mb-4">
+                                            <label className="block text-sm font-medium text-steel-700 mb-2">Search Task</label>
+                                            <div className="relative">
+                                                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-steel-400" />
+                                                <input
+                                                    type="text"
+                                                    value={searchQuery}
+                                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                                    placeholder="Search by task title or ID..."
+                                                    className="w-full pl-10 pr-3 py-2 border border-steel-300 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500 text-sm"
+                                                />
+                                                {searchingTasks && (
+                                                    <Loader2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-burgundy-600 animate-spin" />
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Search Results */}
+                                        <div className="max-h-64 overflow-y-auto">
+                                            {searchResults.length > 0 ? (
+                                                <div className="space-y-1.5">
+                                                    {searchResults.map((result) => (
+                                                        <button
+                                                            key={result.id}
+                                                            onClick={() => handleAddDependency(result.id)}
+                                                            className="w-full p-3 bg-steel-50 hover:bg-burgundy-50 rounded border border-steel-200 hover:border-burgundy-300 transition-colors text-left"
+                                                        >
+                                                            <div className="flex items-center justify-between mb-1">
+                                                                <span className="text-sm font-medium text-steel-900">{result.title}</span>
+                                                                <span className={cn('px-2 py-0.5 text-xs font-medium rounded border', getStatusColor(result.status))}>
+                                                                    {result.status.replace('_', ' ')}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex items-center gap-3 text-xs text-steel-500">
+                                                                <span>Task #{result.id}</span>
+                                                                <span className="flex items-center gap-1">
+                                                                    <Flag size={10} />
+                                                                    {result.priority}
+                                                                </span>
+                                                                {result.projectId && (
+                                                                    <span className="flex items-center gap-1">
+                                                                        <BarChart3 size={10} />
+                                                                        Project #{result.projectId}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            ) : searchQuery && !searchingTasks ? (
+                                                <div className="text-center py-8 text-steel-500 text-sm">
+                                                    No tasks found
+                                                </div>
+                                            ) : !searchQuery ? (
+                                                <div className="text-center py-8 text-steel-500 text-sm">
+                                                    Start typing to search for tasks
+                                                </div>
+                                            ) : null}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Subtasks */}
                         {task.subtasks && task.subtasks.length > 0 && (
                             <div className="card">
@@ -830,6 +1222,127 @@ const TaskDetail = () => {
                                     </div>
                                 )}
                             </div>
+                        </div>
+
+                        {/* Attachments */}
+                        <div className="card p-4">
+                            <div className="flex items-center justify-between mb-3">
+                                <h3 className="text-xs font-semibold text-steel-900 uppercase tracking-wide flex items-center gap-2">
+                                    <Paperclip size={14} />
+                                    Attachments ({attachments.length})
+                                </h3>
+                                <button onClick={() => setShowAttachments(!showAttachments)} className="p-1 rounded hover:bg-steel-100">
+                                    {showAttachments ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                </button>
+                            </div>
+                            {showAttachments && (
+                                <div className="space-y-3">
+                                    {/* File Upload */}
+                                    <div className="border-2 border-dashed border-steel-300 rounded-lg p-3 bg-steel-50">
+                                        <input
+                                            type="file"
+                                            id="file-upload"
+                                            onChange={handleFileSelect}
+                                            className="hidden"
+                                        />
+                                        {selectedFile ? (
+                                            <div className="space-y-2">
+                                                <div className="flex items-center gap-2 text-xs">
+                                                    <FileText size={14} className="text-burgundy-600" />
+                                                    <span className="font-medium text-steel-900 truncate flex-1">{selectedFile.name}</span>
+                                                    <button
+                                                        onClick={() => setSelectedFile(null)}
+                                                        className="p-1 text-red-600 hover:bg-red-50 rounded"
+                                                    >
+                                                        <X size={12} />
+                                                    </button>
+                                                </div>
+                                                <input
+                                                    type="text"
+                                                    value={fileDescription}
+                                                    onChange={(e) => setFileDescription(e.target.value)}
+                                                    placeholder="Description (optional)"
+                                                    className="w-full px-2 py-1 text-xs border border-steel-300 rounded focus:ring-1 focus:ring-burgundy-500"
+                                                />
+                                                <button
+                                                    onClick={handleFileUpload}
+                                                    disabled={uploadingFile}
+                                                    className="w-full px-3 py-1.5 bg-burgundy-600 text-white rounded text-xs font-medium hover:bg-burgundy-700 disabled:opacity-50 flex items-center gap-1 justify-center"
+                                                >
+                                                    {uploadingFile ? (
+                                                        <>
+                                                            <Loader2 size={12} className="animate-spin" />
+                                                            Uploading...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Upload size={12} />
+                                                            Upload File
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <label htmlFor="file-upload" className="cursor-pointer block text-center">
+                                                <Upload size={20} className="mx-auto text-steel-400 mb-1" />
+                                                <p className="text-xs text-steel-600 font-medium">Click to upload file</p>
+                                                <p className="text-xs text-steel-500 mt-0.5">or drag and drop</p>
+                                            </label>
+                                        )}
+                                    </div>
+
+                                    {/* Attachments List */}
+                                    {attachments.length > 0 ? (
+                                        <div className="space-y-1.5">
+                                            {attachments.map((attachment) => (
+                                                <div key={attachment.id} className="p-2 bg-steel-50 rounded border border-steel-200 hover:border-burgundy-300 transition-colors">
+                                                    <div className="flex items-start gap-2">
+                                                        <div className="flex-shrink-0 mt-0.5">
+                                                            {getFileIcon(attachment.fileName)}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-xs font-medium text-steel-900 truncate">{attachment.fileName}</p>
+                                                            <div className="flex items-center gap-2 text-xs text-steel-500 mt-0.5">
+                                                                <span>{formatFileSize(attachment.fileSize)}</span>
+                                                                {attachment.uploadedAt && (
+                                                                    <>
+                                                                        <span>•</span>
+                                                                        <span>{formatDate(attachment.uploadedAt)}</span>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                            {attachment.description && (
+                                                                <p className="text-xs text-steel-600 mt-1 truncate">{attachment.description}</p>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex items-center gap-1 flex-shrink-0">
+                                                            <a
+                                                                href={`${import.meta.env.VITE_API_BASE}/${attachment.storedPath || attachment.fileUrl}`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="p-1 text-burgundy-600 hover:bg-burgundy-50 rounded"
+                                                                title="View file"
+                                                            >
+                                                                <FileText size={12} />
+                                                            </a>
+                                                            <button
+                                                                onClick={() => handleDeleteAttachment(attachment.id!)}
+                                                                className="p-1 text-red-600 hover:bg-red-50 rounded"
+                                                            >
+                                                                <Trash2 size={12} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-4 text-steel-500 text-xs">
+                                            No attachments yet
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

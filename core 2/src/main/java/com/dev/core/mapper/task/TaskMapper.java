@@ -23,7 +23,6 @@ import org.springframework.stereotype.Component;
 public class TaskMapper {
 	
 	private final SecurityContextUtil securityContextUtil;
-    private final TaskTagRepository taskTagRepository;
     private final TaskCommentMapper taskCommentMapper;
 
 
@@ -159,16 +158,9 @@ public class TaskMapper {
         entity.setProject(project);
         entity.setProgressPercentage(dto.getProgressPercentage());
         entity.setActive(dto.getActive());
-        Set<TaskTag> savedTags = dto.getTags() != null
-                ? dto.getTags().stream()
-                    .map(tagDto -> {
-                        TaskTag tag = TaskTagMapper.toEntity(tagDto);
-                        return taskTagRepository.save(tag);
-                    })
-                    .collect(Collectors.toSet())
-                : Collections.emptySet();
+       
 
-        entity.setTags(savedTags);
+        //entity.setTags(dto.getTags().stream().map(TaskTagMapper::toEntity).collect(Collectors.toSet()));
 
 
         return entity;

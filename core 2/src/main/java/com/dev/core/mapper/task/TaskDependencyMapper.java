@@ -1,7 +1,10 @@
 package com.dev.core.mapper.task;
 
+import com.dev.core.domain.Task;
 import com.dev.core.domain.TaskDependency;
+import com.dev.core.domain.minimal.MinimalTask;
 import com.dev.core.model.task.TaskDependencyDTO;
+
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -9,6 +12,7 @@ public class TaskDependencyMapper {
 
     public TaskDependencyDTO toDTO(TaskDependency entity) {
         if (entity == null) return null;
+        Task t=entity.getTask();
         return TaskDependencyDTO.builder()
                 .id(entity.getId())
                 .organizationId(entity.getOrganizationId())
@@ -18,6 +22,7 @@ public class TaskDependencyMapper {
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .active(entity.getActive())
+                .task(MinimalTask.builder().title(t.getTitle()).description(t.getDescription()).status(t.getStatus()).priority(t.getPriority()).startDate(t.getStartDate()).dueDate(t.getDueDate()).completedAt(t.getCompletedAt()).estimatedHours(t.getEstimatedHours()).actualHours(t.getActualHours()).progressPercentage(t.getProgressPercentage()).build())
                 .build();
     }
 

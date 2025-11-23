@@ -1,16 +1,16 @@
 package com.dev.core.service.task;
 
-import com.dev.core.model.task.TaskTagDTO;
 
 import java.util.List;
+import java.util.Set;
+
+import com.dev.core.model.task.TaskTagDTO;
 
 public interface TaskTagService {
 
-    TaskTagDTO createTag(TaskTagDTO dto);
+    void addTags(Long taskId, Set<TaskTagDTO> tagDtos);
 
-    TaskTagDTO updateTag(Long id, TaskTagDTO dto);
+    void replaceTags(Long taskId, Set<TaskTagDTO> tagDtos);
 
-    void deleteTag(Long id);
-
-    List<TaskTagDTO> getAllTags(Long organizationId);
+    void removeTag(Long taskId, Long tagId);
 }

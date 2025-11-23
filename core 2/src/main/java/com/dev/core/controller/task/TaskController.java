@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.dev.core.api.ControllerHelper;
 import com.dev.core.model.task.TaskDTO;
 import com.dev.core.security.SecurityContextUtil;
+import com.dev.core.service.task.TaskAssignmentService;
 import com.dev.core.service.task.TaskAutomationService;
 import com.dev.core.service.task.TaskService;
 
@@ -35,6 +36,7 @@ public class TaskController {
 	private final TaskService taskService;
 	private final TaskAutomationService automationService;
 	private final ControllerHelper helper;
+	private final TaskAssignmentService taskAssignmentService;
 
 	private final SecurityContextUtil securityContextUtil;
 	// --------------------------------------------------------------
@@ -225,5 +227,18 @@ public class TaskController {
 			@RequestParam String value) {
 		return helper.success("Task field updated successfully", null);
 	}
+	
+	@PostMapping("/{taskId}/assign/{employeeId}")
+	public void assign(@PathVariable Long taskId,
+	                   @PathVariable Long employeeId) {
+	    taskAssignmentService.assignEmployee(taskId, employeeId);
+	}
+
+	@DeleteMapping("/{taskId}/assign/{employeeId}")
+	public void unassign(@PathVariable Long taskId,
+	                     @PathVariable Long employeeId) {
+	    taskAssignmentService.unassignEmployee(taskId, employeeId);
+	}
+
 
 }

@@ -28,8 +28,10 @@ import com.dev.core.repository.task.TaskRepository;
 import com.dev.core.security.SecurityContextUtil;
 import com.dev.core.service.AuthorizationService;
 import com.dev.core.service.BaseEntityAuditService;
+import com.dev.core.service.task.TaskAssignmentService;
 import com.dev.core.service.task.TaskAutomationService;
 import com.dev.core.service.task.TaskService;
+import com.dev.core.service.task.TaskTagService;
 import com.dev.core.service.validation.task.TaskValidator;
 import com.dev.core.specification.SpecificationBuilder;
 
@@ -51,6 +53,9 @@ public class TaskServiceImpl implements TaskService {
     private final SecurityContextUtil securityContextUtil;
     private final BaseEntityAuditService baseAuditService;
     private final TaskMapper taskMapper;
+    private final TaskAssignmentService taskAssignmentService;
+    private final TaskTagService taskTagService;
+
 
     // ✅ Authorization wrapper for all actions
     private void authorize(String action) {
@@ -83,17 +88,19 @@ public class TaskServiceImpl implements TaskService {
             entity.setParentTask(parent);
         }
 
-        // Set assignees
-        if (dto.getAssigneeIds() != null && !dto.getAssigneeIds().isEmpty()) {
-        	Set<Employee> assignees = new HashSet<>(employeeRepository.findAllById(dto.getAssigneeIds()));
-        	entity.setAssignees(assignees);
-
-
-        }
+        
         baseAuditService.applyAudit(entity, OperationType.CREATE);
         entity.setOwnerId(securityContextUtil.getCurrentEmployee().getId());
 
         Task saved = taskRepository.save(entity);
+        
+        if (dto.getAssigneeIds() != null && !dto.getAssigneeIds().isEmpty()) {
+            taskAssignmentService.replaceAssignees(saved.getId(), new HashSet<>(dto.getAssigneeIds()));
+        }
+        
+        if (dto.getTags() != null && !dto.getTags().isEmpty()) {
+            taskTagService.addTags(saved.getId(), dto.getTags());
+        }
 
         // Fire automation hook
         taskAutomationService.onTaskCreated(saved.getId());
@@ -122,10 +129,14 @@ public class TaskServiceImpl implements TaskService {
         if (dto.getOwnerId() != null) existing.setOwnerId(dto.getOwnerId());
         if (dto.getProgressPercentage() !=null ) existing.setProgressPercentage(dto.getProgressPercentage());        // Update assignees if provided
         if (dto.getAssigneeIds() != null) {
-        	Set<Employee> employees = new HashSet<>(employeeRepository.findAllById(dto.getAssigneeIds()));
-        	existing.setAssignees(employees);
-
+            taskAssignmentService.replaceAssignees(id, new HashSet<>(dto.getAssigneeIds()));
         }
+        
+        if (dto.getTags() != null) { 
+            taskTagService.replaceTags(id, dto.getTags());
+        }
+
+        
         baseAuditService.applyAudit(existing, OperationType.UPDATE);
         
         Task updated = taskRepository.save(existing);
@@ -213,6 +224,7 @@ public class TaskServiceImpl implements TaskService {
         return page.map(taskMapper::toDTO);
     }
 
+    
     // --------------------------------------------------------------
     // ASSIGN USERS
     // --------------------------------------------------------------
@@ -220,24 +232,17 @@ public class TaskServiceImpl implements TaskService {
     public TaskDTO assignUsers(Long taskId, List<Long> userIds) {
         authorize("UPDATE");
 
-        Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new BaseException("error.task.not.found", new Object[]{taskId}));
-
         if (userIds == null || userIds.isEmpty())
             throw new BaseException("error.task.assignees.required");
 
-        Set<Employee> employees = new HashSet<>(employeeRepository.findAllById(userIds));
-        task.setAssignees(employees);
-        
+        taskAssignmentService.replaceAssignees(taskId, new HashSet<>(userIds));
 
+        Task updated = taskRepository.findById(taskId)
+                .orElseThrow(() -> new BaseException("error.task.not.found", new Object[]{taskId}));
 
-        Task saved = taskRepository.save(task);
-        employees.forEach(e -> taskAutomationService.onTaskAssigned(taskId, e.getId()));
-
-        baseAuditService.applyAudit(saved, OperationType.UPDATE);
-
-        return taskMapper.toDTO(saved);
+        return taskMapper.toDTO(updated);
     }
+
 
     // --------------------------------------------------------------
     // STATUS CHANGE

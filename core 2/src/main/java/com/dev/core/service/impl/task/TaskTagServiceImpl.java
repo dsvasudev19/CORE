@@ -1,120 +1,86 @@
 package com.dev.core.service.impl.task;
 
-import com.dev.core.domain.TaskTag;
-import com.dev.core.exception.BaseException;
-import com.dev.core.mapper.task.TaskTagMapper;
-import com.dev.core.model.task.TaskTagDTO;
-import com.dev.core.repository.task.TaskTagRepository;
-import com.dev.core.service.AuthorizationService;
-import com.dev.core.service.task.TaskTagService;
-import com.dev.core.service.validation.task.TaskTagValidator;
-import com.dev.core.specification.SpecificationBuilder;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import com.dev.core.domain.Task;
+import com.dev.core.domain.TaskTag;
+import com.dev.core.exception.BaseException;
+import com.dev.core.model.task.TaskTagDTO;
+import com.dev.core.repository.task.TaskRepository;
+import com.dev.core.repository.task.TaskTagRepository;
+import com.dev.core.service.AuthorizationService;
+import com.dev.core.service.task.TaskTagService;
 
+import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
-@Slf4j
 @Transactional
 public class TaskTagServiceImpl implements TaskTagService {
 
-    private final TaskTagRepository tagRepository;
-    private final TaskTagValidator tagValidator;
+    private final TaskRepository taskRepository;
+    private final TaskTagRepository taskTagRepository;
     private final AuthorizationService authorizationService;
 
-    // --- AUTHORIZATION WRAPPER ---
-    private void authorize(String action) {
-        String resource = this.getClass().getSimpleName()
-                .replace("ServiceImpl", "")
-                .replace("Service", "")
-                .toUpperCase();
-        authorizationService.authorize(resource, action);
-    }
-
-    // --------------------------------------------------------------
-    // CREATE TAG
-    // --------------------------------------------------------------
     @Override
-    public TaskTagDTO createTag(TaskTagDTO dto) {
-        authorize("CREATE");
-        tagValidator.validateBeforeCreate(dto);
+    public void addTags(Long taskId, Set<TaskTagDTO> tagDtos) {
 
-        TaskTag entity = TaskTagMapper.toEntity(dto);
-        TaskTag saved = tagRepository.save(entity);
 
-        log.info("✅ Created new task tag: {} (orgId={})", dto.getName(), dto.getOrganizationId());
-        return TaskTagMapper.toDTO(saved);
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new BaseException("error.task.not.found", new Object[]{taskId}));
+
+        for (TaskTagDTO dto : tagDtos) {
+
+            TaskTag tag = new TaskTag();
+            tag.setName(dto.getName());
+            tag.setColor(dto.getColor());
+            tag.setOrganizationId(task.getOrganizationId());  // if the base entity has org id
+
+            tag = taskTagRepository.save(tag);
+
+            task.getTags().add(tag);
+        }
+
+        taskRepository.save(task);
     }
 
-    // --------------------------------------------------------------
-    // UPDATE TAG
-    // --------------------------------------------------------------
     @Override
-    public TaskTagDTO updateTag(Long id, TaskTagDTO dto) {
-        authorize("UPDATE");
-        tagValidator.validateBeforeUpdate(id, dto);
+    public void replaceTags(Long taskId, Set<TaskTagDTO> tagDtos) {
 
-        TaskTag existing = tagRepository.findById(id)
-                .orElseThrow(() -> new BaseException("error.tag.not.found", new Object[]{id}));
 
-        if (dto.getName() != null) existing.setName(dto.getName());
-        if (dto.getColor() != null) existing.setColor(dto.getColor());
-        if (dto.getActive() != null) existing.setActive(dto.getActive());
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new BaseException("error.task.not.found", new Object[]{taskId}));
 
-        TaskTag updated = tagRepository.save(existing);
-        log.info("🔁 Updated tag {} ({})", updated.getId(), updated.getName());
+        // REMOVE ALL EXISTING TAGS FROM TASK
+        task.getTags().clear();
 
-        return TaskTagMapper.toDTO(updated);
+        Set<TaskTag> newTags = tagDtos.stream().map(dto -> {
+
+            TaskTag tag = new TaskTag();
+            tag.setName(dto.getName());
+            tag.setColor(dto.getColor());
+            tag.setOrganizationId(task.getOrganizationId());
+
+            return taskTagRepository.save(tag);
+
+        }).collect(Collectors.toSet());
+
+        task.setTags(newTags);
+        taskRepository.save(task);
     }
 
-    // --------------------------------------------------------------
-    // DELETE TAG
-    // --------------------------------------------------------------
     @Override
-    public void deleteTag(Long id) {
-        authorize("DELETE");
-        tagValidator.validateBeforeDelete(id);
+    public void removeTag(Long taskId, Long tagId) {
 
-        if (!tagRepository.existsById(id))
-            throw new BaseException("error.tag.not.found", new Object[]{id});
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new BaseException("error.task.not.found", new Object[]{taskId}));
 
-        tagRepository.deleteById(id);
-        log.info("🗑️ Deleted tag {}", id);
-    }
+        task.getTags().removeIf(t -> t.getId().equals(tagId));
 
-    // --------------------------------------------------------------
-    // GET ALL TAGS (organization-level)
-    // --------------------------------------------------------------
-    @Transactional(readOnly = true)
-    @Override
-    public List<TaskTagDTO> getAllTags(Long organizationId) {
-        authorize("READ");
-        return tagRepository.findByOrganizationId(organizationId)
-                .stream()
-                .map(TaskTagMapper::toDTO)
-                .collect(Collectors.toList());
-    }
-
-    // --------------------------------------------------------------
-    // SEARCH TAGS
-    // --------------------------------------------------------------
-    @Transactional(readOnly = true)
-    public Page<TaskTagDTO> searchTags(Long organizationId, String keyword, Pageable pageable) {
-        authorize("READ");
-        Page<TaskTag> page = tagRepository.findAll(
-                SpecificationBuilder.of(TaskTag.class)
-                        .equals("organizationId", organizationId)
-                        .contains("name", keyword)
-                        .build(),
-                pageable
-        );
-        return page.map(TaskTagMapper::toDTO);
+        taskRepository.save(task);
     }
 }

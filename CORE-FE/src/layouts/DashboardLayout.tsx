@@ -284,13 +284,24 @@ import {
 } from 'lucide-react';
 import { AIAgent, ChatToggle } from '../components/chat';
 import { useChatContext } from '../contexts/ChatContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const DashboardLayout = () => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const [chatOpen, setChatOpen] = useState(false);
     const location = useLocation();
+    const navigate = useNavigate();
     const { getTotalUnreadCount } = useChatContext();
+    const { user, logout } = useAuth();
+
+    const handleLogout = async () => {
+        if (confirm('Are you sure you want to logout?')) {
+            await logout();
+            navigate('/login');
+        }
+    };
 
     const navigation = [
         { name: 'Dashboard', href: '/a/dashboard', icon: Home },
@@ -364,8 +375,8 @@ const DashboardLayout = () => {
                                     key={item.name}
                                     to={item.href}
                                     className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${isActive(item.href)
-                                            ? 'bg-burgundy-50 text-burgundy-700 border-l-4 border-burgundy-600'
-                                            : 'text-steel-600 hover:bg-steel-50 hover:text-steel-900'
+                                        ? 'bg-burgundy-50 text-burgundy-700 border-l-4 border-burgundy-600'
+                                        : 'text-steel-600 hover:bg-steel-50 hover:text-steel-900'
                                         } ${!sidebarOpen ? 'justify-center' : ''}`}
                                     title={!sidebarOpen ? item.name : ''}
                                 >
@@ -384,8 +395,8 @@ const DashboardLayout = () => {
                                     <Building2 size={16} className="text-burgundy-600" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-steel-900 truncate">TechCorp Inc.</p>
-                                    <p className="text-xs text-steel-500">Enterprise Plan</p>
+                                    <p className="text-sm font-medium text-steel-900 truncate">{user?.organizationName || 'Organization'}</p>
+                                    <p className="text-xs text-steel-500">Org ID: {user?.organizationId || 'N/A'}</p>
                                 </div>
                             </div>
                         ) : (
@@ -468,8 +479,14 @@ const DashboardLayout = () => {
                                         <User size={16} className="text-burgundy-600" />
                                     </div>
                                     <div className="hidden md:block text-left">
-                                        <p className="text-sm font-medium text-steel-900">Vasudev D.</p>
-                                        <p className="text-xs text-steel-500">System Admin</p>
+                                        <p className="text-sm font-medium text-steel-900">
+                                            {user?.firstName && user?.lastName
+                                                ? `${user.firstName} ${user.lastName}`
+                                                : user?.email || 'User'}
+                                        </p>
+                                        <p className="text-xs text-steel-500">
+                                            {user?.roles?.[0]?.name || 'User'}
+                                        </p>
                                     </div>
                                     <ChevronDown size={16} className="text-steel-400" />
                                 </button>
@@ -491,7 +508,10 @@ const DashboardLayout = () => {
                                             Settings
                                         </Link>
                                         <hr className="my-1 border-steel-200" />
-                                        <button className="flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left">
+                                        <button
+                                            onClick={handleLogout}
+                                            className="flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left"
+                                        >
                                             <LogOut size={16} />
                                             Sign Out
                                         </button>
