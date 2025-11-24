@@ -51,14 +51,18 @@ public class Bug extends BaseEntity {
     @JoinColumn(name = "task_id")
     private Task linkedTask;
 
-    @Column(name = "reported_by")
-    private Long reportedBy;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reported_by")
+    private Employee reportedBy;
 
-    @Column(name = "assigned_to")
-    private Long assignedTo;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_to")
+    private Employee assignedTo;
 
-    @Column(name = "verified_by")
-    private Long verifiedBy;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "verified_by")
+    private Employee verifiedBy;
+
 
     @Column(name = "due_date")
     private LocalDateTime dueDate;

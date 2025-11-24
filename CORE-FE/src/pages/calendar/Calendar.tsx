@@ -1,21 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Calendar as CalendarIcon,
     ChevronLeft,
     ChevronRight,
-    Plus,
     Search,
     Clock,
-    MapPin,
-    Users,
-    Video,
-    Grid,
-    List,
-    Download,
-    X,
-    Trash2,
-    Save
+    CheckSquare,
+    Bug,
+    ListTodo,
+    Filter,
+    X
 } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { taskService } from '../../services/task.service';
+import { bugService } from '../../services/bug.service';
+import { todoService } from '../../services/todo.service';
+import type { TaskDTO } from '../../types/task.types';
+import type { BugDTO } from '../../types/bug.types';
+import type { TodoDTO } from '../../types/todo.types';
+import toast from 'react-hot-toast';
+
+const cn = (...inputs: (string | undefined | null | false)[]) =>
+    inputs.filter(Boolean).join(' ');
 
 interface CalendarEvent {
     id: string;
@@ -23,113 +29,176 @@ interface CalendarEvent {
     description?: string;
     startTime: Date;
     endTime: Date;
-    type: 'meeting' | 'task' | 'reminder' | 'holiday' | 'personal';
-    location?: string;
-    attendees?: string[];
-    isRecurring: boolean;
+    type: 'task' | 'bug' | 'todo';
     color: string;
-    isAllDay: boolean;
-    priority: 'low' | 'medium' | 'high';
+    priority: 'low' | 'medium' | 'high' | 'critical';
+    sourceId?: number;
+    status: string;
 }
 
 const Calendar = () => {
+    const { user } = useAuth();
     const [currentDate, setCurrentDate] = useState(new Date());
-    const [viewMode, setViewMode] = useState<'month' | 'week' | 'day' | 'agenda'>('month');
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterType, setFilterType] = useState<string>('all');
-    const [sidebarMode, setSidebarMode] = useState<'closed' | 'create' | 'view'>('closed');
-    const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
-    const [formData, setFormData] = useState({
-        title: '',
-        description: '',
-        type: 'meeting' as 'meeting' | 'task' | 'reminder' | 'holiday' | 'personal',
-        location: '',
-        attendees: [] as string[],
-        isAllDay: false,
-        priority: 'medium' as 'low' | 'medium' | 'high',
-        isRecurring: false
-    });
-    const [attendeeInput, setAttendeeInput] = useState('');
-    const [events, setEvents] = useState<CalendarEvent[]>([
-        {
-            id: '1',
-            title: 'Team Standup',
-            description: 'Daily team synchronization meeting',
-            startTime: new Date(2024, 2, 15, 9, 0),
-            endTime: new Date(2024, 2, 15, 9, 30),
-            type: 'meeting',
-            location: 'Conference Room A',
-            attendees: ['John Doe', 'Sarah Wilson', 'Mike Johnson'],
-            isRecurring: true,
-            color: 'bg-blue-500',
-            isAllDay: false,
-            priority: 'medium'
-        },
-        {
-            id: '2',
-            title: 'Project Review',
-            description: 'Quarterly project review with stakeholders',
-            startTime: new Date(2024, 2, 18, 14, 0),
-            endTime: new Date(2024, 2, 18, 16, 0),
-            type: 'meeting',
-            location: 'Main Conference Room',
-            attendees: ['Management Team', 'Project Leads'],
-            isRecurring: false,
-            color: 'bg-burgundy-500',
-            isAllDay: false,
-            priority: 'high'
-        },
-        {
-            id: '3',
-            title: 'Complete Documentation',
-            description: 'Finish API documentation for new features',
-            startTime: new Date(2024, 2, 20, 10, 0),
-            endTime: new Date(2024, 2, 20, 17, 0),
-            type: 'task',
-            isRecurring: false,
-            color: 'bg-green-500',
-            isAllDay: false,
-            priority: 'medium'
-        },
-        {
-            id: '4',
-            title: 'Company Holiday',
-            description: 'Spring Break - Office Closed',
-            startTime: new Date(2024, 2, 25, 0, 0),
-            endTime: new Date(2024, 2, 25, 23, 59),
-            type: 'holiday',
-            isRecurring: false,
-            color: 'bg-orange-500',
-            isAllDay: true,
-            priority: 'low'
-        },
-        {
-            id: '5',
-            title: 'Client Presentation',
-            description: 'Present Q1 results to key clients',
-            startTime: new Date(2024, 2, 22, 11, 0),
-            endTime: new Date(2024, 2, 22, 12, 30),
-            type: 'meeting',
-            location: 'Client Office',
-            attendees: ['Sales Team', 'Account Managers'],
-            isRecurring: false,
-            color: 'bg-purple-500',
-            isAllDay: false,
-            priority: 'high'
+    const [expandedDay, setExpandedDay] = useState<string | null>(null);
+
+    // State for tasks, bugs, and todos
+    const [tasks, setTasks] = useState<TaskDTO[]>([]);
+    const [bugs, setBugs] = useState<BugDTO[]>([]);
+    const [todos, setTodos] = useState<TodoDTO[]>([]);
+    const [loading, setLoading] = useState(false);
+
+    // Fetch tasks, bugs, and todos
+    useEffect(() => {
+        const fetchData = async () => {
+            if (!user?.organizationId) return;
+
+            setLoading(true);
+            try {
+                // Fetch tasks
+                const tasksResponse = await taskService.searchTasks({
+                    organizationId: user.organizationId,
+                    page: 0,
+                    size: 1000
+                });
+                setTasks(tasksResponse.content);
+
+                // Fetch bugs assigned to current user
+                if (user.id) {
+                    const bugsData = await bugService.getBugsByAssignee(user.id);
+                    setBugs(bugsData);
+                }
+
+                // Fetch todos
+                const todosData = await todoService.getAllTodos();
+                setTodos(todosData);
+            } catch (error) {
+                console.error('Error fetching calendar data:', error);
+                toast.error('Failed to load calendar data');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [user]);
+
+    // Map tasks to calendar events
+    const mapTasksToEvents = (): CalendarEvent[] => {
+        return tasks
+            .filter(task => task.dueDate)
+            .map(task => ({
+                id: `task-${task.id}`,
+                title: task.title,
+                description: task.description,
+                startTime: new Date(task.dueDate!),
+                endTime: new Date(task.dueDate!),
+                type: 'task' as const,
+                color: getTaskColor(task.status),
+                priority: mapTaskPriority(task.priority),
+                sourceId: task.id,
+                status: task.status
+            }));
+    };
+
+    // Map bugs to calendar events
+    const mapBugsToEvents = (): CalendarEvent[] => {
+        return bugs
+            .filter(bug => bug.dueDate || bug.resolvedAt)
+            .map(bug => ({
+                id: `bug-${bug.id}`,
+                title: bug.title,
+                description: bug.description,
+                startTime: new Date(bug.dueDate || bug.resolvedAt!),
+                endTime: new Date(bug.dueDate || bug.resolvedAt!),
+                type: 'bug' as const,
+                color: getBugColor(bug.severity),
+                priority: mapBugPriority(bug.severity),
+                sourceId: bug.id,
+                status: bug.status
+            }));
+    };
+
+    // Map todos to calendar events
+    const mapTodosToEvents = (): CalendarEvent[] => {
+        return todos
+            .filter(todo => todo.dueDate)
+            .map(todo => ({
+                id: `todo-${todo.id}`,
+                title: todo.title,
+                description: todo.description,
+                startTime: new Date(todo.dueDate!),
+                endTime: new Date(todo.dueDate!),
+                type: 'todo' as const,
+                color: getTodoColor(todo.priority),
+                priority: mapTodoPriority(todo.priority),
+                sourceId: todo.id,
+                status: todo.status
+            }));
+    };
+
+    // Helper functions for color mapping
+    const getTaskColor = (status: string) => {
+        switch (status) {
+            case 'DONE': return 'bg-emerald-500';
+            case 'IN_PROGRESS': return 'bg-blue-500';
+            case 'REVIEW': return 'bg-purple-500';
+            case 'BLOCKED': return 'bg-red-500';
+            default: return 'bg-slate-500';
         }
-    ]);
+    };
 
+    const getBugColor = (severity: string) => {
+        switch (severity) {
+            case 'CRITICAL': return 'bg-red-600';
+            case 'HIGH': return 'bg-orange-500';
+            case 'MEDIUM': return 'bg-yellow-500';
+            case 'LOW': return 'bg-green-500';
+            default: return 'bg-slate-500';
+        }
+    };
 
+    const getTodoColor = (priority: string) => {
+        switch (priority) {
+            case 'CRITICAL': return 'bg-red-500';
+            case 'HIGH': return 'bg-orange-500';
+            case 'MEDIUM': return 'bg-amber-500';
+            case 'LOW': return 'bg-emerald-500';
+            default: return 'bg-slate-500';
+        }
+    };
 
-    const eventTypes = [
-        { value: 'all', label: 'All Events' },
-        { value: 'meeting', label: 'Meetings' },
-        { value: 'task', label: 'Tasks' },
-        { value: 'reminder', label: 'Reminders' },
-        { value: 'holiday', label: 'Holidays' },
-        { value: 'personal', label: 'Personal' }
-    ];
+    const mapTaskPriority = (priority: string): 'low' | 'medium' | 'high' | 'critical' => {
+        switch (priority) {
+            case 'CRITICAL': return 'critical';
+            case 'HIGH': return 'high';
+            case 'MEDIUM': return 'medium';
+            case 'LOW': return 'low';
+            default: return 'medium';
+        }
+    };
+
+    const mapBugPriority = (severity: string): 'low' | 'medium' | 'high' | 'critical' => {
+        switch (severity) {
+            case 'CRITICAL': return 'critical';
+            case 'HIGH': return 'high';
+            case 'MEDIUM': return 'medium';
+            case 'LOW': return 'low';
+            default: return 'medium';
+        }
+    };
+
+    const mapTodoPriority = (priority: string): 'low' | 'medium' | 'high' | 'critical' => {
+        switch (priority) {
+            case 'CRITICAL': return 'critical';
+            case 'HIGH': return 'high';
+            case 'MEDIUM': return 'medium';
+            case 'LOW': return 'low';
+            default: return 'medium';
+        }
+    };
 
     const getDaysInMonth = (date: Date) => {
         return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -149,22 +218,27 @@ const Calendar = () => {
 
     const formatDate = (date: Date) => {
         return date.toLocaleDateString('en-US', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
+            weekday: 'short',
+            month: 'short',
             day: 'numeric'
         });
     };
 
+    const getAllEvents = (): CalendarEvent[] => {
+        return [...mapTasksToEvents(), ...mapBugsToEvents(), ...mapTodosToEvents()];
+    };
+
     const getEventsForDate = (date: Date) => {
-        return events.filter(event => {
+        const allEvents = getAllEvents();
+        return allEvents.filter(event => {
             const eventDate = new Date(event.startTime);
             return eventDate.toDateString() === date.toDateString();
         });
     };
 
     const getFilteredEvents = () => {
-        let filtered = events;
+        const allEvents = getAllEvents();
+        let filtered = allEvents;
 
         if (filterType !== 'all') {
             filtered = filtered.filter(event => event.type === filterType);
@@ -194,106 +268,16 @@ const Calendar = () => {
 
     const goToToday = () => {
         setCurrentDate(new Date());
+        setSelectedDate(new Date());
     };
 
-    const getEventColor = (type: string) => {
+    const getEventIcon = (type: string) => {
         switch (type) {
-            case 'meeting': return 'bg-blue-500';
-            case 'task': return 'bg-green-500';
-            case 'reminder': return 'bg-yellow-500';
-            case 'holiday': return 'bg-orange-500';
-            case 'personal': return 'bg-purple-500';
-            default: return 'bg-burgundy-500';
+            case 'task': return CheckSquare;
+            case 'bug': return Bug;
+            case 'todo': return ListTodo;
+            default: return CalendarIcon;
         }
-    };
-
-    const handleOpenCreateSidebar = (date?: Date) => {
-        setSelectedDate(date || new Date());
-        setFormData({
-            title: '',
-            description: '',
-            type: 'meeting',
-            location: '',
-            attendees: [],
-            isAllDay: false,
-            priority: 'medium',
-            isRecurring: false
-        });
-        setAttendeeInput('');
-        setSidebarMode('create');
-    };
-
-    const handleOpenEventDetails = (event: CalendarEvent) => {
-        setSelectedEvent(event);
-        setSidebarMode('view');
-    };
-
-    const handleCloseSidebar = () => {
-        setSidebarMode('closed');
-        setSelectedEvent(null);
-        setSelectedDate(null);
-    };
-
-    const handleCreateEvent = () => {
-        if (!formData.title || !selectedDate) return;
-
-        const startTime = new Date(selectedDate);
-        const endTime = new Date(selectedDate);
-
-        if (!formData.isAllDay) {
-            startTime.setHours(9, 0, 0, 0);
-            endTime.setHours(10, 0, 0, 0);
-        } else {
-            startTime.setHours(0, 0, 0, 0);
-            endTime.setHours(23, 59, 59, 999);
-        }
-
-        const newEvent: CalendarEvent = {
-            id: Date.now().toString(),
-            title: formData.title,
-            description: formData.description,
-            startTime,
-            endTime,
-            type: formData.type,
-            location: formData.location,
-            attendees: formData.attendees,
-            isRecurring: formData.isRecurring,
-            color: getEventColor(formData.type),
-            isAllDay: formData.isAllDay,
-            priority: formData.priority
-        };
-
-        setEvents(prev => [...prev, newEvent]);
-        handleCloseSidebar();
-    };
-
-    const handleDeleteEvent = (eventId: string) => {
-        setEvents(prev => prev.filter(e => e.id !== eventId));
-        handleCloseSidebar();
-    };
-
-    const handleJoinMeeting = (event: CalendarEvent) => {
-        // This would open the in-house meeting platform
-        console.log('Joining meeting:', event.title);
-        // Navigate to meeting room or open meeting interface
-        alert(`Joining meeting: ${event.title}\n\nThis will open the in-house meeting platform.`);
-    };
-
-    const handleAddAttendee = () => {
-        if (attendeeInput.trim() && !formData.attendees.includes(attendeeInput.trim())) {
-            setFormData(prev => ({
-                ...prev,
-                attendees: [...prev.attendees, attendeeInput.trim()]
-            }));
-            setAttendeeInput('');
-        }
-    };
-
-    const handleRemoveAttendee = (attendee: string) => {
-        setFormData(prev => ({
-            ...prev,
-            attendees: prev.attendees.filter(a => a !== attendee)
-        }));
     };
 
     const renderCalendarGrid = () => {
@@ -305,7 +289,7 @@ const Calendar = () => {
         // Empty cells for days before the first day of the month
         for (let i = 0; i < firstDay; i++) {
             days.push(
-                <div key={`empty-${i}`} className="h-32 border border-steel-100 bg-steel-25"></div>
+                <div key={`empty-${i}`} className="h-24 border border-steel-100 bg-steel-25"></div>
             );
         }
 
@@ -315,60 +299,60 @@ const Calendar = () => {
             const dayEvents = getEventsForDate(date);
             const isToday = date.toDateString() === today.toDateString();
             const isSelected = selectedDate && date.toDateString() === selectedDate.toDateString();
+            const dayKey = date.toDateString();
+            const isExpanded = expandedDay === dayKey;
+            const maxVisible = 3;
 
             days.push(
                 <div
                     key={day}
-                    className={`h-32 border border-steel-100 p-2 cursor-pointer hover:bg-steel-50 hover:border-burgundy-300 transition-all duration-200 group relative ${isToday ? 'bg-burgundy-50 border-burgundy-200' : 'bg-white'
-                        } ${isSelected ? 'ring-2 ring-burgundy-500' : ''}`}
-                    onClick={() => {
-                        handleOpenCreateSidebar(date);
-                    }}
-                    title="Click to create event"
+                    className={cn(
+                        'h-24 border border-steel-100 p-1.5 cursor-pointer hover:bg-burgundy-50 transition-all relative group',
+                        isToday && 'bg-burgundy-50 border-burgundy-300 ring-2 ring-burgundy-200',
+                        isSelected && 'ring-2 ring-burgundy-500'
+                    )}
+                    onClick={() => setSelectedDate(date)}
                 >
-                    <div className={`text-sm font-medium mb-1 ${isToday ? 'text-burgundy-700' : 'text-steel-900'
-                        }`}>
+                    <div className={cn(
+                        'text-xs font-bold mb-1',
+                        isToday ? 'text-burgundy-700' : 'text-steel-900'
+                    )}>
                         {day}
                     </div>
-
-                    {/* Hover indicator for creating events */}
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        <div className="w-5 h-5 bg-burgundy-600 text-white rounded-full flex items-center justify-center text-xs">
-                            +
-                        </div>
-                    </div>
-                    <div className="space-y-1">
-                        {dayEvents.slice(0, 3).map(event => (
+                    <div className="space-y-0.5 overflow-hidden">
+                        {(isExpanded ? dayEvents : dayEvents.slice(0, maxVisible)).map(event => (
                             <div
                                 key={event.id}
-                                className={`text-xs px-2 py-1 rounded text-white truncate ${event.color} hover:opacity-90 cursor-pointer flex items-center justify-between gap-1 group`}
-                                title={`${event.title} - Click to view details`}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleOpenEventDetails(event);
-                                }}
-                            >
-                                <span className="truncate flex-1">
-                                    {event.isAllDay ? event.title : `${formatTime(event.startTime)} ${event.title}`}
-                                </span>
-                                {event.type === 'meeting' && (
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleJoinMeeting(event);
-                                        }}
-                                        className="opacity-0 group-hover:opacity-100 bg-white/20 hover:bg-white/30 rounded px-1.5 py-0.5 text-[10px] font-medium transition-all"
-                                        title="Join meeting"
-                                    >
-                                        Join
-                                    </button>
+                                className={cn(
+                                    'text-[10px] px-1.5 py-0.5 rounded text-white truncate font-medium shadow-sm',
+                                    event.color
                                 )}
+                                title={`${event.title} - ${event.status}`}
+                            >
+                                {event.title}
                             </div>
                         ))}
-                        {dayEvents.length > 3 && (
-                            <div className="text-xs text-steel-500 px-2">
-                                +{dayEvents.length - 3} more
-                            </div>
+                        {dayEvents.length > maxVisible && !isExpanded && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setExpandedDay(dayKey);
+                                }}
+                                className="text-[9px] text-burgundy-600 hover:text-burgundy-800 font-bold px-1 py-0.5 hover:bg-burgundy-100 rounded w-full text-left transition-colors"
+                            >
+                                +{dayEvents.length - maxVisible} more
+                            </button>
+                        )}
+                        {isExpanded && dayEvents.length > maxVisible && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setExpandedDay(null);
+                                }}
+                                className="text-[9px] text-burgundy-600 hover:text-burgundy-800 font-bold px-1 py-0.5 hover:bg-burgundy-100 rounded w-full text-left transition-colors"
+                            >
+                                Show less
+                            </button>
                         )}
                     </div>
                 </div>
@@ -378,512 +362,189 @@ const Calendar = () => {
         return days;
     };
 
-    const renderAgendaView = () => {
-        const filteredEvents = getFilteredEvents();
-        const groupedEvents = filteredEvents.reduce((groups, event) => {
-            const dateKey = event.startTime.toDateString();
-            if (!groups[dateKey]) {
-                groups[dateKey] = [];
-            }
-            groups[dateKey].push(event);
-            return groups;
-        }, {} as Record<string, CalendarEvent[]>);
-
-        return (
-            <div className="space-y-6">
-                {Object.entries(groupedEvents).map(([dateKey, dayEvents]) => (
-                    <div key={dateKey} className="bg-white rounded-lg border border-steel-200 overflow-hidden">
-                        <div className="bg-steel-50 px-4 py-3 border-b border-steel-200 flex items-center justify-between">
-                            <h3 className="font-semibold text-steel-900">
-                                {formatDate(new Date(dateKey))}
-                            </h3>
-                            <button
-                                onClick={() => handleOpenCreateSidebar(new Date(dateKey))}
-                                className="text-xs px-2 py-1 bg-burgundy-600 text-white rounded hover:bg-burgundy-700 transition-colors flex items-center gap-1"
-                                title="Add event for this date"
-                            >
-                                <Plus size={12} />
-                                Add Event
-                            </button>
-                        </div>
-                        <div className="divide-y divide-steel-100">
-                            {dayEvents.map(event => (
-                                <div
-                                    key={event.id}
-                                    className="p-4 hover:bg-steel-25 transition-colors cursor-pointer"
-                                    onClick={() => handleOpenEventDetails(event)}
-                                >
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex items-start gap-3 flex-1">
-                                            <div className={`w-3 h-3 rounded-full mt-2 ${event.color}`}></div>
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <h4 className="font-medium text-steel-900">{event.title}</h4>
-                                                    {event.type === 'meeting' && (
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleJoinMeeting(event);
-                                                            }}
-                                                            className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded flex items-center gap-1 transition-colors"
-                                                        >
-                                                            <Video size={12} />
-                                                            Join
-                                                        </button>
-                                                    )}
-                                                </div>
-                                                {event.description && (
-                                                    <p className="text-sm text-steel-600 mb-2">{event.description}</p>
-                                                )}
-                                                <div className="flex items-center gap-4 text-sm text-steel-500">
-                                                    <span className="flex items-center gap-1">
-                                                        <Clock size={14} />
-                                                        {event.isAllDay
-                                                            ? 'All Day'
-                                                            : `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`
-                                                        }
-                                                    </span>
-                                                    {event.location && (
-                                                        <span className="flex items-center gap-1">
-                                                            <MapPin size={14} />
-                                                            {event.location}
-                                                        </span>
-                                                    )}
-                                                    {event.attendees && (
-                                                        <span className="flex items-center gap-1">
-                                                            <Users size={14} />
-                                                            {event.attendees.length} attendees
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                ))}
-                {Object.keys(groupedEvents).length === 0 && (
-                    <div className="text-center py-12">
-                        <CalendarIcon size={48} className="text-steel-300 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-steel-900 mb-2">No events found</h3>
-                        <p className="text-steel-600 mb-6">
-                            {searchQuery || filterType !== 'all'
-                                ? 'Try adjusting your search or filters'
-                                : 'Create your first event to get started'
-                            }
-                        </p>
-                        <button
-                            onClick={() => handleOpenCreateSidebar()}
-                            className="btn-primary"
-                        >
-                            <Plus size={16} />
-                            Create Event
-                        </button>
-                    </div>
-                )}
-            </div>
-        );
-    };
-
     return (
-        <div className="h-[calc(100vh-8rem)] flex flex-col">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-4">
-                <div>
-                    <h1 className="text-xl font-bold text-steel-900 flex items-center gap-2">
-                        <CalendarIcon size={24} className="text-burgundy-600" />
-                        Calendar
-                    </h1>
-                    <p className="text-steel-600 text-sm mt-0.5">
-                        Manage your schedule and events
-                    </p>
-                </div>
-                <div className="flex items-center gap-2">
-                    <button className="px-3 py-1.5 text-sm font-medium text-steel-700 bg-white border border-steel-200 rounded-lg hover:bg-steel-50 flex items-center gap-1.5">
-                        <Download size={14} />
-                        Export
-                    </button>
+        <div className="space-y-3">
+            {/* Compact Executive Header */}
+            <div className="bg-white border-b border-steel-200 -mx-6 -mt-6 px-6 py-3">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <div className="flex items-center gap-2.5">
+                            <div className="w-9 h-9 bg-gradient-to-br from-burgundy-500 to-burgundy-600 rounded-lg flex items-center justify-center shadow-md">
+                                <CalendarIcon size={18} className="text-white" />
+                            </div>
+                            <div>
+                                <h1 className="text-xl font-bold text-steel-900">Calendar</h1>
+                                <p className="text-xs text-steel-600">View your tasks, bugs, and todos</p>
+                            </div>
+                        </div>
+                    </div>
                     <button
-                        onClick={() => handleOpenCreateSidebar()}
-                        className="px-3 py-1.5 text-sm font-medium bg-burgundy-600 text-white rounded-lg hover:bg-burgundy-700 flex items-center gap-1.5"
+                        onClick={goToToday}
+                        className="px-3 py-1.5 text-sm bg-gradient-to-r from-burgundy-600 to-burgundy-700 hover:from-burgundy-700 hover:to-burgundy-800 text-white rounded-lg font-medium shadow-md hover:shadow-lg transition-all"
                     >
-                        <Plus size={14} />
-                        New Event
+                        Today
                     </button>
                 </div>
             </div>
 
-            {/* Main Content Area */}
-            <div className="flex-1 flex gap-4 overflow-hidden">
-                {/* Calendar Section */}
-                <div className={`flex flex-col transition-all duration-300 ${sidebarMode !== 'closed' ? 'flex-1' : 'w-full'}`}>
-                    {/* Controls */}
-                    <div className="bg-white rounded-lg border border-steel-200 p-3 mb-4">
-                        <div className="flex items-center gap-3">
-                            {/* Navigation */}
-                            <div className="flex items-center gap-4">
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={() => navigateMonth('prev')}
-                                        className="p-2 hover:bg-steel-100 rounded-lg transition-colors"
-                                    >
-                                        <ChevronLeft size={16} className="text-steel-600" />
-                                    </button>
-                                    <h2 className="text-lg font-semibold text-steel-900 min-w-[200px] text-center">
-                                        {currentDate.toLocaleDateString('en-US', {
-                                            month: 'long',
-                                            year: 'numeric'
-                                        })}
-                                    </h2>
-                                    <button
-                                        onClick={() => navigateMonth('next')}
-                                        className="p-2 hover:bg-steel-100 rounded-lg transition-colors"
-                                    >
-                                        <ChevronRight size={16} className="text-steel-600" />
-                                    </button>
-                                </div>
+            {/* Main Content: 60/40 Split */}
+            <div className="grid grid-cols-5 gap-4">
+                {/* Left: Calendar (60% = 3/5) */}
+                <div className="col-span-3">
+                    <div className="bg-white rounded-lg border border-steel-200 shadow-sm">
+                        {/* Calendar Header */}
+                        <div className="border-b border-steel-200 p-3 bg-steel-50">
+                            <div className="flex items-center justify-between">
                                 <button
-                                    onClick={goToToday}
-                                    className="px-3 py-2 text-sm font-medium text-burgundy-600 hover:bg-burgundy-50 rounded-lg transition-colors"
+                                    onClick={() => navigateMonth('prev')}
+                                    className="p-1.5 hover:bg-steel-100 rounded-lg transition-colors"
                                 >
-                                    Today
+                                    <ChevronLeft size={16} className="text-steel-600" />
+                                </button>
+                                <h2 className="text-base font-bold text-steel-900">
+                                    {currentDate.toLocaleDateString('en-US', {
+                                        month: 'long',
+                                        year: 'numeric'
+                                    })}
+                                </h2>
+                                <button
+                                    onClick={() => navigateMonth('next')}
+                                    className="p-1.5 hover:bg-steel-100 rounded-lg transition-colors"
+                                >
+                                    <ChevronRight size={16} className="text-steel-600" />
                                 </button>
                             </div>
-
-                            {/* Search and Filters */}
-                            <div className="flex-1 flex items-center gap-3">
-                                <div className="flex-1 max-w-md">
-                                    <div className="relative">
-                                        <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-steel-400" />
-                                        <input
-                                            type="text"
-                                            value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)}
-                                            placeholder="Search events..."
-                                            className="w-full pl-10 pr-4 py-2 border border-steel-200 rounded-lg focus:outline-none focus:border-burgundy-300 focus:ring-2 focus:ring-burgundy-100"
-                                        />
-                                    </div>
-                                </div>
-                                <select
-                                    value={filterType}
-                                    onChange={(e) => setFilterType(e.target.value)}
-                                    className="px-3 py-2 border border-steel-200 rounded-lg focus:outline-none focus:border-burgundy-300 focus:ring-2 focus:ring-burgundy-100"
-                                >
-                                    {eventTypes.map(type => (
-                                        <option key={type.value} value={type.value}>
-                                            {type.label}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {/* View Mode Toggle */}
-                            <div className="flex items-center border border-steel-200 rounded-lg">
-                                {[
-                                    { key: 'month', label: 'Month', icon: Grid },
-                                    { key: 'agenda', label: 'Agenda', icon: List }
-                                ].map(({ key, label, icon: Icon }) => (
-                                    <button
-                                        key={key}
-                                        onClick={() => setViewMode(key as any)}
-                                        className={`flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors ${viewMode === key
-                                            ? 'bg-burgundy-50 text-burgundy-600'
-                                            : 'text-steel-600 hover:bg-steel-50'
-                                            }`}
-                                    >
-                                        <Icon size={16} />
-                                        <span className="hidden sm:inline">{label}</span>
-                                    </button>
-                                ))}
-                            </div>
                         </div>
-                    </div>
 
-                    {/* Calendar Content */}
-                    {viewMode === 'month' ? (
-                        <div className="bg-white rounded-lg border border-steel-200 overflow-hidden">
-                            {/* Calendar Header */}
+                        {/* Calendar Grid */}
+                        <div>
+                            {/* Day Headers */}
                             <div className="grid grid-cols-7 bg-steel-50 border-b border-steel-200">
                                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                                    <div key={day} className="p-3 text-center font-semibold text-steel-700 border-r border-steel-200 last:border-r-0">
+                                    <div key={day} className="p-2 text-center text-xs font-bold text-steel-700 border-r border-steel-200 last:border-r-0">
                                         {day}
                                     </div>
                                 ))}
                             </div>
-                            {/* Calendar Grid */}
+                            {/* Calendar Days */}
                             <div className="grid grid-cols-7">
                                 {renderCalendarGrid()}
                             </div>
                         </div>
-                    ) : (
-                        renderAgendaView()
-                    )}
+                    </div>
+                </div>
 
-                    {/* Event Sidebar */}
-                    {sidebarMode !== 'closed' && (
-                        <div className="fixed inset-y-0 right-0 w-96 bg-white border-l border-steel-200 shadow-xl z-50 overflow-y-auto">
-                            {/* Sidebar Header */}
-                            <div className="flex items-center justify-between p-4 border-b border-steel-200 bg-steel-50">
-                                <h2 className="text-lg font-semibold text-steel-900">
-                                    {sidebarMode === 'create' ? 'Create Event' : 'Event Details'}
-                                </h2>
-                                <button
-                                    onClick={handleCloseSidebar}
-                                    className="p-2 hover:bg-steel-100 rounded-lg transition-colors"
-                                >
-                                    <X size={18} className="text-steel-500" />
-                                </button>
-                            </div>
+                {/* Right: Event List (40% = 2/5) */}
+                <div className="col-span-2">
+                    <div className="bg-white rounded-lg border border-steel-200 shadow-sm">
+                        {/* Event List Header */}
+                        <div className="border-b border-steel-200 p-3 bg-steel-50">
+                            <h3 className="text-sm font-bold text-steel-900 mb-3">
+                                {selectedDate ? formatDate(selectedDate) : 'All Events'}
+                            </h3>
 
-                            {/* Sidebar Content */}
-                            <div className="p-4">
-                                {sidebarMode === 'create' ? (
-                                    /* Create Event Form */
-                                    <div className="space-y-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-steel-700 mb-1">
-                                                Event Title *
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={formData.title}
-                                                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                                                className="w-full px-3 py-2 border border-steel-200 rounded-lg focus:outline-none focus:border-burgundy-400 text-sm"
-                                                placeholder="Enter event title"
-                                            />
-                                        </div>
+                            {/* Search and Filters in Single Row */}
+                            <div className="flex items-center gap-2">
+                                {/* Search */}
+                                <div className="relative flex-1">
+                                    <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-steel-400" />
+                                    <input
+                                        type="text"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        placeholder="Search..."
+                                        className="w-full pl-9 pr-3 py-1.5 text-xs border border-steel-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-burgundy-500"
+                                    />
+                                </div>
 
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div>
-                                                <label className="block text-sm font-medium text-steel-700 mb-1">
-                                                    Type
-                                                </label>
-                                                <select
-                                                    value={formData.type}
-                                                    onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as any }))}
-                                                    className="w-full px-3 py-2 border border-steel-200 rounded-lg focus:outline-none focus:border-burgundy-400 text-sm"
-                                                >
-                                                    <option value="meeting">Meeting</option>
-                                                    <option value="task">Task</option>
-                                                    <option value="reminder">Reminder</option>
-                                                    <option value="holiday">Holiday</option>
-                                                    <option value="personal">Personal</option>
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-steel-700 mb-1">
-                                                    Priority
-                                                </label>
-                                                <select
-                                                    value={formData.priority}
-                                                    onChange={(e) => setFormData(prev => ({ ...prev, priority: e.target.value as any }))}
-                                                    className="w-full px-3 py-2 border border-steel-200 rounded-lg focus:outline-none focus:border-burgundy-400 text-sm"
-                                                >
-                                                    <option value="low">Low</option>
-                                                    <option value="medium">Medium</option>
-                                                    <option value="high">High</option>
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <label className="flex items-center gap-2">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={formData.isAllDay}
-                                                    onChange={(e) => setFormData(prev => ({ ...prev, isAllDay: e.target.checked }))}
-                                                    className="rounded border-steel-300 text-burgundy-600"
-                                                />
-                                                <span className="text-sm font-medium text-steel-700">All Day Event</span>
-                                            </label>
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-steel-700 mb-1">
-                                                Description
-                                            </label>
-                                            <textarea
-                                                value={formData.description}
-                                                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                                                className="w-full px-3 py-2 border border-steel-200 rounded-lg focus:outline-none focus:border-burgundy-400 text-sm resize-none"
-                                                rows={3}
-                                                placeholder="Enter description"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-steel-700 mb-1">
-                                                Location
-                                            </label>
-                                            <div className="relative">
-                                                <MapPin size={14} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-steel-400" />
-                                                <input
-                                                    type="text"
-                                                    value={formData.location}
-                                                    onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                                                    className="w-full pl-9 pr-3 py-2 border border-steel-200 rounded-lg focus:outline-none focus:border-burgundy-400 text-sm"
-                                                    placeholder="Enter location"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-steel-700 mb-1">
-                                                Attendees
-                                            </label>
-                                            <div className="flex gap-2 mb-2">
-                                                <input
-                                                    type="text"
-                                                    value={attendeeInput}
-                                                    onChange={(e) => setAttendeeInput(e.target.value)}
-                                                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddAttendee())}
-                                                    className="flex-1 px-3 py-2 border border-steel-200 rounded-lg focus:outline-none focus:border-burgundy-400 text-sm"
-                                                    placeholder="Add attendee"
-                                                />
-                                                <button
-                                                    onClick={handleAddAttendee}
-                                                    className="px-3 py-2 bg-burgundy-600 text-white rounded-lg hover:bg-burgundy-700 transition-colors"
-                                                >
-                                                    <Plus size={14} />
-                                                </button>
-                                            </div>
-                                            {formData.attendees.length > 0 && (
-                                                <div className="flex flex-wrap gap-2">
-                                                    {formData.attendees.map((attendee, index) => (
-                                                        <span
-                                                            key={index}
-                                                            className="inline-flex items-center gap-1 px-2 py-1 bg-burgundy-50 text-burgundy-700 text-xs rounded-full border border-burgundy-200"
-                                                        >
-                                                            {attendee}
-                                                            <button
-                                                                onClick={() => handleRemoveAttendee(attendee)}
-                                                                className="hover:bg-burgundy-100 rounded-full p-0.5"
-                                                            >
-                                                                <X size={10} />
-                                                            </button>
-                                                        </span>
-                                                    ))}
-                                                </div>
+                                {/* Filter Buttons */}
+                                <div className="flex items-center gap-1">
+                                    {[
+                                        { value: 'all', icon: Filter, color: 'burgundy' },
+                                        { value: 'task', icon: CheckSquare, color: 'emerald' },
+                                        { value: 'bug', icon: Bug, color: 'red' },
+                                        { value: 'todo', icon: ListTodo, color: 'amber' }
+                                    ].map(({ value, icon: Icon, color }) => (
+                                        <button
+                                            key={value}
+                                            onClick={() => setFilterType(value)}
+                                            className={cn(
+                                                'p-1.5 rounded-lg transition-all border-2',
+                                                filterType === value
+                                                    ? `bg-${color}-100 border-${color}-500 text-${color}-700`
+                                                    : 'border-steel-200 text-steel-500 hover:bg-steel-50'
                                             )}
-                                        </div>
+                                            title={value.charAt(0).toUpperCase() + value.slice(1)}
+                                        >
+                                            <Icon size={14} />
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
 
-                                        <div>
-                                            <label className="flex items-center gap-2">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={formData.isRecurring}
-                                                    onChange={(e) => setFormData(prev => ({ ...prev, isRecurring: e.target.checked }))}
-                                                    className="rounded border-steel-300 text-burgundy-600"
-                                                />
-                                                <span className="text-sm font-medium text-steel-700">Recurring Event</span>
-                                            </label>
-                                        </div>
-
-                                        <div className="flex gap-2 pt-4 border-t border-steel-200">
-                                            <button
-                                                onClick={handleCloseSidebar}
-                                                className="flex-1 px-4 py-2 text-steel-700 hover:bg-steel-100 rounded-lg transition-colors text-sm font-medium"
-                                            >
-                                                Cancel
-                                            </button>
-                                            <button
-                                                onClick={handleCreateEvent}
-                                                disabled={!formData.title}
-                                                className="flex-1 px-4 py-2 bg-burgundy-600 text-white rounded-lg hover:bg-burgundy-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium flex items-center justify-center gap-2"
-                                            >
-                                                <Save size={14} />
-                                                Create
-                                            </button>
-                                        </div>
-                                    </div>
-                                ) : selectedEvent && (
-                                    /* Event Details View */
-                                    <div className="space-y-4">
-                                        <div>
-                                            <h3 className="text-xl font-semibold text-steel-900 mb-2">{selectedEvent.title}</h3>
-                                            <span className={`inline-block px-2 py-1 rounded text-xs font-medium text-white ${selectedEvent.color}`}>
-                                                {selectedEvent.type.charAt(0).toUpperCase() + selectedEvent.type.slice(1)}
-                                            </span>
-                                        </div>
-
-                                        {selectedEvent.type === 'meeting' && (
-                                            <button
-                                                onClick={() => handleJoinMeeting(selectedEvent)}
-                                                className="w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
-                                            >
-                                                <Video size={18} />
-                                                Join Meeting
-                                            </button>
-                                        )}
-
-                                        {selectedEvent.description && (
-                                            <div>
-                                                <h4 className="text-sm font-semibold text-steel-700 mb-1">Description</h4>
-                                                <p className="text-sm text-steel-600">{selectedEvent.description}</p>
-                                            </div>
-                                        )}
-
-                                        <div>
-                                            <h4 className="text-sm font-semibold text-steel-700 mb-2">Details</h4>
-                                            <div className="space-y-2">
-                                                <div className="flex items-center gap-2 text-sm text-steel-600">
-                                                    <Clock size={14} className="text-steel-400" />
-                                                    <span>
-                                                        {selectedEvent.isAllDay
-                                                            ? 'All Day'
-                                                            : `${formatTime(selectedEvent.startTime)} - ${formatTime(selectedEvent.endTime)}`
-                                                        }
-                                                    </span>
-                                                </div>
-                                                {selectedEvent.location && (
-                                                    <div className="flex items-center gap-2 text-sm text-steel-600">
-                                                        <MapPin size={14} className="text-steel-400" />
-                                                        <span>{selectedEvent.location}</span>
-                                                    </div>
-                                                )}
-                                                {selectedEvent.attendees && selectedEvent.attendees.length > 0 && (
-                                                    <div className="flex items-start gap-2 text-sm text-steel-600">
-                                                        <Users size={14} className="text-steel-400 mt-0.5" />
-                                                        <div className="flex-1">
-                                                            <p className="font-medium mb-1">{selectedEvent.attendees.length} Attendees:</p>
-                                                            <div className="flex flex-wrap gap-1">
-                                                                {selectedEvent.attendees.map((attendee, index) => (
-                                                                    <span
-                                                                        key={index}
-                                                                        className="px-2 py-0.5 bg-steel-100 text-steel-700 text-xs rounded"
-                                                                    >
-                                                                        {attendee}
-                                                                    </span>
-                                                                ))}
+                        {/* Event List */}
+                        <div className="overflow-y-auto max-h-[calc(100vh-300px)]">
+                            {loading ? (
+                                <div className="flex items-center justify-center py-8">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-burgundy-600"></div>
+                                </div>
+                            ) : getFilteredEvents().length === 0 ? (
+                                <div className="text-center py-8">
+                                    <CalendarIcon size={40} className="text-steel-300 mx-auto mb-3" />
+                                    <p className="text-sm font-medium text-steel-600">No events found</p>
+                                    <p className="text-xs text-steel-500 mt-1">
+                                        {searchQuery || filterType !== 'all'
+                                            ? 'Try adjusting your filters'
+                                            : 'No events scheduled'}
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="divide-y divide-steel-100">
+                                    {getFilteredEvents()
+                                        .filter(event => !selectedDate || event.startTime.toDateString() === selectedDate.toDateString())
+                                        .map(event => {
+                                            const Icon = getEventIcon(event.type);
+                                            return (
+                                                <div
+                                                    key={event.id}
+                                                    className="p-3 hover:bg-steel-50 transition-colors cursor-pointer"
+                                                >
+                                                    <div className="flex items-start gap-2">
+                                                        <div className={cn('w-8 h-8 rounded flex items-center justify-center flex-shrink-0', event.color)}>
+                                                            <Icon size={14} className="text-white" />
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <h4 className="text-sm font-medium text-steel-900 truncate">{event.title}</h4>
+                                                            {event.description && (
+                                                                <p className="text-xs text-steel-600 truncate mt-0.5">{event.description}</p>
+                                                            )}
+                                                            <div className="flex items-center gap-3 mt-1.5">
+                                                                <span className="text-[10px] text-steel-500 flex items-center gap-1">
+                                                                    <Clock size={10} />
+                                                                    {formatDate(event.startTime)}
+                                                                </span>
+                                                                <span className={cn(
+                                                                    'text-[10px] px-1.5 py-0.5 rounded font-bold',
+                                                                    event.type === 'task' && 'bg-emerald-100 text-emerald-700',
+                                                                    event.type === 'bug' && 'bg-red-100 text-red-700',
+                                                                    event.type === 'todo' && 'bg-amber-100 text-amber-700'
+                                                                )}>
+                                                                    {event.type.toUpperCase()}
+                                                                </span>
+                                                                <span className="text-[10px] text-steel-500">
+                                                                    {event.status}
+                                                                </span>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        <div className="flex gap-2 pt-4 border-t border-steel-200">
-                                            <button
-                                                onClick={() => handleDeleteEvent(selectedEvent.id)}
-                                                className="flex-1 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2"
-                                            >
-                                                <Trash2 size={14} />
-                                                Delete
-                                            </button>
-                                            <button
-                                                onClick={handleCloseSidebar}
-                                                className="flex-1 px-4 py-2 bg-steel-100 text-steel-700 hover:bg-steel-200 rounded-lg transition-colors text-sm font-medium"
-                                            >
-                                                Close
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+                                                </div>
+                                            );
+                                        })}
+                                </div>
+                            )}
                         </div>
-                    )}
+                    </div>
                 </div>
             </div>
         </div>

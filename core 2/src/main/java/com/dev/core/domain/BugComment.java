@@ -25,8 +25,10 @@ public class BugComment extends BaseEntity {
     @Column(name = "comment_text", nullable = false, length = 2000)
     private String commentText;
 
-    @Column(name = "commented_by", nullable = false)
-    private Long commentedBy;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "commented_by", nullable = false)
+    private Employee commentedBy;
+
 
     @Column(name = "commented_at", nullable = false)
     private LocalDateTime commentedAt = LocalDateTime.now();

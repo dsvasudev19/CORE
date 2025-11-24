@@ -94,6 +94,9 @@ import DepartmentList from "./pages/departments/DepartmentList";
 import DesignationList from "./pages/designations/DesignationList";
 import OrganizationSettings from "./pages/organization-settings/OrganizationSettings";
 import EmptyLayout from "./layouts/EmptyLayout";
+import ChatPDF from "./components/pdf/Preview";
+import { BugManagement } from "./pages/bugs";
+import BugDetails from "./pages/bugs/BugDetails";
 
 const Router = () => {
     return (
@@ -103,13 +106,13 @@ const Router = () => {
                 <Route path="/epic" element={<EpicManagement />} />
                 {/* Redirect root to admin dashboard */}
                 <Route path="/" element={<Navigate to="/a/dashboard" replace />} />
-
+                <Route path="/previewer" element={<ChatPDF />} />
                 {/* Login Route */}
                 <Route path="/auth" element={<AuthGuard><EmptyLayout /></AuthGuard>} >
-                <Route path="login" element={<Login />} />
-                <Route path="forgot-password" element={<ForgotPassword />} />
-                <Route path="reset-password" element={<ResetPassword />} />
-                </Route>    
+                    <Route path="login" element={<Login />} />
+                    <Route path="forgot-password" element={<ForgotPassword />} />
+                    <Route path="reset-password" element={<ResetPassword />} />
+                </Route>
 
                 {/* Admin Routes */}
                 <Route path="/a" element={<AuthGuard><DashboardLayout /></AuthGuard>}>
@@ -175,6 +178,8 @@ const Router = () => {
                     <Route path="notifications" element={<NotificationsCenter />} />
                     <Route path="settings" element={<Settings />} />
                     <Route path="task-detail/:id" element={<TaskDetail />} />
+                    <Route path="bugs" element={<BugManagement />} />
+                    <Route path="bugs/:id" element={<BugDetails />} />
                 </Route>
 
                 {/* Client Portal Routes */}
@@ -186,6 +191,7 @@ const Router = () => {
                     <Route path="messages" element={<ClientMessages />} />
                     <Route path="support" element={<ClientSupport />} />
                     <Route path="settings" element={<ClientSettings />} />
+                    <Route path="bugs" element={<BugManagement />} />
                 </Route>
 
                 {/* Legacy routes for backward compatibility */}

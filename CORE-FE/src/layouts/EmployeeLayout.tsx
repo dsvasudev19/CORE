@@ -21,6 +21,7 @@ import {
     Target,
     Users,
     CircleCheckBig,
+    Bug,
 } from 'lucide-react';
 
 import { TimerWidget } from '../components/timer';
@@ -70,6 +71,7 @@ const EmployeeLayout = () => {
         { name: 'Dashboard', href: '/e/dashboard', icon: Home },
         { name: 'My Projects', href: '/e/projects', icon: FolderOpen },
         { name: 'My Tasks', href: '/e/tasks', icon: Target },
+        { name: 'Bugs', href: '/e/bugs', icon: Bug },
         { name: 'Calendar', href: '/e/calendar', icon: Calendar },
         { name: 'Time Tracking', href: '/e/timesheet', icon: Clock },
         { name: 'Team', href: '/e/team', icon: Users },

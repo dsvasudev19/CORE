@@ -1,6 +1,8 @@
 package com.dev.core.model.bug;
 
 import com.dev.core.model.BaseDTO;
+import com.dev.core.model.MinimalEmployeeDTO;
+
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
@@ -16,7 +18,8 @@ public class BugCommentDTO extends BaseDTO {
 
     private Long bugId;
     private String commentText;
-    private Long commentedBy;
+    private MinimalEmployeeDTO commentedBy;
+
     private LocalDateTime commentedAt;
 
     private Long parentCommentId;

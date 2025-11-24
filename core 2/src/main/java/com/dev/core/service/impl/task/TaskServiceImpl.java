@@ -76,8 +76,13 @@ public class TaskServiceImpl implements TaskService {
         taskValidator.validateAssignees(dto);
         taskValidator.validateDueDate(dto);
 
-        Project project = projectRepository.findById(dto.getProjectId())
-                .orElseThrow(() -> new BaseException("error.project.not.found", new Object[]{dto.getProjectId()}));
+        Project project = null;
+
+        if (dto.getProjectId() != null) {
+            project = projectRepository.findById(dto.getProjectId())
+                    .orElseThrow(() -> new BaseException("error.project.not.found", new Object[]{dto.getProjectId()}));
+        }
+
 
         Task entity = taskMapper.toEntity(dto, project);
 

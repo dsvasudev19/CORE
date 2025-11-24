@@ -90,4 +90,20 @@ public class FileStorageService {
         }
         return fileName.substring(fileName.lastIndexOf("."));
     }
+    
+    public byte[] getFileBytes(String fileId, Long clientId) {
+        try {
+            Path filePath = getFilePath(fileId, clientId);
+
+            if (!Files.exists(filePath)) {
+                throw new BaseException("error.file.not.found", new Object[]{fileId});
+            }
+
+            return Files.readAllBytes(filePath);
+
+        } catch (IOException e) {
+            throw new BaseException("error.file.read.failed", new Object[]{fileId});
+        }
+    }
+
 }

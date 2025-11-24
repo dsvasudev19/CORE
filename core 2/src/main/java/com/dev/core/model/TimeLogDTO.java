@@ -1,5 +1,8 @@
 package com.dev.core.model;
 
+import com.dev.core.domain.minimal.MinimalBug;
+import com.dev.core.domain.minimal.MinimalProject;
+import com.dev.core.domain.minimal.MinimalTask;
 import com.dev.core.model.BaseDTO;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -24,6 +27,10 @@ public class TimeLogDTO extends BaseDTO {
     private Long taskId;
     private Long bugId;
 
+    private MinimalProject project;
+    private MinimalTask task;
+    private MinimalBug bug;
+    
     private LocalDate workDate;
 
     private String note;

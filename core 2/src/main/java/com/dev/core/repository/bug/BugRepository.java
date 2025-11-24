@@ -16,7 +16,11 @@ public interface BugRepository extends JpaRepository<Bug, Long>, JpaSpecificatio
 
     List<Bug> findByProject_Id(Long projectId);
 
-    List<Bug> findByAssignedTo(Long userId);
+    // 🔥 Updated: assignedTo is now Employee, so query by its id
+    List<Bug> findByAssignedTo_Id(Long userId);
+
+    // Optional: If you ever want to fetch by reporting employee
+    List<Bug> findByReportedBy_Id(Long userId);
 
     List<Bug> findByStatus(BugStatus status);
 

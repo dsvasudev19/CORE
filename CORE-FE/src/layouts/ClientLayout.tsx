@@ -20,6 +20,7 @@ import {
     Building2,
     ChevronLeft,
     ChevronRight,
+    Bug,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -59,6 +60,7 @@ const ClientLayout = () => {
     const navigation = [
         { name: 'Dashboard', href: '/c/dashboard', icon: Home },
         { name: 'Projects', href: '/c/projects', icon: FolderOpen },
+        { name: 'Bugs', href: '/c/bugs', icon: Bug },
         { name: 'Invoices', href: '/c/invoices', icon: CreditCard },
         { name: 'Documents', href: '/c/documents', icon: FileText },
         { name: 'Messages', href: '/c/messages', icon: MessageSquare },

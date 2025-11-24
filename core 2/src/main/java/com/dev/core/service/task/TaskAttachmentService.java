@@ -16,4 +16,6 @@ public interface TaskAttachmentService {
     void deleteAttachment(Long id);
 
     String getDownloadUrl(Long id);
+
+	byte[] loadDocument(Long attachmentId);
 }

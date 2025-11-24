@@ -41,4 +41,22 @@ public class TaskAttachmentController {
         attachmentService.deleteAttachment( attachmentId);
         return helper.success("Attachment deleted successfully");
     }
+    
+    @GetMapping("/{attachmentId}/download")
+    public ResponseEntity<byte[]> downloadAttachment(
+            @PathVariable Long taskId,
+            @PathVariable Long attachmentId) {
+
+        // Fetch metadata
+        TaskAttachmentDTO dto = attachmentService.getAttachmentById(attachmentId);
+
+        // Load file bytes
+        byte[] fileBytes = attachmentService.loadDocument(attachmentId);
+
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "inline; filename=\"" + dto.getFileName() + "\"")
+                .header("Content-Type", dto.getContentType())  // pdf/image/doc/excel
+                .body(fileBytes);
+    }
+
 }

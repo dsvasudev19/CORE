@@ -17,6 +17,8 @@ import com.dev.core.domain.Project;
 
 @Repository
 public interface ProjectRepository extends JpaRepository<Project, Long>, JpaSpecificationExecutor<Project> {
+	
+	Optional<Project> findByCode(String code);
 
 	/**
 	 * Fetch all projects belonging to an organization.

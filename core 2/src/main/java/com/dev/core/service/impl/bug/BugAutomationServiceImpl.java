@@ -1,11 +1,14 @@
 package com.dev.core.service.impl.bug;
 
 import com.dev.core.constants.BugSeverity;
-import com.dev.core.constants.BugStatus;
 import com.dev.core.domain.Bug;
+import com.dev.core.domain.Employee;
 import com.dev.core.exception.BaseException;
+import com.dev.core.model.EmployeeDTO;
+import com.dev.core.model.MinimalEmployeeDTO;
 import com.dev.core.model.UserDTO;
 import com.dev.core.repository.bug.BugRepository;
+import com.dev.core.service.EmployeeService;
 import com.dev.core.service.NotificationService;
 import com.dev.core.service.UserService;
 import com.dev.core.service.bug.BugAutomationService;
@@ -28,6 +31,7 @@ public class BugAutomationServiceImpl implements BugAutomationService {
     private final UserService userService;
     private final NotificationService notificationService;
     private final TaskScheduler taskScheduler;
+    private final EmployeeService employeeService;
 
     // --------------------------------------------------------------
     // onBugReported
@@ -37,8 +41,8 @@ public class BugAutomationServiceImpl implements BugAutomationService {
         Bug bug = getBug(bugId);
         log.info("🐞 Bug [{}] reported - notifying reporter and assignee if any", bugId);
 
-        String reporterEmail = getUserEmail(bug.getReportedBy());
-        String assigneeEmail = getUserEmail(bug.getAssignedTo());
+        String reporterEmail = getUserEmailFromEmployee(bug.getReportedBy());
+        String assigneeEmail = getUserEmailFromEmployee(bug.getAssignedTo());
 
         notificationService.sendEmail(
                 List.of(reporterEmail, assigneeEmail),
@@ -100,12 +104,12 @@ public class BugAutomationServiceImpl implements BugAutomationService {
     @Override
     public void onBugStatusChanged(Long bugId, String oldStatus, String newStatus) {
         Bug bug = getBug(bugId);
-        String reporterEmail = getUserEmail(bug.getReportedBy());
-        String assigneeEmail = getUserEmail(bug.getAssignedTo());
-        String verifierEmail = getUserEmail(bug.getVerifiedBy());
+        String reporterEmail = getUserEmailFromEmployee(bug.getReportedBy());
+        String assigneeEmail = getUserEmailFromEmployee(bug.getAssignedTo());
+        String verifierEmail = getUserEmailFromEmployee(bug.getVerifiedBy());
 
         notificationService.sendEmail(
-                List.of(reporterEmail, assigneeEmail, verifierEmail),
+                List.of(reporterEmail, assigneeEmail),
                 "🔄 Bug Status Changed: " + bug.getTitle(),
                 """
                 Bug status changed from %s → %s
@@ -137,8 +141,8 @@ public class BugAutomationServiceImpl implements BugAutomationService {
 
         // If severity becomes CRITICAL → notify reporter + assignee immediately
         if (BugSeverity.valueOf(newSeverity) == BugSeverity.CRITICAL) {
-            String reporterEmail = getUserEmail(bug.getReportedBy());
-            String assigneeEmail = getUserEmail(bug.getAssignedTo());
+            String reporterEmail = getUserEmailFromEmployee(bug.getReportedBy());
+            String assigneeEmail = getUserEmailFromEmployee(bug.getAssignedTo());
 
             notificationService.sendEmail(
                     List.of(reporterEmail, assigneeEmail),
@@ -165,11 +169,11 @@ public class BugAutomationServiceImpl implements BugAutomationService {
     @Override
     public void onBugResolved(Long bugId) {
         Bug bug = getBug(bugId);
-        String reporterEmail = getUserEmail(bug.getReportedBy());
-        String verifierEmail = getUserEmail(bug.getVerifiedBy());
+        String reporterEmail = getUserEmailFromEmployee(bug.getReportedBy());
+        String verifierEmail = getUserEmailFromEmployee(bug.getVerifiedBy());
 
         notificationService.sendEmail(
-                List.of(reporterEmail, verifierEmail),
+                List.of(reporterEmail),
                 "✅ Bug Resolved: " + bug.getTitle(),
                 """
                 The bug has been marked as resolved and awaits verification.
@@ -195,7 +199,7 @@ public class BugAutomationServiceImpl implements BugAutomationService {
     @Override
     public void onBugClosed(Long bugId) {
         Bug bug = getBug(bugId);
-        String reporterEmail = getUserEmail(bug.getReportedBy());
+        String reporterEmail = getUserEmailFromEmployee(bug.getReportedBy());
 
         notificationService.sendEmail(
                 reporterEmail,
@@ -220,7 +224,7 @@ public class BugAutomationServiceImpl implements BugAutomationService {
     @Override
     public void onBugReopened(Long bugId) {
         Bug bug = getBug(bugId);
-        String assigneeEmail = getUserEmail(bug.getAssignedTo());
+        String assigneeEmail = getUserEmailFromEmployee(bug.getAssignedTo());
 
         notificationService.sendEmail(
                 assigneeEmail,
@@ -247,7 +251,7 @@ public class BugAutomationServiceImpl implements BugAutomationService {
     @Override
     public void onBugDueSoon(Long bugId) {
         Bug bug = getBug(bugId);
-        String assigneeEmail = getUserEmail(bug.getAssignedTo());
+        String assigneeEmail = getUserEmailFromEmployee(bug.getAssignedTo());
 
         notificationService.sendEmail(
                 assigneeEmail,
@@ -268,8 +272,8 @@ public class BugAutomationServiceImpl implements BugAutomationService {
     @Override
     public void onBugOverdue(Long bugId) {
         Bug bug = getBug(bugId);
-        String assigneeEmail = getUserEmail(bug.getAssignedTo());
-        String reporterEmail = getUserEmail(bug.getReportedBy());
+        String assigneeEmail = getUserEmailFromEmployee(bug.getAssignedTo());
+        String reporterEmail = getUserEmailFromEmployee(bug.getReportedBy());
 
         notificationService.sendEmail(
                 List.of(assigneeEmail, reporterEmail),
@@ -299,17 +303,42 @@ public class BugAutomationServiceImpl implements BugAutomationService {
     }
 
     // --------------------------------------------------------------
-    // Helper: Get User Email from UserService
+    // Helper: Get User Email from UserService (by ID)
     // --------------------------------------------------------------
     private String getUserEmail(Long userId) {
         if (userId == null) return null;
+
+        // 1️⃣ Try userService first
         try {
             UserDTO user = userService.getUserById(userId);
-            return user != null ? user.getEmail() : null;
+            if (user != null && user.getEmail() != null) {
+                return user.getEmail();
+            }
         } catch (Exception e) {
-            log.warn("⚠️ Could not fetch email for user [{}]: {}", userId, e.getMessage());
-            return null;
+            log.debug("User lookup failed for userId {}: {}", userId, e.getMessage());
         }
+
+        // 2️⃣ Fallback to employeeService
+        try {
+            EmployeeDTO emp = employeeService.getEmployeeById(userId);
+            if (emp != null && emp.getEmail() != null) {
+                return emp.getEmail();
+            }
+        } catch (Exception e) {
+            log.debug("Employee lookup failed for userId {}: {}", userId, e.getMessage());
+        }
+
+        // 3️⃣ Not found anywhere
+        return null;
+    }
+
+
+    // --------------------------------------------------------------
+    // Helper: Get User Email from Employee object (new)
+    // --------------------------------------------------------------
+    private String getUserEmailFromEmployee(Employee emp) {
+        if (emp == null) return null;
+        return getUserEmail(emp.getId());
     }
 
     // --------------------------------------------------------------
@@ -336,4 +365,3 @@ public class BugAutomationServiceImpl implements BugAutomationService {
         }
     }
 }
-	

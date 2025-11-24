@@ -30,8 +30,10 @@ public class BugHistory extends BaseEntity {
     @Column(name = "new_value", length = 255)
     private String newValue;
 
-    @Column(name = "changed_by")
-    private Long changedBy;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "changed_by")
+    private Employee changedBy;
+
 
     @Column(name = "changed_at")
     private LocalDateTime changedAt = LocalDateTime.now();

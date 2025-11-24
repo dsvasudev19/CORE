@@ -76,7 +76,7 @@ public class TimeLogValidator {
         if (id == null || id <= 0)
             throw new ValidationFailedException("error.timelog.id.required",null);
 
-        validateCreateManual(dto); // same checks for time range, workDate, etc.
+        
     }
 
     public void validateDelete(Long id) {

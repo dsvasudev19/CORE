@@ -12,19 +12,17 @@ public class BugValidator {
 
     public void validateBeforeCreate(BugDTO dto) {
         if (dto == null) {
-            throw new ValidationFailedException("error.bug.payload.null",null);
+            throw new ValidationFailedException("error.bug.payload.null", null);
         }
 
         if (dto.getTitle() == null || dto.getTitle().isBlank()) {
-            throw new ValidationFailedException("error.bug.title.required",null);
+            throw new ValidationFailedException("error.bug.title.required", null);
         }
 
-        if (dto.getProject() == null || dto.getProject().getId() == null) {
-            throw new ValidationFailedException("error.bug.project.required",null);
-        }
+      
 
         if (dto.getSeverity() == null) {
-            throw new ValidationFailedException("error.bug.severity.required",null);
+            throw new ValidationFailedException("error.bug.severity.required", null);
         }
 
         log.debug("✅ BugValidator.validateBeforeCreate passed for title={}", dto.getTitle());
@@ -32,11 +30,11 @@ public class BugValidator {
 
     public void validateBeforeUpdate(Long id, BugDTO dto) {
         if (id == null) {
-            throw new ValidationFailedException("error.bug.id.required",null);
+            throw new ValidationFailedException("error.bug.id.required", null);
         }
 
         if (dto == null) {
-            throw new ValidationFailedException("error.bug.update.payload.null",null);
+            throw new ValidationFailedException("error.bug.update.payload.null", null);
         }
 
         log.debug("✅ BugValidator.validateBeforeUpdate passed for bugId={}", id);
@@ -44,12 +42,11 @@ public class BugValidator {
 
     public void validateStatusChange(BugStatus oldStatus, BugStatus newStatus) {
         if (oldStatus == null || newStatus == null) {
-            throw new ValidationFailedException("error.bug.status.invalid.transition",null);
+            throw new ValidationFailedException("error.bug.status.invalid.transition", null);
         }
 
-        // Example rule: cannot directly move from OPEN → CLOSED without RESOLVED
         if (oldStatus == BugStatus.OPEN && newStatus == BugStatus.CLOSED) {
-            throw new ValidationFailedException("error.bug.status.transition.invalid.openToClosed",null);
+            throw new ValidationFailedException("error.bug.status.transition.invalid.openToClosed", null);
         }
 
         log.debug("✅ BugValidator.validateStatusChange passed: {} -> {}", oldStatus, newStatus);
@@ -57,11 +54,11 @@ public class BugValidator {
 
     public void validateSeverityChange(String oldSeverity, String newSeverity) {
         if (newSeverity == null) {
-            throw new ValidationFailedException("error.bug.severity.new.required",null);
+            throw new ValidationFailedException("error.bug.severity.new.required", null);
         }
 
         if (oldSeverity != null && oldSeverity.equalsIgnoreCase(newSeverity)) {
-            throw new ValidationFailedException("error.bug.severity.same.level",null);
+            throw new ValidationFailedException("error.bug.severity.same.level", null);
         }
 
         log.debug("✅ BugValidator.validateSeverityChange passed: {} -> {}", oldSeverity, newSeverity);

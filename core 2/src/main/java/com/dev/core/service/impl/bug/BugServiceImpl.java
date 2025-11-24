@@ -4,23 +4,29 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.dev.core.constants.BugSeverity;
 import com.dev.core.constants.BugStatus;
+import com.dev.core.constants.OperationType;
 import com.dev.core.domain.Bug;
+import com.dev.core.domain.Employee;
 import com.dev.core.domain.Task;
 import com.dev.core.exception.BaseException;
 import com.dev.core.mapper.bug.BugMapper;
 import com.dev.core.mapper.options.BugMapperOptions;
 import com.dev.core.mapper.task.TaskMapper;
+import com.dev.core.model.MinimalEmployeeDTO;
 import com.dev.core.model.bug.BugDTO;
 import com.dev.core.model.bug.BugHistoryDTO;
 import com.dev.core.repository.bug.BugRepository;
 import com.dev.core.repository.task.TaskRepository;
+import com.dev.core.security.SecurityContextUtil;
 import com.dev.core.service.AuthorizationService;
+import com.dev.core.service.BaseEntityAuditService;
 import com.dev.core.service.bug.BugAutomationService;
 import com.dev.core.service.bug.BugHistoryService;
 import com.dev.core.service.bug.BugService;
@@ -45,6 +51,8 @@ public class BugServiceImpl implements BugService {
     private final TaskRepository taskRepository;
     private final TaskMapper taskMapper;
     private final BugMapper bugMapper;
+    private final SecurityContextUtil securityContextUtil;
+    private final BaseEntityAuditService baseAuditService;
 
     // 🔒 Authorization Helper
     private void authorize(String action) {
@@ -57,11 +65,15 @@ public class BugServiceImpl implements BugService {
     @Override
     public BugDTO createBug(BugDTO dto) {
         authorize("CREATE");
+        Employee emp=new Employee();
         bugValidator.validateBeforeCreate(dto);
 
         Bug entity = bugMapper.toEntity(dto);
         entity.setStatus(BugStatus.OPEN);
         entity.setCreatedAt(LocalDateTime.now());
+        baseAuditService.applyAudit(entity, OperationType.CREATE);
+        BeanUtils.copyProperties(securityContextUtil.getCurrentEmployee(),emp);        
+        entity.setReportedBy(emp);
 
         Bug saved = bugRepository.save(entity);
 
@@ -91,7 +103,10 @@ public class BugServiceImpl implements BugService {
         bug.setEnvironment(dto.getEnvironment());
         bug.setAppVersion(dto.getAppVersion());
         bug.setDueDate(dto.getDueDate());
-        bug.setAssignedTo(dto.getAssignedTo());
+
+        // 🔥 FIXED: minimalEmployeeDTO → Employee
+        bug.setAssignedTo(bugMapper.toEmployeeEntity(dto.getAssignedTo()));
+
         bug.setUpdatedAt(LocalDateTime.now());
 
         Bug updated = bugRepository.save(bug);
@@ -104,6 +119,7 @@ public class BugServiceImpl implements BugService {
 
         return bugMapper.toDTO(updated, BugMapperOptions.builder().includeProject(true).build());
     }
+
 
     // --------------------------------------------------------------
     // DELETE BUG
@@ -172,7 +188,7 @@ public class BugServiceImpl implements BugService {
     @Override
     public List<BugDTO> getBugsByAssignee(Long userId) {
         authorize("READ");
-        return bugRepository.findByAssignedTo(userId)
+        return bugRepository.findByAssignedTo_Id(userId)
                 .stream()
                 .map(bug -> bugMapper.toDTO(bug, BugMapperOptions.builder().includeProject(true).build()))
                 .toList();
@@ -248,7 +264,10 @@ public class BugServiceImpl implements BugService {
         Bug bug = bugRepository.findById(bugId)
                 .orElseThrow(() -> new BaseException("error.bug.not.found", new Object[]{bugId}));
 
-        bug.setVerifiedBy(verifiedBy);
+        bug.setVerifiedBy(bugMapper.toEmployeeEntity(
+                MinimalEmployeeDTO.builder().id(verifiedBy).build()
+        ));
+
         bug.setStatus(BugStatus.VERIFIED);
         bug.setUpdatedAt(LocalDateTime.now());
         bugRepository.save(bug);
@@ -293,6 +312,7 @@ public class BugServiceImpl implements BugService {
     // --------------------------------------------------------------
     private void logHistory(Long bugId, String field, String oldVal, String newVal, String note) {
         try {
+        	
             BugHistoryDTO history = BugHistoryDTO.builder()
                     .bugId(bugId)
                     .changedField(field)
@@ -300,6 +320,7 @@ public class BugServiceImpl implements BugService {
                     .newValue(newVal)
                     .note(note)
                     .changedAt(LocalDateTime.now())
+                    .changedBy(securityContextUtil.getCurrentEmployee())
                     .build();
             bugHistoryService.logHistory(history);
         } catch (Exception e) {

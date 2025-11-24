@@ -1,19 +1,25 @@
 package com.dev.core.service.impl.bug;
 
+import com.dev.core.constants.OperationType;
 import com.dev.core.domain.Bug;
 import com.dev.core.domain.BugComment;
+import com.dev.core.domain.Employee;
 import com.dev.core.exception.BaseException;
 import com.dev.core.mapper.bug.BugCommentMapper;
 import com.dev.core.model.bug.BugCommentDTO;
 import com.dev.core.repository.bug.BugCommentRepository;
 import com.dev.core.repository.bug.BugRepository;
+import com.dev.core.security.SecurityContextUtil;
 import com.dev.core.service.AuthorizationService;
+import com.dev.core.service.BaseEntityAuditService;
 import com.dev.core.service.bug.BugAutomationService;
 import com.dev.core.service.bug.BugCommentService;
 import com.dev.core.service.validation.BugCommentValidator;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -30,6 +36,8 @@ public class BugCommentServiceImpl implements BugCommentService {
     private final BugCommentValidator commentValidator;
     private final BugAutomationService bugAutomationService;
     private final AuthorizationService authorizationService;
+    private final BaseEntityAuditService baseAuditService;
+    private final SecurityContextUtil securityContextUtil;
 
     // 🔒 Authorization helper
     private void authorize(String action) {
@@ -52,7 +60,12 @@ public class BugCommentServiceImpl implements BugCommentService {
         entity.setCommentedAt(LocalDateTime.now());
         entity.setOrganizationId(bug.getOrganizationId());
         entity.setActive(true);
-
+        
+        baseAuditService.applyAudit(entity, OperationType.CREATE);
+        Employee emp=new Employee();
+        BeanUtils.copyProperties(securityContextUtil.getCurrentEmployee(), emp);
+        entity.setCommentedBy(emp);
+        entity.setCommentedAt(LocalDateTime.now());       
         BugComment saved = commentRepository.save(entity);
 
         // 🔔 Automation hook
@@ -81,6 +94,7 @@ public class BugCommentServiceImpl implements BugCommentService {
         reply.setActive(true);
         reply.setCommentedAt(LocalDateTime.now());
 
+        baseAuditService.applyAudit(reply, OperationType.UPDATE);
         BugComment saved = commentRepository.save(reply);
 
         bugAutomationService.onBugStatusChanged(parent.getBug().getId(), null, "COMMENT_REPLY");
@@ -100,6 +114,7 @@ public class BugCommentServiceImpl implements BugCommentService {
         BugComment comment = commentRepository.findById(id)
                 .orElseThrow(() -> new BaseException("error.comment.not.found", new Object[]{id}));
 
+        baseAuditService.applyAudit(comment, OperationType.DELETE);
         commentRepository.delete(comment);
         log.info("🗑️ Deleted comment ID: {}", id);
     }

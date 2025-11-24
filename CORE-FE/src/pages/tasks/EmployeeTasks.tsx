@@ -408,12 +408,12 @@ const EmployeeTasks = () => {
 
     const getStatusIcon = (s: string) => {
         const map: Record<string, React.ReactNode> = {
-            BACKLOG: <Circle size={16} className="text-steel-500" />,
-            IN_PROGRESS: <Clock size={16} className="text-yellow-500" />,
-            REVIEW: <Eye size={16} className="text-blue-500" />,
-            DONE: <CheckCircle size={16} className="text-green-500" />,
-            BLOCKED: <AlertCircle size={16} className="text-red-500" />,
-            REOPENED: <AlertCircle size={16} className="text-orange-500" />,
+            BACKLOG: <Circle size={14} className="text-steel-500" />,
+            IN_PROGRESS: <Clock size={14} className="text-yellow-500" />,
+            REVIEW: <Eye size={14} className="text-blue-500" />,
+            DONE: <CheckCircle size={14} className="text-green-500" />,
+            BLOCKED: <AlertCircle size={14} className="text-red-500" />,
+            REOPENED: <AlertCircle size={14} className="text-orange-500" />,
         };
         return map[s] ?? map['BACKLOG'];
     };
@@ -451,12 +451,12 @@ const EmployeeTasks = () => {
 
         if (isEditing) {
             return (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                     {type === 'select' && options ? (
                         <select
                             value={editValue}
                             onChange={(e) => setEditValue(e.target.value)}
-                            className="px-2 py-1 border border-burgundy-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-burgundy-500"
+                            className="px-2 py-0.5 border border-burgundy-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-burgundy-500"
                             autoFocus
                         >
                             {options.map((opt) => (
@@ -472,34 +472,34 @@ const EmployeeTasks = () => {
                             onChange={(e) =>
                                 setEditValue(type === 'number' ? Number(e.target.value) : e.target.value)
                             }
-                            className="px-2 py-1 border border-burgundy-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-burgundy-500"
+                            className="px-2 py-0.5 border border-burgundy-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-burgundy-500"
                             autoFocus
                         />
                     )}
                     <button
                         onClick={() => saveField(taskId, field)}
-                        className="p-1 text-green-600 hover:bg-green-50 rounded"
+                        className="p-0.5 text-green-600 hover:bg-green-50 rounded"
                     >
-                        <Save size={14} />
+                        <Save size={12} />
                     </button>
                     <button
                         onClick={cancelEditing}
-                        className="p-1 text-red-600 hover:bg-red-50 rounded"
+                        className="p-0.5 text-red-600 hover:bg-red-50 rounded"
                     >
-                        <X size={14} />
+                        <X size={12} />
                     </button>
                 </div>
             );
         }
 
         return (
-            <div className="group flex items-center gap-2">
+            <div className="group flex items-center gap-1.5">
                 <span>{displayValue}</span>
                 <button
                     onClick={() => startEditing(taskId, field, value)}
-                    className="opacity-0 group-hover:opacity-100 p-1 text-steel-400 hover:text-burgundy-600 hover:bg-burgundy-50 rounded transition-opacity"
+                    className="opacity-0 group-hover:opacity-100 p-0.5 text-steel-400 hover:text-burgundy-600 hover:bg-burgundy-50 rounded transition-opacity"
                 >
-                    <Edit3 size={12} />
+                    <Edit3 size={10} />
                 </button>
             </div>
         );
@@ -507,7 +507,7 @@ const EmployeeTasks = () => {
 
     const taskStatsData = [
         {
-            title: 'Total Tasks',
+            title: 'Total',
             value: stats?.total?.toString() || '0',
             icon: Target,
             color: 'text-steel-600',
@@ -548,51 +548,58 @@ const EmployeeTasks = () => {
     }
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-steel-900">My Tasks</h1>
-                    <p className="text-steel-600 mt-1">
-                        Manage and track your assigned tasks.
-                    </p>
-                </div>
+        <div className="space-y-3">
+            {/* Compact Header */}
+            <div className="bg-white border-b border-steel-200 -mx-6 -mt-6 px-6 py-3">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <div className="flex items-center gap-2.5">
+                            <div className="w-9 h-9 bg-gradient-to-br from-burgundy-500 to-burgundy-600 rounded-lg flex items-center justify-center shadow-md">
+                                <Target size={18} className="text-white" />
+                            </div>
+                            <div>
+                                <h1 className="text-xl font-bold text-steel-900">My Tasks</h1>
+                                <p className="text-xs text-steel-600">Manage and track your assigned tasks</p>
+                            </div>
+                        </div>
+                    </div>
 
-                <div className="flex items-center gap-3">
-                    <button className="btn-secondary flex items-center gap-2">
-                        <BarChart3 size={16} />
-                        Analytics
-                    </button>
-                    <button
-                        onClick={() => setShowAddForm(!showAddForm)}
-                        className="btn-primary flex items-center gap-2"
-                    >
-                        <Plus size={16} />
-                        New Task
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button className="px-3 py-1.5 text-sm bg-white border-2 border-steel-300 text-steel-700 rounded-lg hover:bg-steel-50 transition-colors flex items-center gap-1.5">
+                            <BarChart3 size={14} />
+                            Analytics
+                        </button>
+                        <button
+                            onClick={() => setShowAddForm(!showAddForm)}
+                            className="px-3 py-1.5 text-sm bg-gradient-to-r from-burgundy-600 to-burgundy-700 hover:from-burgundy-700 hover:to-burgundy-800 text-white rounded-lg font-medium shadow-md hover:shadow-lg transition-all flex items-center gap-1.5"
+                        >
+                            <Plus size={14} />
+                            New Task
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Compact Stats */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
                 {taskStatsData.map((s) => {
                     const Icon = s.icon;
                     return (
-                        <div key={s.title} className="card p-5">
+                        <div key={s.title} className="bg-white rounded-lg border border-steel-200 p-3 hover:shadow-md transition-shadow">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm font-medium text-steel-600">{s.title}</p>
-                                    <p className="text-2xl font-bold text-steel-900 mt-1">
+                                    <p className="text-xs font-semibold text-steel-600 uppercase tracking-wide">{s.title}</p>
+                                    <p className="text-2xl font-bold text-steel-900 mt-0.5">
                                         {s.value}
                                     </p>
                                 </div>
                                 <div
                                     className={cn(
-                                        'w-12 h-12 rounded-lg flex items-center justify-center',
+                                        'w-10 h-10 rounded-lg flex items-center justify-center',
                                         s.bgColor
                                     )}
                                 >
-                                    <Icon size={24} className={s.color} />
+                                    <Icon size={20} className={s.color} />
                                 </div>
                             </div>
                         </div>
@@ -600,34 +607,34 @@ const EmployeeTasks = () => {
                 })}
             </div>
 
-            {/* Add Task Form */}
+            {/* Add Task Form - Full Featured with Compact Styling */}
             {showAddForm && (
-                <div className="card p-5 border-2 border-burgundy-200 bg-burgundy-50">
-                    <h3 className="text-lg font-semibold text-steel-900 mb-4">Create New Task</h3>
-                    <form onSubmit={handleCreateTask} className="space-y-4">
+                <div className="bg-white rounded-lg border-2 border-burgundy-200 p-4 shadow-sm">
+                    <h3 className="text-base font-semibold text-steel-900 mb-3">Create New Task</h3>
+                    <form onSubmit={handleCreateTask} className="space-y-3">
                         {/* Row 1 - Basic Info */}
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                             <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-steel-700 mb-1">
+                                <label className="block text-xs font-semibold text-steel-700 mb-1 uppercase tracking-wide">
                                     Title *
                                 </label>
                                 <input
                                     type="text"
                                     value={newTask.title}
                                     onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-                                    className="w-full px-3 py-2 border border-steel-300 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500"
+                                    className="w-full px-2.5 py-1.5 text-sm border border-steel-300 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500"
                                     placeholder="Enter task title"
                                     required
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-steel-700 mb-1">
+                                <label className="block text-xs font-semibold text-steel-700 mb-1 uppercase tracking-wide">
                                     Status
                                 </label>
                                 <select
                                     value={newTask.status}
                                     onChange={(e) => setNewTask({ ...newTask, status: e.target.value as any })}
-                                    className="w-full px-3 py-2 border border-steel-300 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500"
+                                    className="w-full px-2.5 py-1.5 text-sm border border-steel-300 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500"
                                 >
                                     <option value={TaskStatus.BACKLOG}>Backlog</option>
                                     <option value={TaskStatus.IN_PROGRESS}>In Progress</option>
@@ -637,13 +644,13 @@ const EmployeeTasks = () => {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-steel-700 mb-1">
+                                <label className="block text-xs font-semibold text-steel-700 mb-1 uppercase tracking-wide">
                                     Priority
                                 </label>
                                 <select
                                     value={newTask.priority}
                                     onChange={(e) => setNewTask({ ...newTask, priority: e.target.value as any })}
-                                    className="w-full px-3 py-2 border border-steel-300 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500"
+                                    className="w-full px-2.5 py-1.5 text-sm border border-steel-300 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500"
                                 >
                                     <option value={TaskPriority.LOW}>Low</option>
                                     <option value={TaskPriority.MEDIUM}>Medium</option>
@@ -655,21 +662,21 @@ const EmployeeTasks = () => {
 
                         {/* Row 2 - Description */}
                         <div>
-                            <label className="block text-sm font-medium text-steel-700 mb-1">
+                            <label className="block text-xs font-semibold text-steel-700 mb-1 uppercase tracking-wide">
                                 Description
                             </label>
                             <textarea
                                 value={newTask.description}
                                 onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-                                className="w-full px-3 py-2 border border-steel-300 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500"
+                                className="w-full px-2.5 py-1.5 text-sm border border-steel-300 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500"
                                 placeholder="Task description"
                                 rows={2}
                             />
                         </div>
 
                         {/* Row 2.5 - Toggle Switches */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="flex items-center gap-3 p-3 bg-steel-50 rounded-lg">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div className="flex items-center gap-2.5 p-2.5 bg-steel-50 rounded-lg">
                                 <label className="relative inline-flex items-center cursor-pointer">
                                     <input
                                         type="checkbox"
@@ -677,11 +684,11 @@ const EmployeeTasks = () => {
                                         onChange={(e) => setLinkToProject(e.target.checked)}
                                         className="sr-only peer"
                                     />
-                                    <div className="w-11 h-6 bg-steel-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-burgundy-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-steel-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-burgundy-600"></div>
-                                    <span className="ms-3 text-sm font-medium text-steel-700">Link to Project</span>
+                                    <div className="w-9 h-5 bg-steel-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-burgundy-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-steel-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-burgundy-600"></div>
+                                    <span className="ms-2.5 text-xs font-semibold text-steel-700">Link to Project</span>
                                 </label>
                             </div>
-                            <div className="flex items-center gap-3 p-3 bg-steel-50 rounded-lg">
+                            <div className="flex items-center gap-2.5 p-2.5 bg-steel-50 rounded-lg">
                                 <label className="relative inline-flex items-center cursor-pointer">
                                     <input
                                         type="checkbox"
@@ -689,8 +696,8 @@ const EmployeeTasks = () => {
                                         onChange={(e) => setLinkToParentTask(e.target.checked)}
                                         className="sr-only peer"
                                     />
-                                    <div className="w-11 h-6 bg-steel-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-burgundy-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-steel-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-burgundy-600"></div>
-                                    <span className="ms-3 text-sm font-medium text-steel-700">Link to Parent Task</span>
+                                    <div className="w-9 h-5 bg-steel-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-burgundy-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-steel-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-burgundy-600"></div>
+                                    <span className="ms-2.5 text-xs font-semibold text-steel-700">Link to Parent Task</span>
                                 </label>
                             </div>
                         </div>
@@ -698,7 +705,7 @@ const EmployeeTasks = () => {
                         {/* Conditional Project Selector */}
                         {linkToProject && (
                             <div>
-                                <label className="block text-sm font-medium text-steel-700 mb-1">
+                                <label className="block text-xs font-semibold text-steel-700 mb-1 uppercase tracking-wide">
                                     Project *
                                 </label>
                                 <select
@@ -706,7 +713,7 @@ const EmployeeTasks = () => {
                                     onChange={(e) =>
                                         setNewTask({ ...newTask, projectId: e.target.value ? Number(e.target.value) : undefined })
                                     }
-                                    className="w-full px-3 py-2 border border-steel-300 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500"
+                                    className="w-full px-2.5 py-1.5 text-sm border border-steel-300 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500"
                                     required
                                 >
                                     <option value="">Select a project</option>
@@ -722,7 +729,7 @@ const EmployeeTasks = () => {
                         {/* Conditional Parent Task Selector */}
                         {linkToParentTask && (
                             <div>
-                                <label className="block text-sm font-medium text-steel-700 mb-1">
+                                <label className="block text-xs font-semibold text-steel-700 mb-1 uppercase tracking-wide">
                                     Parent Task *
                                 </label>
                                 <select
@@ -730,7 +737,7 @@ const EmployeeTasks = () => {
                                     onChange={(e) =>
                                         setNewTask({ ...newTask, parentTaskId: e.target.value ? Number(e.target.value) : undefined })
                                     }
-                                    className="w-full px-3 py-2 border border-steel-300 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500"
+                                    className="w-full px-2.5 py-1.5 text-sm border border-steel-300 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500"
                                     required
                                 >
                                     <option value="">Select a parent task</option>
@@ -744,31 +751,31 @@ const EmployeeTasks = () => {
                         )}
 
                         {/* Row 3 - DateTime Fields */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                             <div>
-                                <label className="block text-sm font-medium text-steel-700 mb-1">
+                                <label className="block text-xs font-semibold text-steel-700 mb-1 uppercase tracking-wide">
                                     Start Date & Time
                                 </label>
                                 <input
                                     type="datetime-local"
                                     value={newTask.startDate}
                                     onChange={(e) => setNewTask({ ...newTask, startDate: e.target.value })}
-                                    className="w-full px-3 py-2 border border-steel-300 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500"
+                                    className="w-full px-2.5 py-1.5 text-sm border border-steel-300 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-steel-700 mb-1">
+                                <label className="block text-xs font-semibold text-steel-700 mb-1 uppercase tracking-wide">
                                     Due Date & Time
                                 </label>
                                 <input
                                     type="datetime-local"
                                     value={newTask.dueDate}
                                     onChange={(e) => setNewTask({ ...newTask, dueDate: e.target.value })}
-                                    className="w-full px-3 py-2 border border-steel-300 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500"
+                                    className="w-full px-2.5 py-1.5 text-sm border border-steel-300 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-steel-700 mb-1">
+                                <label className="block text-xs font-semibold text-steel-700 mb-1 uppercase tracking-wide">
                                     Est. Hours
                                 </label>
                                 <input
@@ -777,7 +784,7 @@ const EmployeeTasks = () => {
                                     onChange={(e) =>
                                         setNewTask({ ...newTask, estimatedHours: e.target.value ? Number(e.target.value) : undefined })
                                     }
-                                    className="w-full px-3 py-2 border border-steel-300 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500"
+                                    className="w-full px-2.5 py-1.5 text-sm border border-steel-300 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500"
                                     placeholder="0"
                                     min="0"
                                     step="0.5"
@@ -787,7 +794,7 @@ const EmployeeTasks = () => {
 
                         {/* Row 4 - Tags */}
                         <div>
-                            <label className="block text-sm font-medium text-steel-700 mb-1">
+                            <label className="block text-xs font-semibold text-steel-700 mb-1 uppercase tracking-wide">
                                 Tags
                             </label>
                             <div className="flex gap-2 mb-2">
@@ -801,23 +808,23 @@ const EmployeeTasks = () => {
                                             handleAddTag();
                                         }
                                     }}
-                                    className="flex-1 px-3 py-2 border border-steel-300 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500"
+                                    className="flex-1 px-2.5 py-1.5 text-sm border border-steel-300 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500"
                                     placeholder="Type a tag and press Enter"
                                 />
                                 <button
                                     type="button"
                                     onClick={handleAddTag}
-                                    className="px-4 py-2 bg-steel-100 text-steel-700 rounded-lg hover:bg-steel-200 transition-colors"
+                                    className="px-3 py-1.5 bg-steel-100 text-steel-700 rounded-lg hover:bg-steel-200 transition-colors"
                                 >
-                                    <TagIcon size={16} />
+                                    <TagIcon size={14} />
                                 </button>
                             </div>
                             {newTaskTags.length > 0 && (
-                                <div className="flex flex-wrap gap-2">
+                                <div className="flex flex-wrap gap-1.5">
                                     {newTaskTags.map((tag) => (
                                         <span
                                             key={tag}
-                                            className="inline-flex items-center gap-1 px-3 py-1 bg-burgundy-100 text-burgundy-700 rounded-full text-sm"
+                                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-burgundy-100 text-burgundy-700 rounded-full text-xs font-medium"
                                         >
                                             {tag}
                                             <button
@@ -825,7 +832,7 @@ const EmployeeTasks = () => {
                                                 onClick={() => handleRemoveTag(tag)}
                                                 className="hover:text-burgundy-900"
                                             >
-                                                <X size={14} />
+                                                <X size={12} />
                                             </button>
                                         </span>
                                     ))}
@@ -835,14 +842,14 @@ const EmployeeTasks = () => {
 
                         {/* Row 5 - Assign Users */}
                         <div>
-                            <label className="block text-sm font-medium text-steel-700 mb-2">
+                            <label className="block text-xs font-semibold text-steel-700 mb-1.5 uppercase tracking-wide">
                                 Assign to Users
                             </label>
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-40 overflow-y-auto p-3 border border-steel-200 rounded-lg bg-white">
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1.5 max-h-32 overflow-y-auto p-2.5 border border-steel-200 rounded-lg bg-white">
                                 {employees.map((emp) => (
                                     <label
                                         key={emp.id}
-                                        className="flex items-center gap-2 p-2 hover:bg-steel-50 rounded cursor-pointer"
+                                        className="flex items-center gap-1.5 p-1.5 hover:bg-steel-50 rounded cursor-pointer"
                                     >
                                         <input
                                             type="checkbox"
@@ -850,29 +857,29 @@ const EmployeeTasks = () => {
                                             onChange={() => handleToggleAssignee(emp.id)}
                                             className="rounded border-steel-300 text-burgundy-600 focus:ring-burgundy-500"
                                         />
-                                        <span className="text-sm text-steel-700">
+                                        <span className="text-xs text-steel-700">
                                             {emp.firstName} {emp.lastName}
                                         </span>
                                     </label>
                                 ))}
                             </div>
                             {newTask.assigneeIds && newTask.assigneeIds.length > 0 && (
-                                <div className="mt-2 text-sm text-steel-600">
+                                <div className="mt-1.5 text-xs text-steel-600">
                                     {newTask.assigneeIds.length} user(s) selected
                                 </div>
                             )}
                         </div>
 
                         {/* Actions */}
-                        <div className="flex items-center gap-3 pt-2">
-                            <button type="submit" className="btn-primary flex items-center gap-2">
-                                <Plus size={16} />
+                        <div className="flex items-center gap-2 pt-1">
+                            <button type="submit" className="px-4 py-1.5 text-sm bg-gradient-to-r from-burgundy-600 to-burgundy-700 text-white rounded-lg font-medium hover:from-burgundy-700 hover:to-burgundy-800 transition-all flex items-center gap-1.5">
+                                <Plus size={14} />
                                 Create Task
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setShowAddForm(false)}
-                                className="btn-secondary"
+                                className="px-4 py-1.5 text-sm bg-white border-2 border-steel-300 text-steel-700 rounded-lg hover:bg-steel-50 transition-colors"
                             >
                                 Cancel
                             </button>
@@ -881,21 +888,21 @@ const EmployeeTasks = () => {
                 </div>
             )}
 
-            {/* Filters & Search */}
-            <div className="card p-5">
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            {/* Compact Filters & Search */}
+            <div className="bg-white rounded-lg border border-steel-200 shadow-sm p-3">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
                     {/* Search */}
                     <div className="relative flex-1 max-w-md">
                         <Search
-                            size={16}
-                            className="absolute left-3 top-1/2 -translate-y-1/2 text-steel-400"
+                            size={14}
+                            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-steel-400"
                         />
                         <input
                             type="text"
                             placeholder="Search tasks..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-steel-200 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500 text-sm"
+                            className="w-full pl-9 pr-3 py-1.5 text-sm border border-steel-200 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500"
                         />
                     </div>
 
@@ -904,21 +911,21 @@ const EmployeeTasks = () => {
                         <button
                             onClick={() => setShowFilters(!showFilters)}
                             className={cn(
-                                'btn-secondary btn-sm flex items-center gap-1',
-                                showFilters && 'bg-burgundy-50 text-burgundy-700 border-burgundy-200'
+                                'px-3 py-1.5 text-xs font-medium rounded-lg transition-all border-2 flex items-center gap-1',
+                                showFilters ? 'bg-burgundy-50 text-burgundy-700 border-burgundy-300' : 'bg-white text-steel-700 border-steel-300 hover:bg-steel-50'
                             )}
                         >
-                            <Filter size={16} />
+                            <Filter size={13} />
                             Filters
-                            {showFilters ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                            {showFilters ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                         </button>
 
                         {/* View toggle */}
-                        <div className="flex bg-steel-100 rounded-lg p-1">
+                        <div className="flex bg-steel-100 rounded-lg p-0.5">
                             <button
                                 onClick={() => setViewMode('list')}
                                 className={cn(
-                                    'px-3 py-1.5 text-sm font-medium rounded-md transition-colors',
+                                    'px-2.5 py-1 text-xs font-medium rounded-md transition-colors',
                                     viewMode === 'list'
                                         ? 'bg-white text-steel-900 shadow-sm'
                                         : 'text-steel-600 hover:text-steel-900'
@@ -929,7 +936,7 @@ const EmployeeTasks = () => {
                             <button
                                 onClick={() => setViewMode('kanban')}
                                 className={cn(
-                                    'px-3 py-1.5 text-sm font-medium rounded-md transition-colors',
+                                    'px-2.5 py-1 text-xs font-medium rounded-md transition-colors',
                                     viewMode === 'kanban'
                                         ? 'bg-white text-steel-900 shadow-sm'
                                         : 'text-steel-600 hover:text-steel-900'
@@ -943,16 +950,16 @@ const EmployeeTasks = () => {
 
                 {/* Expanded filters */}
                 {showFilters && (
-                    <div className="mt-5 pt-5 border-t border-steel-200">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="mt-3 pt-3 border-t border-steel-200">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5">
                             <div>
-                                <label className="block text-sm font-medium text-steel-700 mb-2">
+                                <label className="block text-xs font-semibold text-steel-700 mb-1 uppercase tracking-wide">
                                     Status
                                 </label>
                                 <select
                                     value={filterStatus}
                                     onChange={(e) => setFilterStatus(e.target.value)}
-                                    className="w-full px-3 py-2 border border-steel-200 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500 text-sm"
+                                    className="w-full px-2.5 py-1.5 text-sm border border-steel-200 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500"
                                 >
                                     <option value="all">All Status</option>
                                     <option value={TaskStatus.BACKLOG}>Backlog</option>
@@ -965,13 +972,13 @@ const EmployeeTasks = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-steel-700 mb-2">
+                                <label className="block text-xs font-semibold text-steel-700 mb-1 uppercase tracking-wide">
                                     Priority
                                 </label>
                                 <select
                                     value={filterPriority}
                                     onChange={(e) => setFilterPriority(e.target.value)}
-                                    className="w-full px-3 py-2 border border-steel-200 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500 text-sm"
+                                    className="w-full px-2.5 py-1.5 text-sm border border-steel-200 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500"
                                 >
                                     <option value="all">All Priorities</option>
                                     <option value={TaskPriority.CRITICAL}>Critical</option>
@@ -982,7 +989,7 @@ const EmployeeTasks = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-steel-700 mb-2">
+                                <label className="block text-xs font-semibold text-steel-700 mb-1 uppercase tracking-wide">
                                     Project
                                 </label>
                                 <select
@@ -990,7 +997,7 @@ const EmployeeTasks = () => {
                                     onChange={(e) =>
                                         setFilterProject(e.target.value === 'all' ? 'all' : Number(e.target.value))
                                     }
-                                    className="w-full px-3 py-2 border border-steel-200 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500 text-sm"
+                                    className="w-full px-2.5 py-1.5 text-sm border border-steel-200 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500"
                                 >
                                     <option value="all">All Projects</option>
                                     {projects.map((p) => (
@@ -1002,13 +1009,13 @@ const EmployeeTasks = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-steel-700 mb-2">
+                                <label className="block text-xs font-semibold text-steel-700 mb-1 uppercase tracking-wide">
                                     Sort By
                                 </label>
                                 <select
                                     value={sortBy}
                                     onChange={(e) => setSortBy(e.target.value)}
-                                    className="w-full px-3 py-2 border border-steel-200 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500 text-sm"
+                                    className="w-full px-2.5 py-1.5 text-sm border border-steel-200 rounded-lg focus:ring-2 focus:ring-burgundy-500 focus:border-burgundy-500"
                                 >
                                     <option value="dueDate">Due Date</option>
                                     <option value="priority">Priority</option>
@@ -1021,29 +1028,29 @@ const EmployeeTasks = () => {
                 )}
             </div>
 
-            {/* TABLE VIEW */}
+            {/* COMPACT TABLE VIEW */}
             {viewMode === 'list' && (
-                <div className="card overflow-hidden">
+                <div className="bg-white rounded-lg border border-steel-200 shadow-sm overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead className="bg-steel-50 border-b border-steel-200">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-steel-600 uppercase tracking-wider">
+                                    <th className="px-3 py-2 text-left text-xs font-bold text-steel-700 uppercase tracking-wider">
                                         Task
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-steel-600 uppercase tracking-wider">
+                                    <th className="px-3 py-2 text-left text-xs font-bold text-steel-700 uppercase tracking-wider">
                                         Status
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-steel-600 uppercase tracking-wider">
+                                    <th className="px-3 py-2 text-left text-xs font-bold text-steel-700 uppercase tracking-wider">
                                         Priority
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-steel-600 uppercase tracking-wider">
+                                    <th className="px-3 py-2 text-left text-xs font-bold text-steel-700 uppercase tracking-wider">
                                         Due Date
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-steel-600 uppercase tracking-wider">
+                                    <th className="px-3 py-2 text-left text-xs font-bold text-steel-700 uppercase tracking-wider">
                                         Progress
                                     </th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-steel-600 uppercase tracking-wider">
+                                    <th className="px-3 py-2 text-right text-xs font-bold text-steel-700 uppercase tracking-wider">
                                         Actions
                                     </th>
                                 </tr>
@@ -1054,28 +1061,28 @@ const EmployeeTasks = () => {
                                         'hover:bg-steel-50 transition-colors',
                                         isOverdue(task) && 'bg-red-50'
                                     )}>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
+                                        <td className="px-3 py-2">
+                                            <div className="flex items-center gap-2">
                                                 {getStatusIcon(task.status)}
-                                                <div>
-                                                    <div className="font-medium text-steel-900">
+                                                <div className="min-w-0">
+                                                    <div className="font-medium text-sm text-steel-900 truncate">
                                                         {task.title}
                                                     </div>
                                                     {task.description && (
-                                                        <div className="text-sm text-steel-500 mt-1">
-                                                            {task.description.substring(0, 50)}{task.description.length > 50 ? '...' : ''}
+                                                        <div className="text-xs text-steel-500 truncate max-w-xs">
+                                                            {task.description.substring(0, 40)}{task.description.length > 40 ? '...' : ''}
                                                         </div>
                                                     )}
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-3 py-2">
                                             <EditableField
                                                 taskId={task.id}
                                                 field="status"
                                                 value={task.status}
                                                 displayValue={
-                                                    <span className={cn('badge text-xs font-medium', getStatusColor(task.status))}>
+                                                    <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 text-xs font-bold rounded-lg border-2', getStatusColor(task.status))}>
                                                         {task.status.replace('_', ' ')}
                                                     </span>
                                                 }
@@ -1090,14 +1097,14 @@ const EmployeeTasks = () => {
                                                 ]}
                                             />
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-3 py-2">
                                             <EditableField
                                                 taskId={task.id}
                                                 field="priority"
                                                 value={task.priority}
                                                 displayValue={
-                                                    <span className={cn('badge text-xs font-medium inline-flex items-center gap-1', getPriorityColor(task.priority))}>
-                                                        <Flag size={12} />
+                                                    <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 text-xs font-bold rounded-lg border-2', getPriorityColor(task.priority))}>
+                                                        <Flag size={10} />
                                                         {task.priority}
                                                     </span>
                                                 }
@@ -1110,49 +1117,49 @@ const EmployeeTasks = () => {
                                                 ]}
                                             />
                                         </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2 text-sm text-steel-600">
-                                                <Calendar size={14} />
+                                        <td className="px-3 py-2">
+                                            <div className="flex items-center gap-1.5 text-xs text-steel-600">
+                                                <Calendar size={12} />
                                                 <span>{formatDate(task.dueDate)}</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="flex-1 bg-steel-200 rounded-full h-2 min-w-[100px]">
+                                        <td className="px-3 py-2">
+                                            <div className="flex items-center gap-2">
+                                                <div className="flex-1 bg-steel-200 rounded-full h-1.5 min-w-[80px]">
                                                     <div
-                                                        className="bg-burgundy-600 h-2 rounded-full transition-all"
+                                                        className="bg-burgundy-600 h-1.5 rounded-full transition-all"
                                                         style={{ width: `${task.progressPercentage || 0}%` }}
                                                     />
                                                 </div>
-                                                <span className="text-sm font-medium text-steel-900 min-w-[3rem] text-right">
+                                                <span className="text-xs font-semibold text-steel-900 min-w-[2.5rem] text-right">
                                                     {task.progressPercentage || 0}%
                                                 </span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="flex items-center justify-end gap-2">
+                                        <td className="px-3 py-2 text-right">
+                                            <div className="flex items-center justify-end gap-1">
                                                 {task.status !== TaskStatus.DONE && (
                                                     <button
                                                         onClick={() => handleMarkComplete(task.id)}
-                                                        className="p-2 hover:bg-green-50 rounded-lg transition-colors"
+                                                        className="p-1.5 hover:bg-green-50 rounded-lg transition-colors"
                                                         title="Mark as done"
                                                     >
-                                                        <CheckCircle size={16} className="text-green-600" />
+                                                        <CheckCircle size={14} className="text-green-600" />
                                                     </button>
                                                 )}
                                                 <Link
                                                     to={`/e/task-detail/${task.id}`}
-                                                    className="inline-flex items-center justify-center p-2 hover:bg-steel-100 rounded-lg transition-colors"
+                                                    className="inline-flex items-center justify-center p-1.5 hover:bg-steel-100 rounded-lg transition-colors"
                                                     aria-label="View task details"
                                                 >
-                                                    <Eye size={16} className="text-steel-400" />
+                                                    <Eye size={14} className="text-steel-400" />
                                                 </Link>
                                                 <button
                                                     onClick={() => handleDeleteTask(task.id)}
-                                                    className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                                                    className="p-1.5 hover:bg-red-50 rounded-lg transition-colors"
                                                     title="Delete task"
                                                 >
-                                                    <Trash2 size={16} className="text-red-600" />
+                                                    <Trash2 size={14} className="text-red-600" />
                                                 </button>
                                             </div>
                                         </td>
@@ -1164,35 +1171,35 @@ const EmployeeTasks = () => {
                 </div>
             )}
 
-            {/* KANBAN VIEW */}
+            {/* KANBAN VIEW - Keep existing but make more compact */}
             {viewMode === 'kanban' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                     {[TaskStatus.BACKLOG, TaskStatus.IN_PROGRESS, TaskStatus.REVIEW, TaskStatus.DONE].map((status) => (
-                        <div key={status} className="card p-4">
-                            <h3 className="font-semibold text-steel-900 mb-3">{status.replace('_', ' ')}</h3>
-                            <div className="space-y-3">
+                        <div key={status} className="bg-white rounded-lg border border-steel-200 p-3">
+                            <h3 className="font-semibold text-sm text-steel-900 mb-2.5">{status.replace('_', ' ')}</h3>
+                            <div className="space-y-2">
                                 {filteredTasks
                                     .filter((t) => t.status === status)
                                     .map((t) => (
                                         <div
                                             key={t.id}
-                                            className="bg-steel-50 p-3 rounded-lg cursor-move hover:shadow-md transition-shadow"
+                                            className="bg-steel-50 p-2.5 rounded-lg cursor-move hover:shadow-md transition-shadow"
                                         >
-                                            <p className="font-medium text-steel-900 truncate">
+                                            <p className="font-medium text-sm text-steel-900 truncate">
                                                 {t.title}
                                             </p>
-                                            <div className="flex items-center gap-2 mt-2 text-xs text-steel-500">
-                                                <Calendar size={12} />
+                                            <div className="flex items-center gap-1.5 mt-1.5 text-xs text-steel-500">
+                                                <Calendar size={10} />
                                                 {formatDate(t.dueDate)}
                                             </div>
                                             <div className="mt-2">
-                                                <div className="flex items-center justify-between text-xs mb-1">
+                                                <div className="flex items-center justify-between text-xs mb-0.5">
                                                     <span className="text-steel-600">Progress</span>
                                                     <span className="font-medium">{t.progressPercentage || 0}%</span>
                                                 </div>
-                                                <div className="w-full bg-steel-200 rounded-full h-1.5">
+                                                <div className="w-full bg-steel-200 rounded-full h-1">
                                                     <div
-                                                        className="bg-burgundy-600 h-1.5 rounded-full transition-all"
+                                                        className="bg-burgundy-600 h-1 rounded-full transition-all"
                                                         style={{ width: `${t.progressPercentage || 0}%` }}
                                                     />
                                                 </div>
@@ -1207,19 +1214,19 @@ const EmployeeTasks = () => {
 
             {/* Empty State */}
             {filteredTasks.length === 0 && (
-                <div className="card text-center py-12">
-                    <Target size={48} className="mx-auto text-steel-300 mb-4" />
-                    <h3 className="text-lg font-medium text-steel-900 mb-2">No tasks found</h3>
-                    <p className="text-steel-600 mb-6">
+                <div className="bg-white rounded-lg border border-steel-200 text-center py-10">
+                    <Target size={40} className="mx-auto text-steel-300 mb-3" />
+                    <h3 className="text-base font-medium text-steel-900 mb-1.5">No tasks found</h3>
+                    <p className="text-sm text-steel-600 mb-5">
                         {searchQuery || filterStatus !== 'all' || filterPriority !== 'all'
                             ? 'Try adjusting your filters or search query.'
                             : "You don't have any tasks assigned yet."}
                     </p>
                     <button
                         onClick={() => setShowAddForm(true)}
-                        className="btn-primary flex items-center gap-2 mx-auto"
+                        className="px-4 py-2 text-sm bg-gradient-to-r from-burgundy-600 to-burgundy-700 text-white rounded-lg font-medium hover:from-burgundy-700 hover:to-burgundy-800 transition-all flex items-center gap-1.5 mx-auto"
                     >
-                        <Plus size={16} />
+                        <Plus size={14} />
                         Create New Task
                     </button>
                 </div>

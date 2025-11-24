@@ -23,7 +23,7 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @SuperBuilder
 public class MinimalTask {
-
+	private Long id;
     private String title;
     private String description;
 

@@ -12,4 +12,6 @@ public interface BugAttachmentService {
     void deleteAttachment(Long id);
 
     List<BugAttachmentDTO> getAttachmentsByBug(Long bugId);
+
+	byte[] getAttachmentFileBytes(Long attachmentId);
 }

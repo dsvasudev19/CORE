@@ -177,23 +177,36 @@ public class TimeLogServiceImpl implements TimeLogService {
         Bug bug = null;
         Project project = null;
 
+        // Load new Task only if provided
         if (dto.getTaskId() != null) {
             task = taskRepository.findById(dto.getTaskId())
                     .orElseThrow(() -> new BaseException("error.task.not.found", new Object[]{dto.getTaskId()}));
+        } else {
+            task = existing.getTask(); // keep existing
         }
 
+        // Load new Bug only if provided
         if (dto.getBugId() != null) {
             bug = bugRepository.findById(dto.getBugId())
                     .orElseThrow(() -> new BaseException("error.bug.not.found", new Object[]{dto.getBugId()}));
+        } else {
+            bug = existing.getBug(); // keep existing
         }
 
-        project = resolveProjectFromTaskOrBug(task, bug);
+        // Resolve project only when Task or Bug changed, else keep existing
+        if (dto.getTaskId() != null || dto.getBugId() != null) {
+            project = resolveProjectFromTaskOrBug(task, bug);
+        } else {
+            project = existing.getProject();
+        }
 
-        existing.setStartTime(dto.getStartTime());
-        existing.setEndTime(dto.getEndTime());
-        existing.setWorkDate(dto.getWorkDate());
-        existing.setDurationMinutes(dto.getDurationMinutes());
-        existing.setNote(dto.getNote());
+        // --- Update only if the dto provided a value ---
+        if (dto.getStartTime() != null) existing.setStartTime(dto.getStartTime());
+        if (dto.getEndTime() != null) existing.setEndTime(dto.getEndTime());
+        if (dto.getWorkDate() != null) existing.setWorkDate(dto.getWorkDate());
+        if (dto.getDurationMinutes() != null) existing.setDurationMinutes(dto.getDurationMinutes());
+        if (dto.getNote() != null) existing.setNote(dto.getNote());
+
         existing.setTask(task);
         existing.setBug(bug);
         existing.setProject(project);
@@ -201,6 +214,7 @@ public class TimeLogServiceImpl implements TimeLogService {
         TimeLog saved = timeLogRepository.save(existing);
         return TimeLogMapper.toDTO(saved);
     }
+
 
 
     @Override
