@@ -6,6 +6,7 @@ import type { TimeLogDTO, CalendarSummary } from '../../types/timelog.types';
 import toast from 'react-hot-toast';
 import ClockInModal from '../../modals/ClockInModal';
 import ManualEntryModal from '../../modals/ManualEntryModal';
+import StopTimerModal from '../../modals/StopTimerModal';
 
 const EmployeeTimeTracking = () => {
     const { user } = useAuth();
@@ -15,6 +16,8 @@ const EmployeeTimeTracking = () => {
     const [loading, setLoading] = useState(false);
     const [showClockInModal, setShowClockInModal] = useState(false);
     const [showManualEntryModal, setShowManualEntryModal] = useState(false);
+    const [showStopTimerModal, setShowStopTimerModal] = useState(false);
+    const [activeTimer, setActiveTimer] = useState<TimeLogDTO | null>(null);
     const [selectedDate, setSelectedDate] = useState<string | undefined>();
     const [stats, setStats] = useState({
         totalHours: 0,
@@ -26,8 +29,19 @@ const EmployeeTimeTracking = () => {
     useEffect(() => {
         if (user?.id) {
             fetchMonthlyData();
+            fetchActiveTimer();
         }
     }, [currentMonth, user]);
+
+    const fetchActiveTimer = async () => {
+        if (!user?.id) return;
+        try {
+            const timer = await timelogService.getActiveTimer(user.id);
+            setActiveTimer(timer && timer.active ? timer : null);
+        } catch (e) {
+            console.error('Failed to fetch active timer', e);
+        }
+    };
 
     const fetchMonthlyData = async () => {
         if (!user?.id) return;
@@ -180,15 +194,25 @@ const EmployeeTimeTracking = () => {
         <div className="min-h-screen bg-gradient-to-br from-steel-50 via-white to-burgundy-50/30 p-4">
             <div className="max-w-[1600px] mx-auto space-y-4">
 
-                {/* Compact Header with Log Time button on right */}
+                {/* Compact Header with Clock In/Out button on right */}
                 <div className="flex items-center justify-end">
-                    <button
-                        onClick={() => setShowClockInModal(true)}
-                        className="px-3 py-1.5 bg-gradient-to-r from-burgundy-600 to-burgundy-700 hover:from-burgundy-700 hover:to-burgundy-800 text-white rounded text-xs font-bold shadow-md shadow-burgundy-500/20 transition-all flex items-center gap-1.5"
-                    >
-                        <Plus className="w-3 h-3" />
-                        Log Time
-                    </button>
+                    {activeTimer && activeTimer.active ? (
+                        <button
+                            onClick={() => setShowStopTimerModal(true)}
+                            className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-bold shadow-md shadow-red-500/20 transition-all flex items-center gap-1.5"
+                        >
+                            <Clock className="w-3 h-3" />
+                            Clock Out
+                        </button>
+                    ) : (
+                        <button
+                            onClick={() => setShowClockInModal(true)}
+                            className="px-3 py-1.5 bg-gradient-to-r from-burgundy-600 to-burgundy-700 hover:from-burgundy-700 hover:to-burgundy-800 text-white rounded text-xs font-bold shadow-md shadow-burgundy-500/20 transition-all flex items-center gap-1.5"
+                        >
+                            <Plus className="w-3 h-3" />
+                            Log Time
+                        </button>
+                    )}
                 </div>
 
                 {/* Compact Stats Grid */}
@@ -449,11 +473,11 @@ const EmployeeTimeTracking = () => {
                     </div>
                 </div>
 
-            </div>
+            </div >
 
 
             {/* Clock In Modal */}
-            <ClockInModal
+            < ClockInModal
                 isOpen={showClockInModal}
                 onClose={() => {
                     setShowClockInModal(false);
@@ -469,6 +493,17 @@ const EmployeeTimeTracking = () => {
                 onEntrySaved={() => {
                     setShowManualEntryModal(false);
                     fetchMonthlyData(); // Refresh data when entry is saved
+                }}
+            />
+
+            {/* Stop Timer Modal */}
+            <StopTimerModal
+                isOpen={showStopTimerModal}
+                onClose={() => setShowStopTimerModal(false)}
+                activeTimer={activeTimer}
+                onStopped={() => {
+                    fetchActiveTimer();
+                    fetchMonthlyData();
                 }}
             />
         </div >

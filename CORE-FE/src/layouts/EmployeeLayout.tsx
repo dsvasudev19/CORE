@@ -24,7 +24,8 @@ import {
     Bug,
 } from 'lucide-react';
 
-import { TimerWidget } from '../components/timer';
+import { timelogService } from '../services/timelog.service';
+import type { TimeLogDTO } from '../types/timelog.types';
 import { AIAgent, ChatToggle } from '../components/chat';
 import ClockInModal from '../modals/ClockInModal';
 import { useAuth } from '../contexts/AuthContext';
@@ -36,6 +37,7 @@ const EmployeeLayout = () => {
     const [notificationOpen, setNotificationOpen] = useState(false);
     const [chatOpen, setChatOpen] = useState(false);
     const [clockInModalOpen, setClockInModalOpen] = useState(false);
+    const [activeTimer, setActiveTimer] = useState<TimeLogDTO | null>(null);
     const location = useLocation();
     const navigate = useNavigate();
     const { user, logout } = useAuth();
@@ -67,6 +69,22 @@ const EmployeeLayout = () => {
         };
     }, []);
 
+    // Fetch active timer for conditional Clock In/Out button
+    useEffect(() => {
+        if (user?.id) {
+            fetchActiveTimer();
+        }
+    }, [user]);
+
+    const fetchActiveTimer = async () => {
+        if (!user?.id) return;
+        try {
+            const timer = await timelogService.getActiveTimer(user.id);
+            setActiveTimer(timer && timer.active ? timer : null);
+        } catch (e) {
+            console.error('Failed to fetch active timer', e);
+        }
+    };
     const navigation = [
         { name: 'Dashboard', href: '/e/dashboard', icon: Home },
         { name: 'My Projects', href: '/e/projects', icon: FolderOpen },
@@ -150,14 +168,7 @@ const EmployeeLayout = () => {
                         })}
                     </nav>
 
-                    {/* Timer Widget */}
-                    {!sidebarCollapsed && (
-                        <div className="px-3 py-2 border-t border-steel-200 transition-opacity duration-200">
-                            <div className="bg-steel-50 rounded-lg p-3">
-                                <TimerWidget compact />
-                            </div>
-                        </div>
-                    )}
+
 
                     {/* Employee Info */}
                     <div className="p-3 border-t border-steel-200">
@@ -213,13 +224,23 @@ const EmployeeLayout = () => {
                         <div className="flex items-center gap-3">
                             {/* Quick Actions */}
                             <div className="hidden lg:flex items-center gap-2">
-                                <button
-                                    onClick={() => setClockInModalOpen(true)}
-                                    className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 hover:border-green-400 hover:from-green-100 hover:to-emerald-100 transition-all shadow-md hover:shadow-lg group"
-                                >
-                                    <Clock size={18} strokeWidth={2.5} className="text-green-600 group-hover:text-green-700 transition-colors" />
-                                    <span className="text-sm font-semibold text-green-700 group-hover:text-green-800 transition-colors">Clock In</span>
-                                </button>
+                                {activeTimer && activeTimer.active ? (
+                                    <button
+                                        onClick={() => setClockInModalOpen(true)}
+                                        className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-red-600 hover:bg-red-700 text-white shadow-md transition-all"
+                                    >
+                                        <Clock size={18} strokeWidth={2.5} className="text-white" />
+                                        <span className="text-sm font-semibold">Clock Out</span>
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={() => setClockInModalOpen(true)}
+                                        className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 hover:border-green-400 hover:from-green-100 hover:to-emerald-100 transition-all shadow-md hover:shadow-lg group"
+                                    >
+                                        <Clock size={18} strokeWidth={2.5} className="text-green-600 group-hover:text-green-700 transition-colors" />
+                                        <span className="text-sm font-semibold text-green-700 group-hover:text-green-800 transition-colors">Clock In</span>
+                                    </button>
+                                )}
                                 <button className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-gradient-to-r from-burgundy-50 to-rose-50 border-2 border-burgundy-200 hover:border-burgundy-400 hover:from-burgundy-100 hover:to-rose-100 transition-all shadow-md hover:shadow-lg group">
                                     <Target size={18} strokeWidth={2.5} className="text-burgundy-600 group-hover:text-burgundy-700 transition-colors" />
                                     <span className="text-sm font-semibold text-burgundy-700 group-hover:text-burgundy-800 transition-colors">New Task</span>

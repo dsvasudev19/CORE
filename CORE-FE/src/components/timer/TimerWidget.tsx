@@ -3,15 +3,24 @@
 
 import { useState, useEffect } from 'react';
 import { Play, Pause, Square } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import type { TimeLogDTO } from '../../types/timelog.types';
+import StopTimerModal from '../../modals/StopTimerModal';
+import { timelogService } from '../../services/timelog.service';
+
 
 interface TimerWidgetProps {
     compact?: boolean;
 }
 
 const TimerWidget = ({ compact = false }: TimerWidgetProps) => {
+    const { user } = useAuth();
+    const [activeTimer, setActiveTimer] = useState<TimeLogDTO | null>(null);
     const [isRunning, setIsRunning] = useState(false);
     const [elapsed, setElapsed] = useState(0);
     const [taskName, setTaskName] = useState('');
+    const [showStopModal, setShowStopModal] = useState(false);
+
 
     useEffect(() => {
         let interval: number;
@@ -22,6 +31,26 @@ const TimerWidget = ({ compact = false }: TimerWidgetProps) => {
         }
         return () => clearInterval(interval);
     }, [isRunning]);
+
+    // Load active timer on mount
+    useEffect(() => {
+        const fetchActive = async () => {
+            if (!user?.id) return;
+            try {
+                const timer = await timelogService.getActiveTimer(user.id);
+                if (timer && timer.active) {
+                    setActiveTimer(timer);
+                    setIsRunning(true);
+                    const start = new Date(timer.startTime!);
+                    const elapsedSec = Math.floor((Date.now() - start.getTime()) / 1000);
+                    setElapsed(elapsedSec);
+                }
+            } catch (e) {
+                console.error('Failed to fetch active timer', e);
+            }
+        };
+        fetchActive();
+    }, [user]);
 
     const formatTime = (seconds: number) => {
         const hours = Math.floor(seconds / 3600);
@@ -51,8 +80,8 @@ const TimerWidget = ({ compact = false }: TimerWidgetProps) => {
                     <button
                         onClick={() => setIsRunning(!isRunning)}
                         className={`p-2 rounded-full transition-colors ${isRunning
-                                ? 'bg-red-100 text-red-600 hover:bg-red-200'
-                                : 'bg-burgundy-100 text-burgundy-600 hover:bg-burgundy-200'
+                            ? 'bg-red-100 text-red-600 hover:bg-red-200'
+                            : 'bg-burgundy-100 text-burgundy-600 hover:bg-burgundy-200'
                             }`}
                     >
                         {isRunning ? <Pause size={16} /> : <Play size={16} />}
@@ -60,8 +89,11 @@ const TimerWidget = ({ compact = false }: TimerWidgetProps) => {
                 </div>
 
                 {elapsed > 0 && (
-                    <button className="w-full text-xs bg-burgundy-600 text-white py-1.5 rounded-md hover:bg-burgundy-700 transition-colors">
-                        Save
+                    <button
+                        onClick={() => setShowStopModal(true)}
+                        className="w-full text-xs bg-burgundy-600 text-white py-1.5 rounded-md hover:bg-burgundy-700 transition-colors"
+                    >
+                        Stop
                     </button>
                 )}
             </div>
@@ -74,10 +106,27 @@ const TimerWidget = ({ compact = false }: TimerWidgetProps) => {
                 <h3 className="text-lg font-semibold text-steel-900">Active Timer</h3>
                 <button
                     className="text-steel-400 hover:text-steel-600"
-                    onClick={() => { setIsRunning(false); setElapsed(0); }}
+                    onClick={() => {
+                        // Reset timer state
+                        setActiveTimer(null);
+                        setIsRunning(false);
+                        setElapsed(0);
+                    }}
                 >
                     <Square size={20} />
                 </button>
+                {/* Stop Timer Modal */}
+                <StopTimerModal
+                    isOpen={showStopModal}
+                    onClose={() => setShowStopModal(false)}
+                    activeTimer={activeTimer}
+                    onStopped={() => {
+                        // Refresh after stop
+                        setActiveTimer(null);
+                        setIsRunning(false);
+                        setElapsed(0);
+                    }}
+                />
             </div>
 
             <div className="space-y-4">
@@ -97,8 +146,8 @@ const TimerWidget = ({ compact = false }: TimerWidgetProps) => {
                         <button
                             onClick={() => setIsRunning(!isRunning)}
                             className={`p-3 rounded-full transition-colors ${isRunning
-                                    ? 'bg-red-100 text-red-600 hover:bg-red-200'
-                                    : 'bg-burgundy-100 text-burgundy-600 hover:bg-burgundy-200'
+                                ? 'bg-red-100 text-red-600 hover:bg-red-200'
+                                : 'bg-burgundy-100 text-burgundy-600 hover:bg-burgundy-200'
                                 }`}
                         >
                             {isRunning ? <Pause size={24} /> : <Play size={24} />}

@@ -26,7 +26,7 @@
 //     Shield,
 //     Zap
 // } from 'lucide-react';
-// import { AIAgent, ChatToggle } from '../components/chat';
+// import { AIAgent, ChatToggle, TimerWidget } from '../components/chat'; // TimerWidget import added/ensured
 // import { useChatContext } from '../contexts/ChatContext';
 
 // const DashboardLayout = () => {
@@ -283,6 +283,7 @@ import {
     ChevronRight
 } from 'lucide-react';
 import { AIAgent, ChatToggle } from '../components/chat';
+
 import { useChatContext } from '../contexts/ChatContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -407,6 +408,7 @@ const DashboardLayout = () => {
                             </div>
                         )}
                     </div>
+
                 </div>
             </div>
 
