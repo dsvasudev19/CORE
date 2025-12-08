@@ -12,10 +12,9 @@ import {
     Calendar,
     Clock,
     Flag,
-    AlertCircle,
-    XCircle,
-    AlertTriangle,
-    Shield,
+    // AlertCircle,
+    // XCircle,
+    // AlertTriangle,
     MessageSquare,
     Send,
     Loader2,
@@ -134,7 +133,7 @@ const BugDetails = () => {
     };
 
     // Debounce timer ref
-    const debounceTimerRef = useRef<any| null>(null);
+    const debounceTimerRef = useRef<any | null>(null);
 
     useEffect(() => {
         return () => {
@@ -450,17 +449,17 @@ const BugDetails = () => {
         return map[severity] ?? 'text-steel-600 bg-steel-50 border-steel-300';
     };
 
-    const getStatusIcon = (status: string) => {
-        switch (status) {
-            case 'OPEN': return <AlertCircle size={14} className="text-blue-600" />;
-            case 'IN_PROGRESS': return <Clock size={14} className="text-yellow-600" />;
-            case 'RESOLVED': return <CheckCircle size={14} className="text-green-600" />;
-            case 'VERIFIED': return <CheckCircle size={14} className="text-purple-600" />;
-            case 'CLOSED': return <XCircle size={14} className="text-steel-600" />;
-            case 'REOPENED': return <AlertTriangle size={14} className="text-orange-600" />;
-            default: return <Bug size={14} className="text-steel-600" />;
-        }
-    };
+    // const getStatusIcon = (status: string) => {
+    //     switch (status) {
+    //         case 'OPEN': return <AlertCircle size={14} className="text-blue-600" />;
+    //         case 'IN_PROGRESS': return <Clock size={14} className="text-yellow-600" />;
+    //         case 'RESOLVED': return <CheckCircle size={14} className="text-green-600" />;
+    //         case 'VERIFIED': return <CheckCircle size={14} className="text-purple-600" />;
+    //         case 'CLOSED': return <XCircle size={14} className="text-steel-600" />;
+    //         case 'REOPENED': return <AlertTriangle size={14} className="text-orange-600" />;
+    //         default: return <Bug size={14} className="text-steel-600" />;
+    //     }
+    // };
 
     const formatDate = (dateString?: string) => {
         if (!dateString) return 'N/A';

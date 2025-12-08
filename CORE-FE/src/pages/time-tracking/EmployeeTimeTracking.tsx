@@ -77,18 +77,18 @@ const EmployeeTimeTracking = () => {
         }
     };
 
-    const handleDeleteEntry = async (id: number) => {
-        if (!window.confirm('Are you sure you want to delete this time entry?')) return;
+    // const handleDeleteEntry = async (id: number) => {
+    //     if (!window.confirm('Are you sure you want to delete this time entry?')) return;
 
-        try {
-            await timelogService.deleteEntry(id);
-            toast.success('Time entry deleted');
-            fetchMonthlyData();
-        } catch (error) {
-            console.error('Error deleting entry:', error);
-            toast.error('Failed to delete time entry');
-        }
-    };
+    //     try {
+    //         await timelogService.deleteEntry(id);
+    //         toast.success('Time entry deleted');
+    //         fetchMonthlyData();
+    //     } catch (error) {
+    //         console.error('Error deleting entry:', error);
+    //         toast.error('Failed to delete time entry');
+    //     }
+    // };
 
     const employeeStats = [
         { title: 'Total Hours', value: `${stats.totalHours}h`, change: '+12%', icon: Clock, color: 'text-steel-600', bg: 'bg-steel-50', border: 'border-steel-200' },

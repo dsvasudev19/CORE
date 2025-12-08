@@ -268,6 +268,8 @@ const TaskDetail = () => {
     };
 
     const getFileIcon = (fileName: string) => {
+        fileName.split('.').pop()?.toLowerCase();
+
         // You can expand this with more specific icons based on file extension
         return <FileText size={16} className="text-burgundy-600" />;
     };

@@ -8,8 +8,7 @@ import {
     CheckSquare,
     Bug,
     ListTodo,
-    Filter,
-    X
+    Filter
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { taskService } from '../../services/task.service';
@@ -208,13 +207,13 @@ const Calendar = () => {
         return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
     };
 
-    const formatTime = (date: Date) => {
-        return date.toLocaleTimeString('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true
-        });
-    };
+    // const formatTime = (date: Date) => {
+    //     return date.toLocaleTimeString('en-US', {
+    //         hour: 'numeric',
+    //         minute: '2-digit',
+    //         hour12: true
+    //     });
+    // };
 
     const formatDate = (date: Date) => {
         return date.toLocaleDateString('en-US', {

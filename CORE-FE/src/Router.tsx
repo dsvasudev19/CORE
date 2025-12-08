@@ -97,6 +97,7 @@ import EmptyLayout from "./layouts/EmptyLayout";
 import ChatPDF from "./components/pdf/Preview";
 import { BugManagement } from "./pages/bugs";
 import BugDetails from "./pages/bugs/BugDetails";
+import DataTableDemo from "./pages/demo/DataTableDemo";
 
 const Router = () => {
     return (
@@ -113,7 +114,7 @@ const Router = () => {
                     <Route path="forgot-password" element={<ForgotPassword />} />
                     <Route path="reset-password" element={<ResetPassword />} />
                 </Route>
-
+      <Route path="demo/datatable" element={<DataTableDemo />} />
                 {/* Admin Routes */}
                 <Route path="/a" element={<AuthGuard><DashboardLayout /></AuthGuard>}>
                     <Route path="dashboard" element={<Dashboard />} />
@@ -150,6 +151,7 @@ const Router = () => {
                     <Route path="designation" element={<DesignationList />} />
                     <Route path="organization-settings" element={<OrganizationSettings />} />
                     <Route path="calendar" element={<Calendar />} />
+                   
                 </Route>
 
                 {/* Employee Routes */}
