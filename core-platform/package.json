@@ -1,0 +1,24 @@
+{
+  "name": "core-platform",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "dev:webapp": "turbo run dev --filter=core-webapp",
+    "dev:services": "turbo run dev --filter=./services/*",
+    "dev:core": "turbo run dev --filter=core-service",
+    "dev:messaging": "turbo run dev --filter=messaging-service",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md,java,js}\"",
+    "check-types": "turbo run check-types"
+  },
+  "devDependencies": {
+    "prettier": "^3.7.4",
+    "turbo": "^2.7.5",
+    "typescript": "5.9.2"
+  },
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=18"
+  }
+}

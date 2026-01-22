@@ -1,0 +1,13 @@
+{
+  "name": "core-service",
+  "version": "0.0.1",
+  "description": "Core Spring Boot backend service",
+  "private": true,
+  "scripts": {
+    "dev": "./mvnw spring-boot:run",
+    "build": "./mvnw clean package -DskipTests",
+    "test": "./mvnw test",
+    "lint": "echo 'Linting core-service...'",
+    "clean": "./mvnw clean"
+  }
+}

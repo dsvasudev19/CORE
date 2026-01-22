@@ -1,0 +1,152 @@
+{
+  "folders": [
+    {
+      "name": "🏠 Root",
+      "path": ".",
+    },
+    {
+      "name": "🌐 Core Webapp",
+      "path": "apps/core-webapp",
+    },
+    {
+      "name": "☕ Core Service",
+      "path": "services/core-service",
+    },
+    {
+      "name": "💬 Messaging Service",
+      "path": "services/messaging-service",
+    },
+    {
+      "name": "🎨 UI Package",
+      "path": "packages/ui",
+    },
+  ],
+  "settings": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit",
+    },
+    "[java]": {
+      "editor.defaultFormatter": "redhat.java",
+    },
+    "[typescript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+    },
+    "[typescriptreact]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+    },
+    "files.exclude": {
+      "**/node_modules": true,
+      "**/dist": true,
+      "**/build": true,
+      "**/.turbo": true,
+      "**/target": true,
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/dist": true,
+      "**/build": true,
+      "**/.turbo": true,
+      "**/target": true,
+      "**/pnpm-lock.yaml": true,
+    },
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "typescript.enablePromptUseWorkspaceTsdk": true,
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.compile.nullAnalysis.mode": "automatic",
+  },
+  "extensions": {
+    "recommendations": [
+      "esbenp.prettier-vscode",
+      "dbaeumer.vscode-eslint",
+      "redhat.java",
+      "vscjava.vscode-java-pack",
+      "vscjava.vscode-spring-boot-dashboard",
+      "pivotal.vscode-spring-boot",
+      "ms-vscode.vscode-typescript-next",
+      "bradlc.vscode-tailwindcss",
+      "prisma.prisma",
+      "ms-azuretools.vscode-docker",
+    ],
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "type": "node",
+        "request": "launch",
+        "name": "🚀 Messaging Service",
+        "program": "${workspaceFolder:💬 Messaging Service}/src/server.js",
+        "cwd": "${workspaceFolder:💬 Messaging Service}",
+        "env": {
+          "NODE_ENV": "development",
+        },
+      },
+      {
+        "type": "java",
+        "name": "🚀 Core Service",
+        "request": "launch",
+        "mainClass": "com.dev.core.CoreApplication",
+        "projectName": "core-service",
+      },
+    ],
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "🚀 Start All Services",
+        "type": "shell",
+        "command": "pnpm dev",
+        "problemMatcher": [],
+        "presentation": {
+          "reveal": "always",
+          "panel": "new",
+        },
+      },
+      {
+        "label": "🌐 Start Core Webapp",
+        "type": "shell",
+        "command": "pnpm dev:webapp",
+        "problemMatcher": [],
+        "presentation": {
+          "reveal": "always",
+          "panel": "new",
+        },
+      },
+      {
+        "label": "☕ Start Core Service",
+        "type": "shell",
+        "command": "pnpm dev:core",
+        "problemMatcher": [],
+        "presentation": {
+          "reveal": "always",
+          "panel": "new",
+        },
+      },
+      {
+        "label": "💬 Start Messaging Service",
+        "type": "shell",
+        "command": "pnpm dev:messaging",
+        "problemMatcher": [],
+        "presentation": {
+          "reveal": "always",
+          "panel": "new",
+        },
+      },
+      {
+        "label": "🔨 Build All",
+        "type": "shell",
+        "command": "pnpm build",
+        "problemMatcher": [],
+      },
+      {
+        "label": "🧹 Clean All",
+        "type": "shell",
+        "command": "rm -rf node_modules apps/*/node_modules services/*/node_modules packages/*/node_modules .turbo && cd services/core-service && ./mvnw clean",
+        "problemMatcher": [],
+      },
+    ],
+  },
+}
