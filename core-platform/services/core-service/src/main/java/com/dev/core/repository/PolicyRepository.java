@@ -37,6 +37,8 @@ public interface PolicyRepository extends JpaRepository<Policy, Long>, JpaSpecif
             Long resourceId,
             Long actionId
     );
+    
+    long countByRoleId(Long roleId);
 
 }
 	

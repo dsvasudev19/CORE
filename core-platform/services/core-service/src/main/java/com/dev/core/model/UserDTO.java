@@ -26,10 +26,9 @@ public class UserDTO extends BaseDTO {
     private Long employeeProfileId;
     private Long clientRepresentativeProfileId;
 
-    @JsonIgnore
     private Set<RoleDTO> roles;
-    @JsonIgnore
-    private Set<PermissionDTO> permissions;   // ✅ NEW LINE
+    
+    private Set<PermissionDTO> permissions;
     
     private List<String> roleNames;       // Only role names
     private List<String> permissionKeys;  // resource-action format

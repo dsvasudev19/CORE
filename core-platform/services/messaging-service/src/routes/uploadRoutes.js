@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const uploadController = require('../controllers/uploadController');
-const { authenticate } = require('../middleware/auth');
+const {extractUserContext} = require('../middleware/userContext');
 
-router.use(authenticate);
+// Use user context middleware instead of JWT authentication
+router.use(extractUserContext);
 
 router.post('/', uploadController.uploadFile);
 

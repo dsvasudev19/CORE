@@ -204,7 +204,7 @@ public class AuthServiceImpl implements AuthService {
         tokenRepository.save(token);
 
         // Build final URL for frontend
-        String resetLink = baseUrl + "/auth/reset-password?token" + tokenValue;
+        String resetLink = baseUrl + "/auth/reset-password?token=" + tokenValue;
 
         log.info("Sending password reset link to {}", user.getEmail());
 

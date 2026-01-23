@@ -5,7 +5,7 @@ import type {
   CalendarEventPageResponse,
 } from "../types/calendarEvent.types";
 
-const API_BASE = "/api/calendar/events";
+const API_BASE = "/calendar/events";
 
 export const calendarEventService = {
   // Create event

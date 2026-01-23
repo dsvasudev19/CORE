@@ -20,11 +20,17 @@ A real-time messaging application built with Node.js, Express, Socket.IO, and My
 
 ## Architecture
 
-This service is designed to work within a microservices architecture:
-- **User details** are fetched from User Service
-- **Team details** are fetched from Team Service  
-- **Employee details** are fetched from Employee Service
-- This service focuses solely on messaging functionality
+This service is designed to work within a microservices architecture using an **API Gateway pattern**:
+
+- **Core-Service** handles ALL authentication and authorization
+- **Core-Service** proxies requests to this messaging-service with user context
+- This service trusts core-service completely (internal network only)
+- User context is passed via headers (X-User-Id, X-User-Name, X-User-Email, X-Organization-Id)
+- **No JWT authentication** in this service - it's handled upstream by core-service
+
+```
+Frontend → Core-Service (JWT Auth) → Messaging-Service (User Context Headers)
+```
 
 ## Tech Stack
 
@@ -33,26 +39,32 @@ This service is designed to work within a microservices architecture:
 - **Socket.IO** - Real-time bidirectional communication
 - **MySQL** - Relational database
 - **Sequelize** - ORM for MySQL
-- **JWT** - Authentication
 - **Winston** - Logging
+- **User Context Headers** - Authentication via core-service (no JWT in this service)
 
 ## Installation
 
 1. Install dependencies:
+
 ```bash
 npm install
 ```
 
 2. Create `.env` file:
+
 ```bash
 cp .env.example .env
 ```
 
 3. Configure environment variables in `.env`:
+
 ```
-PORT=3000
+PORT=3001
 NODE_ENV=development
-JWT_SECRET=your_jwt_secret_key_here
+
+# Security Configuration
+INTERNAL_NETWORK_ONLY=true
+TRUSTED_PROXY=core-service
 
 # Database Configuration
 DB_HOST=127.0.0.1
@@ -62,27 +74,43 @@ DB_PASSWORD=
 DB_NAME=messaging_app_dev
 
 # External Services
+CORE_SERVICE_URL=http://localhost:8080
+
+# Socket.IO Configuration
+SOCKET_IO_CORS_ORIGIN=http://localhost:5173
+```
+
+**Note:** JWT_SECRET is no longer needed as authentication is handled by core-service.
+DB_NAME=messaging_app_dev
+
+# External Services
+
 USER_SERVICE_URL=http://localhost:3001
 TEAM_SERVICE_URL=http://localhost:3002
 EMPLOYEE_SERVICE_URL=http://localhost:3003
 
 # Socket.IO Configuration
+
 SOCKET_IO_CORS_ORIGIN=http://localhost:3001
-```
+
+````
 
 4. Run database migrations:
+
 ```bash
 npm run db:migrate
-```
+````
 
 ## Running the Application
 
 Development mode with auto-reload:
+
 ```bash
 npm run dev
 ```
 
 Production mode:
+
 ```bash
 npm start
 ```
@@ -90,15 +118,18 @@ npm start
 ## API Endpoints
 
 ### Health Check
+
 - `GET /health` - Service health status
 
 ### Messages
+
 - `GET /api/messages/channel/:channelId` - Get channel messages
 - `GET /api/messages/:messageId` - Get specific message
 - `GET /api/messages/thread/:threadId` - Get thread messages
 - `POST /api/messages/search` - Search messages
 
 ### Channels
+
 - `POST /api/channels` - Create new channel
 - `GET /api/channels/team/:teamId` - Get team channels
 - `GET /api/channels/:channelId` - Get channel details
@@ -109,7 +140,14 @@ npm start
 - `POST /api/channels/:channelId/archive` - Archive channel
 - `POST /api/channels/:channelId/unarchive` - Unarchive channel
 
-All API endpoints require JWT authentication via `Authorization: Bearer <token>` header.
+All API endpoints expect user context headers from core-service:
+
+- `X-User-Id`: User's ID
+- `X-User-Name`: User's name
+- `X-User-Email`: User's email
+- `X-Organization-Id`: Organization ID
+
+**Note:** This service should only be accessible from core-service (internal network). Direct access from frontend is not supported.
 
 ## Socket.IO Events
 
@@ -137,18 +175,25 @@ All API endpoints require JWT authentication via `Authorization: Bearer <token>`
 
 ## Socket.IO Authentication
 
-Connect with JWT token:
+Connect with user context (passed from core-service):
+
 ```javascript
-const socket = io('http://localhost:3000', {
+const socket = io("http://localhost:3001", {
   auth: {
-    token: 'your_jwt_token'
-  }
+    userId: user.id,
+    userName: user.name,
+    userEmail: user.email,
+    userAvatar: user.avatar,
+  },
 });
 ```
+
+**Note:** In production, Socket.IO connections should also go through core-service or use a secure token mechanism.
 
 ## Database Models
 
 ### Message
+
 - channelId, senderId, senderName, content
 - messageType (text, image, file, system)
 - attachments, mentions, reactions
@@ -157,6 +202,7 @@ const socket = io('http://localhost:3000', {
 - timestamps
 
 ### Channel
+
 - name, description, type (public, private, direct)
 - teamId, createdBy
 - members (with roles)
@@ -166,16 +212,18 @@ const socket = io('http://localhost:3000', {
 
 ## External Service Integration
 
-The app integrates with external services for:
-- **User details** - Username, email, profile
-- **Team membership** - Team access verification
-- **Employee information** - Employee metadata
+This service integrates with core-service for:
 
-Configure service URLs in `.env` file.
+- **User context** - Passed via headers from core-service
+- **Authentication** - Handled entirely by core-service
+- **Authorization** - Enforced by core-service before proxying requests
+
+All requests to this service should come from core-service only (internal network).
 
 ## Error Handling
 
 All errors are logged with Winston and returned with appropriate HTTP status codes:
+
 - `400` - Bad request
 - `401` - Unauthorized
 - `403` - Forbidden
@@ -185,6 +233,7 @@ All errors are logged with Winston and returned with appropriate HTTP status cod
 ## Logging
 
 Logs are stored in the `logs/` directory:
+
 - `error.log` - Error-level logs only
 - `combined.log` - All logs
 
@@ -193,6 +242,7 @@ Console output is enabled in development mode.
 ## Development
 
 Run tests:
+
 ```bash
 npm test
 ```

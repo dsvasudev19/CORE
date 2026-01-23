@@ -181,11 +181,23 @@ public class UserServiceImpl implements UserService {
         User entity = UserMapper.toEntity(dto);
         // If password hashing required, handle it here before saving.
         entity.setPassword(passwordEncoder.encode(dto.getPassword()));
-        entity.setRoles(
-        	    dto.getRoles().stream()
-        	        .map(r -> RoleMapper.toEntity(r))
-        	        .collect(Collectors.toSet())
-        	);
+        
+        // Handle roles if provided
+        if (dto.getRoles() != null && !dto.getRoles().isEmpty()) {
+            Set<Role> roles = dto.getRoles().stream()
+                .map(roleDTO -> {
+                    if (roleDTO.getId() != null) {
+                        return roleRepository.findById(roleDTO.getId())
+                            .orElseThrow(() -> new BaseException("error.role.not.found", 
+                                new Object[]{roleDTO.getId()}));
+                    } else {
+                        return RoleMapper.toEntity(roleDTO);
+                    }
+                })
+                .collect(Collectors.toSet());
+            entity.setRoles(roles);
+        }
+        
         User saved = userRepository.save(entity);
         return UserMapper.toDTO(saved);
     }
@@ -201,6 +213,11 @@ public class UserServiceImpl implements UserService {
         existing.setUsername(dto.getUsername());
         existing.setEmail(dto.getEmail());
         existing.setStatus(dto.getStatus());
+        
+        // Update password only if provided
+        if (dto.getPassword() != null && !dto.getPassword().trim().isEmpty()) {
+            existing.setPassword(passwordEncoder.encode(dto.getPassword()));
+        }
 
         if (dto.getRoles() != null && !dto.getRoles().isEmpty()) {
 
@@ -212,7 +229,7 @@ public class UserServiceImpl implements UserService {
                                 new Object[]{r.getId()}));
                 newRoles.add(role);
             }
-            log.info("new roles",newRoles);
+            log.info("New roles being assigned: {}", newRoles);
             existing.getRoles().clear();
             existing.getRoles().addAll(newRoles);
         }

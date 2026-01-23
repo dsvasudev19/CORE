@@ -48,7 +48,7 @@ import { JobDetails } from "../pages/recruitment";
 import { TrainingDevelopment } from "../pages/training";
 
 // Announcements
-import { Announcements, AnnouncementDetails, AnnouncementView } from "../pages/announcements";
+import { Announcements, AnnouncementView } from "../pages/announcements";
 import CreateAnnouncement from "../pages/announcements/CreateAnnouncement";
 import EditAnnouncement from "../pages/announcements/EditAnnouncement";
 

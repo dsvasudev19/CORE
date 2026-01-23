@@ -1,6 +1,5 @@
 const logger = require('../utils/logger');
-const jwt = require('jsonwebtoken');
-const { Message, Channel, ChannelMember, MessageReaction, MessageMention, UserPresence } = require('../models');
+const {Message, Channel, ChannelMember, MessageReaction, MessageMention, UserPresence} = require('../models');
 
 class SocketHandler {
     constructor(io) {
@@ -10,30 +9,40 @@ class SocketHandler {
     }
 
     /**
-     * Setup Socket.IO middleware for authentication
+     * Setup Socket.IO middleware for user context extraction
+     * User context is passed from core-service via handshake headers
      */
     setupMiddleware() {
         this.io.use(async (socket, next) => {
             try {
-                const token = socket.handshake.auth.token;
+                // Extract user context from handshake headers (sent by core-service)
+                const userId = socket.handshake.headers['x-user-id'] ||
+                    socket.handshake.auth.userId;
+                const userName = socket.handshake.headers['x-user-name'] ||
+                    socket.handshake.auth.userName;
+                const userEmail = socket.handshake.headers['x-user-email'] ||
+                    socket.handshake.auth.userEmail;
+                const userAvatar = socket.handshake.auth.userAvatar;
 
-                if (!token) {
-                    return next(new Error('Authentication error: No token provided'));
+                if (!userId) {
+                    return next(new Error('Authentication error: No user ID provided'));
                 }
 
-                // Verify JWT token
-                const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
                 // Attach user info to socket
-                socket.userId = decoded.userId || decoded.id;
-                socket.userName = decoded.userName || decoded.name;
-                socket.userAvatar = decoded.userAvatar || decoded.avatar;
+                socket.userId = parseInt(userId);
+                socket.userName = userName || 'Unknown User';
+                socket.userEmail = userEmail || '';
+                socket.userAvatar = userAvatar || null;
 
-                logger.info('Socket authenticated', { userId: socket.userId, socketId: socket.id });
+                logger.info('Socket authenticated via user context', {
+                    userId: socket.userId,
+                    userName: socket.userName,
+                    socketId: socket.id
+                });
                 next();
             } catch (error) {
-                logger.error('Socket authentication failed', { error: error.message });
-                next(new Error('Authentication error: Invalid token'));
+                logger.error('Socket authentication failed', {error: error.message});
+                next(new Error('Authentication error: Invalid user context'));
             }
         });
     }
@@ -43,10 +52,10 @@ class SocketHandler {
      */
     setupEventHandlers() {
         this.io.on('connection', (socket) => {
-            logger.info('Client connected', { userId: socket.userId, socketId: socket.id });
+            logger.info('Client connected', {userId: socket.userId, socketId: socket.id});
 
             // Join user's personal room
-            socket.join(`user:${socket.userId}`);
+            socket.join(`user:${ socket.userId }`);
 
             // Update user presence to online
             this.updateUserPresence(socket.userId, 'online');
@@ -84,21 +93,21 @@ class SocketHandler {
      */
     async handleJoinChannels(socket, data) {
         try {
-            const { channelIds } = data;
+            const {channelIds} = data;
 
             if (!Array.isArray(channelIds)) {
-                return socket.emit('error', { message: 'channelIds must be an array' });
+                return socket.emit('error', {message: 'channelIds must be an array'});
             }
 
             // Verify user is a member of each channel
             for (const channelId of channelIds) {
                 const member = await ChannelMember.findOne({
-                    where: { channelId: channelId, userId: socket.userId }
+                    where: {channelId: channelId, userId: socket.userId}
                 });
 
                 if (member) {
-                    socket.join(`channel:${channelId}`);
-                    logger.info('User joined channel', { userId: socket.userId, channelId });
+                    socket.join(`channel:${ channelId }`);
+                    logger.info('User joined channel', {userId: socket.userId, channelId});
                 } else {
                     logger.warn('User attempted to join unauthorized channel', {
                         userId: socket.userId,
@@ -107,10 +116,10 @@ class SocketHandler {
                 }
             }
 
-            socket.emit('channels-joined', { channelIds });
+            socket.emit('channels-joined', {channelIds});
         } catch (error) {
-            logger.error('Error joining channels', { error: error.message, userId: socket.userId });
-            socket.emit('error', { message: 'Failed to join channels' });
+            logger.error('Error joining channels', {error: error.message, userId: socket.userId});
+            socket.emit('error', {message: 'Failed to join channels'});
         }
     }
 
@@ -118,9 +127,9 @@ class SocketHandler {
      * Handle user leaving a channel
      */
     handleLeaveChannel(socket, data) {
-        const { channelId } = data;
-        socket.leave(`channel:${channelId}`);
-        logger.info('User left channel', { userId: socket.userId, channelId });
+        const {channelId} = data;
+        socket.leave(`channel:${ channelId }`);
+        logger.info('User left channel', {userId: socket.userId, channelId});
     }
 
     /**
@@ -128,15 +137,15 @@ class SocketHandler {
      */
     async handleSendMessage(socket, data) {
         try {
-            const { channelId, content, messageType = 'text', parentMessageId, mentions, attachments } = data;
+            const {channelId, content, messageType = 'text', parentMessageId, mentions, attachments} = data;
 
             // Verify user is a member of the channel
             const member = await ChannelMember.findOne({
-                where: { channelId: channelId, userId: socket.userId }
+                where: {channelId: channelId, userId: socket.userId}
             });
 
             if (!member) {
-                return socket.emit('error', { message: 'You are not a member of this channel' });
+                return socket.emit('error', {message: 'You are not a member of this channel'});
             }
 
             // Create message
@@ -167,7 +176,7 @@ class SocketHandler {
                     });
 
                     // Notify mentioned user
-                    this.io.to(`user:${mentionedUserId}`).emit('mentioned', {
+                    this.io.to(`user:${ mentionedUserId }`).emit('mentioned', {
                         messageId: message.id,
                         channelId,
                         senderId: socket.userId,
@@ -178,29 +187,29 @@ class SocketHandler {
 
             // Update channel's lastMessageAt
             await Channel.update(
-                { lastMessageAt: new Date() },
-                { where: { id: channelId } }
+                {lastMessageAt: new Date()},
+                {where: {id: channelId}}
             );
 
             // Fetch complete message with associations
             const completeMessage = await Message.findByPk(message.id, {
                 include: [
-                    { association: 'reactions' },
-                    { association: 'mentions' },
-                    { association: 'attachments' }
+                    {association: 'reactions'},
+                    {association: 'mentions'},
+                    {association: 'attachments'}
                 ]
             });
 
             // Broadcast to channel
-            this.io.to(`channel:${channelId}`).emit('new-message', {
+            this.io.to(`channel:${ channelId }`).emit('new-message', {
                 message: completeMessage,
                 channelId
             });
 
-            logger.info('Message sent', { messageId: message.id, channelId, userId: socket.userId });
+            logger.info('Message sent', {messageId: message.id, channelId, userId: socket.userId});
         } catch (error) {
-            logger.error('Error sending message', { error: error.message, userId: socket.userId });
-            socket.emit('error', { message: 'Failed to send message', code: 'SEND_MESSAGE_ERROR' });
+            logger.error('Error sending message', {error: error.message, userId: socket.userId});
+            socket.emit('error', {message: 'Failed to send message', code: 'SEND_MESSAGE_ERROR'});
         }
     }
 
@@ -209,17 +218,17 @@ class SocketHandler {
      */
     async handleEditMessage(socket, data) {
         try {
-            const { messageId, content } = data;
+            const {messageId, content} = data;
 
             const message = await Message.findByPk(messageId);
 
             if (!message) {
-                return socket.emit('error', { message: 'Message not found' });
+                return socket.emit('error', {message: 'Message not found'});
             }
 
             // Only sender can edit their message
             if (message.senderId !== socket.userId) {
-                return socket.emit('error', { message: 'You can only edit your own messages' });
+                return socket.emit('error', {message: 'You can only edit your own messages'});
             }
 
             // Update message
@@ -228,17 +237,17 @@ class SocketHandler {
             await message.save();
 
             // Broadcast to channel
-            this.io.to(`channel:${message.channelId}`).emit('message-edited', {
+            this.io.to(`channel:${ message.channelId }`).emit('message-edited', {
                 messageId: message.id,
                 content: message.content,
                 isEdited: true,
                 updatedAt: message.updatedAt
             });
 
-            logger.info('Message edited', { messageId, userId: socket.userId });
+            logger.info('Message edited', {messageId, userId: socket.userId});
         } catch (error) {
-            logger.error('Error editing message', { error: error.message, userId: socket.userId });
-            socket.emit('error', { message: 'Failed to edit message' });
+            logger.error('Error editing message', {error: error.message, userId: socket.userId});
+            socket.emit('error', {message: 'Failed to edit message'});
         }
     }
 
@@ -247,24 +256,24 @@ class SocketHandler {
      */
     async handleDeleteMessage(socket, data) {
         try {
-            const { messageId } = data;
+            const {messageId} = data;
 
             const message = await Message.findByPk(messageId);
 
             if (!message) {
-                return socket.emit('error', { message: 'Message not found' });
+                return socket.emit('error', {message: 'Message not found'});
             }
 
             // Check if user can delete (owner or channel admin)
             const member = await ChannelMember.findOne({
-                where: { channelId: message.channelId, userId: socket.userId }
+                where: {channelId: message.channelId, userId: socket.userId}
             });
 
             const canDelete = message.senderId === socket.userId ||
                 (member && ['owner', 'admin'].includes(member.role));
 
             if (!canDelete) {
-                return socket.emit('error', { message: 'You do not have permission to delete this message' });
+                return socket.emit('error', {message: 'You do not have permission to delete this message'});
             }
 
             // Soft delete
@@ -273,15 +282,15 @@ class SocketHandler {
             await message.save();
 
             // Broadcast to channel
-            this.io.to(`channel:${message.channelId}`).emit('message-deleted', {
+            this.io.to(`channel:${ message.channelId }`).emit('message-deleted', {
                 messageId: message.id,
                 channelId: message.channelId
             });
 
-            logger.info('Message deleted', { messageId, userId: socket.userId });
+            logger.info('Message deleted', {messageId, userId: socket.userId});
         } catch (error) {
-            logger.error('Error deleting message', { error: error.message, userId: socket.userId });
-            socket.emit('error', { message: 'Failed to delete message' });
+            logger.error('Error deleting message', {error: error.message, userId: socket.userId});
+            socket.emit('error', {message: 'Failed to delete message'});
         }
     }
 
@@ -290,33 +299,33 @@ class SocketHandler {
      */
     async handleAddReaction(socket, data) {
         try {
-            const { messageId, emoji } = data;
+            const {messageId, emoji} = data;
 
             // Check if message exists
             const message = await Message.findByPk(messageId);
             if (!message) {
-                return socket.emit('error', { message: 'Message not found' });
+                return socket.emit('error', {message: 'Message not found'});
             }
 
             // Add reaction (will be unique due to DB constraint)
             const [reaction, created] = await MessageReaction.findOrCreate({
-                where: { messageId: messageId, userId: socket.userId, emoji },
-                defaults: { messageId: messageId, userId: socket.userId, emoji }
+                where: {messageId: messageId, userId: socket.userId, emoji},
+                defaults: {messageId: messageId, userId: socket.userId, emoji}
             });
 
             if (created) {
                 // Broadcast to channel
-                this.io.to(`channel:${message.channelId}`).emit('reaction-added', {
+                this.io.to(`channel:${ message.channelId }`).emit('reaction-added', {
                     messageId,
                     userId: socket.userId,
                     emoji
                 });
 
-                logger.info('Reaction added', { messageId, emoji, userId: socket.userId });
+                logger.info('Reaction added', {messageId, emoji, userId: socket.userId});
             }
         } catch (error) {
-            logger.error('Error adding reaction', { error: error.message, userId: socket.userId });
-            socket.emit('error', { message: 'Failed to add reaction' });
+            logger.error('Error adding reaction', {error: error.message, userId: socket.userId});
+            socket.emit('error', {message: 'Failed to add reaction'});
         }
     }
 
@@ -325,31 +334,31 @@ class SocketHandler {
      */
     async handleRemoveReaction(socket, data) {
         try {
-            const { messageId, emoji } = data;
+            const {messageId, emoji} = data;
 
             const message = await Message.findByPk(messageId);
             if (!message) {
-                return socket.emit('error', { message: 'Message not found' });
+                return socket.emit('error', {message: 'Message not found'});
             }
 
             // Remove reaction
             const deleted = await MessageReaction.destroy({
-                where: { messageId: messageId, userId: socket.userId, emoji }
+                where: {messageId: messageId, userId: socket.userId, emoji}
             });
 
             if (deleted) {
                 // Broadcast to channel
-                this.io.to(`channel:${message.channelId}`).emit('reaction-removed', {
+                this.io.to(`channel:${ message.channelId }`).emit('reaction-removed', {
                     messageId,
                     userId: socket.userId,
                     emoji
                 });
 
-                logger.info('Reaction removed', { messageId, emoji, userId: socket.userId });
+                logger.info('Reaction removed', {messageId, emoji, userId: socket.userId});
             }
         } catch (error) {
-            logger.error('Error removing reaction', { error: error.message, userId: socket.userId });
-            socket.emit('error', { message: 'Failed to remove reaction' });
+            logger.error('Error removing reaction', {error: error.message, userId: socket.userId});
+            socket.emit('error', {message: 'Failed to remove reaction'});
         }
     }
 
@@ -357,10 +366,10 @@ class SocketHandler {
      * Handle typing start
      */
     handleTypingStart(socket, data) {
-        const { channelId } = data;
+        const {channelId} = data;
 
         // Broadcast to others in channel
-        socket.to(`channel:${channelId}`).emit('user-typing', {
+        socket.to(`channel:${ channelId }`).emit('user-typing', {
             channelId,
             userId: socket.userId,
             userName: socket.userName
@@ -371,10 +380,10 @@ class SocketHandler {
      * Handle typing stop
      */
     handleTypingStop(socket, data) {
-        const { channelId } = data;
+        const {channelId} = data;
 
         // Broadcast to others in channel
-        socket.to(`channel:${channelId}`).emit('user-stopped-typing', {
+        socket.to(`channel:${ channelId }`).emit('user-stopped-typing', {
             channelId,
             userId: socket.userId
         });
@@ -385,10 +394,10 @@ class SocketHandler {
      */
     async handleMarkRead(socket, data) {
         try {
-            const { channelId, lastMessageId } = data;
+            const {channelId, lastMessageId} = data;
 
             const member = await ChannelMember.findOne({
-                where: { channelId: channelId, userId: socket.userId }
+                where: {channelId: channelId, userId: socket.userId}
             });
 
             if (member) {
@@ -396,17 +405,17 @@ class SocketHandler {
                 await member.save();
 
                 // Broadcast to channel
-                this.io.to(`channel:${channelId}`).emit('messages-marked-read', {
+                this.io.to(`channel:${ channelId }`).emit('messages-marked-read', {
                     channelId,
                     userId: socket.userId,
                     lastReadAt: member.lastReadAt
                 });
 
-                logger.info('Messages marked as read', { channelId, userId: socket.userId });
+                logger.info('Messages marked as read', {channelId, userId: socket.userId});
             }
         } catch (error) {
-            logger.error('Error marking messages as read', { error: error.message, userId: socket.userId });
-            socket.emit('error', { message: 'Failed to mark messages as read' });
+            logger.error('Error marking messages as read', {error: error.message, userId: socket.userId});
+            socket.emit('error', {message: 'Failed to mark messages as read'});
         }
     }
 
@@ -414,7 +423,7 @@ class SocketHandler {
      * Handle user disconnect
      */
     async handleDisconnect(socket) {
-        logger.info('Client disconnected', { userId: socket.userId, socketId: socket.id });
+        logger.info('Client disconnected', {userId: socket.userId, socketId: socket.id});
 
         // Update user presence to offline
         await this.updateUserPresence(socket.userId, 'offline');
@@ -435,7 +444,7 @@ class SocketHandler {
                 lastSeenAt: new Date()
             });
         } catch (error) {
-            logger.error('Error updating user presence', { error: error.message, userId });
+            logger.error('Error updating user presence', {error: error.message, userId});
         }
     }
 
@@ -443,7 +452,7 @@ class SocketHandler {
      * Broadcast presence change to all connected clients
      */
     broadcastPresenceChange(userId, status) {
-        this.io.emit('presence-changed', { userId, status });
+        this.io.emit('presence-changed', {userId, status});
     }
 }
 

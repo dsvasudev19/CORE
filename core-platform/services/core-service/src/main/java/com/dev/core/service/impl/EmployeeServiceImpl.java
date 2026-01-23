@@ -1,7 +1,10 @@
 package com.dev.core.service.impl;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -17,10 +20,12 @@ import com.dev.core.domain.Employee;
 import com.dev.core.domain.EmployeeAsset;
 import com.dev.core.domain.EmployeeDocument;
 import com.dev.core.domain.EmploymentHistory;
+import com.dev.core.domain.Role;
 import com.dev.core.domain.TeamMember;
 import com.dev.core.exception.ValidationFailedException;
 import com.dev.core.mapper.EmployeeAssetMapper;
 import com.dev.core.mapper.EmployeeMapper;
+import com.dev.core.mapper.RoleMapper;
 import com.dev.core.model.EmployeeAssetDTO;
 import com.dev.core.model.EmployeeDTO;
 import com.dev.core.model.UserDTO;
@@ -30,6 +35,7 @@ import com.dev.core.repository.EmployeeAssetRepository;
 import com.dev.core.repository.EmployeeDocumentRepository;
 import com.dev.core.repository.EmployeeRepository;
 import com.dev.core.repository.EmploymentHistoryRepository;
+import com.dev.core.repository.RoleRepository;
 import com.dev.core.repository.TeamMemberRepository;
 import com.dev.core.repository.TeamRepository;
 import com.dev.core.security.SecurityContextUtil;
@@ -54,6 +60,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final EmployeeRepository employeeRepository;
     private final DepartmentRepository departmentRepository;
     private final DesignationRepository designationRepository;
+    private final RoleRepository roleRepository;
     private final TeamRepository teamRepository;
     private final TeamMemberRepository teamMemberRepository;
     private final EmployeeDocumentRepository documentRepository;
@@ -131,12 +138,30 @@ public class EmployeeServiceImpl implements EmployeeService {
         Employee saved = employeeRepository.save(entity);
         log.info("✅ Employee created: {} ({})", saved.getFirstName(), saved.getEmail());
         
+        // Automatically determine role based on designation
+        String defaultRoleName = determineDefaultRole(saved.getDesignation());
+        
         UserDTO userDto = new UserDTO();
         userDto.setOrganizationId(saved.getOrganizationId());
         userDto.setUsername(saved.getEmployeeCode());  // OR saved.getEmail() — your choice
         userDto.setEmail(saved.getFirstName().replaceAll(" ", "")+"."+saved.getLastName().replaceAll(" ","")+"@yopmail.com");
         userDto.setPassword(PasswordGenerator.generatePassword()); // or auto-generate
         userDto.setStatus(UserStatus.ACTIVE);
+        
+        // Assign default role based on designation
+        Role defaultRole = roleRepository.findByNameAndOrganizationId(defaultRoleName, saved.getOrganizationId())
+                .orElseGet(() -> {
+                    // Fallback to DEVELOPER role if designation-specific role not found
+                    log.warn("Role {} not found for designation {}, falling back to DEVELOPER", 
+                            defaultRoleName, saved.getDesignation().getTitle());
+                    return roleRepository.findByNameAndOrganizationId("DEVELOPER", saved.getOrganizationId())
+                            .orElseThrow(() -> new ValidationFailedException("error.role.notfound", 
+                                    new Object[]{"DEVELOPER"}));
+                });
+        
+        userDto.setRoles(Set.of(RoleMapper.toDTO(defaultRole)));
+        log.info("Assigning role {} to new employee {} based on designation {}", 
+                defaultRoleName, saved.getEmployeeCode(), saved.getDesignation().getTitle());
 
         UserDTO createdUser = userService.createUserForEmployee(saved.getId(), userDto);
         
@@ -600,10 +625,81 @@ public class EmployeeServiceImpl implements EmployeeService {
 		// TODO Auto-generated method stub
 		return null;
 	}
-
     
-   
-
-    
+    /**
+     * Determines the default role for an employee based on their designation
+     */
+    private String determineDefaultRole(Designation designation) {
+        if (designation == null || designation.getTitle() == null) {
+            return "DEVELOPER"; // Default fallback
+        }
+        
+        // Map designation titles to default roles
+        Map<String, String> designationRoleMap = new HashMap<>();
+        
+        // Engineering
+        designationRoleMap.put("Junior Software Engineer", "DEVELOPER");
+        designationRoleMap.put("Software Engineer", "DEVELOPER");
+        designationRoleMap.put("Senior Software Engineer", "DEVELOPER");
+        designationRoleMap.put("Lead Software Engineer", "TEAM_LEAD");
+        designationRoleMap.put("Engineering Manager", "PROJECT_MANAGER");
+        designationRoleMap.put("Principal Engineer", "TEAM_LEAD");
+        designationRoleMap.put("VP of Engineering", "ORG_ADMIN");
+        designationRoleMap.put("CTO", "ORG_ADMIN");
+        
+        // QA
+        designationRoleMap.put("QA Engineer", "DEVELOPER");
+        designationRoleMap.put("Senior QA Engineer", "DEVELOPER");
+        designationRoleMap.put("QA Lead", "TEAM_LEAD");
+        designationRoleMap.put("QA Manager", "PROJECT_MANAGER");
+        
+        // Product
+        designationRoleMap.put("Associate Product Manager", "DEVELOPER");
+        designationRoleMap.put("Product Manager", "PROJECT_MANAGER");
+        designationRoleMap.put("Senior Product Manager", "PROJECT_MANAGER");
+        designationRoleMap.put("VP of Product", "ORG_ADMIN");
+        
+        // Design
+        designationRoleMap.put("UI/UX Designer", "DEVELOPER");
+        designationRoleMap.put("Senior Designer", "DEVELOPER");
+        designationRoleMap.put("Design Lead", "TEAM_LEAD");
+        designationRoleMap.put("Head of Design", "PROJECT_MANAGER");
+        
+        // DevOps
+        designationRoleMap.put("DevOps Engineer", "DEVELOPER");
+        designationRoleMap.put("Senior DevOps Engineer", "DEVELOPER");
+        designationRoleMap.put("DevOps Lead", "TEAM_LEAD");
+        designationRoleMap.put("Infrastructure Manager", "PROJECT_MANAGER");
+        
+        // Data Science
+        designationRoleMap.put("Data Analyst", "DEVELOPER");
+        designationRoleMap.put("Data Scientist", "DEVELOPER");
+        designationRoleMap.put("Senior Data Scientist", "DEVELOPER");
+        designationRoleMap.put("ML Engineer", "DEVELOPER");
+        designationRoleMap.put("Data Science Manager", "PROJECT_MANAGER");
+        
+        // Other departments
+        designationRoleMap.put("HR Coordinator", "DEVELOPER");
+        designationRoleMap.put("HR Manager", "PROJECT_MANAGER");
+        designationRoleMap.put("VP of HR", "ORG_ADMIN");
+        designationRoleMap.put("Accountant", "DEVELOPER");
+        designationRoleMap.put("Finance Manager", "PROJECT_MANAGER");
+        designationRoleMap.put("CFO", "ORG_ADMIN");
+        designationRoleMap.put("Sales Representative", "DEVELOPER");
+        designationRoleMap.put("Account Executive", "DEVELOPER");
+        designationRoleMap.put("Sales Manager", "PROJECT_MANAGER");
+        designationRoleMap.put("VP of Sales", "ORG_ADMIN");
+        designationRoleMap.put("Marketing Coordinator", "DEVELOPER");
+        designationRoleMap.put("Marketing Manager", "PROJECT_MANAGER");
+        designationRoleMap.put("VP of Marketing", "ORG_ADMIN");
+        designationRoleMap.put("Customer Success Representative", "DEVELOPER");
+        designationRoleMap.put("Customer Success Manager", "PROJECT_MANAGER");
+        designationRoleMap.put("IT Support Specialist", "DEVELOPER");
+        designationRoleMap.put("IT Manager", "PROJECT_MANAGER");
+        designationRoleMap.put("CEO", "SUPER_ADMIN");
+        designationRoleMap.put("COO", "ORG_ADMIN");
+        
+        return designationRoleMap.getOrDefault(designation.getTitle(), "DEVELOPER");
+    }
 
 }

@@ -76,12 +76,21 @@ exports.createChannel = async (req, res) => {
 exports.getTeamChannels = async (req, res) => {
   try {
     const { teamId } = req.params;
-    const { includeArchived } = req.query;
+    const { includeArchived, type } = req.query;
     const userId = req.user.userId;
 
-    const whereClause = {
-      teamId
-    };
+    const whereClause = {};
+    
+    // If teamId is provided, filter by team
+    // If teamId is 'all' or not provided, get all channels for the user
+    if (teamId && teamId !== 'all') {
+      whereClause.teamId = teamId;
+    }
+    
+    // Filter by type if provided
+    if (type) {
+      whereClause.type = type;
+    }
 
     if (includeArchived !== 'true') {
       whereClause.isArchived = false;
