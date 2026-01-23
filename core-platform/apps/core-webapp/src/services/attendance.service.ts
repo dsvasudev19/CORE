@@ -1,71 +1,78 @@
-import axios from 'axios';
-import type { 
-  AttendanceDTO, 
-  AttendanceStatsDTO, 
+import axiosInstance from "../axiosInstance";
+import type {
+  AttendanceDTO,
+  AttendanceStatsDTO,
   AttendanceSummaryDTO,
-  PagedAttendanceResponse 
-} from '../types/attendance.types';
+  PagedAttendanceResponse,
+} from "../types/attendance.types";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-
-const api = axios.create({
-  baseURL: `${API_URL}/api/attendance`,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Add auth token to requests
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+const ATTENDANCE_API_BASE = "/attendance";
 
 export const attendanceService = {
   // Mark attendance
   markAttendance: async (data: AttendanceDTO): Promise<AttendanceDTO> => {
-    const response = await api.post('', data);
+    const response = await axiosInstance.post(ATTENDANCE_API_BASE, data);
     return response.data;
   },
 
   // Update attendance
-  updateAttendance: async (id: number, data: AttendanceDTO): Promise<AttendanceDTO> => {
-    const response = await api.put(`/${id}`, data);
+  updateAttendance: async (
+    id: number,
+    data: AttendanceDTO,
+  ): Promise<AttendanceDTO> => {
+    const response = await axiosInstance.put(
+      `${ATTENDANCE_API_BASE}/${id}`,
+      data,
+    );
     return response.data;
   },
 
   // Check in
-  checkIn: async (employeeId: number, date: string, location: string): Promise<AttendanceDTO> => {
-    const response = await api.post('/check-in', null, {
-      params: { employeeId, date, location }
-    });
+  checkIn: async (
+    employeeId: number,
+    date: string,
+    location: string,
+  ): Promise<AttendanceDTO> => {
+    const response = await axiosInstance.post(
+      `${ATTENDANCE_API_BASE}/check-in`,
+      null,
+      {
+        params: { employeeId, date, location },
+      },
+    );
     return response.data;
   },
 
   // Check out
-  checkOut: async (employeeId: number, date: string): Promise<AttendanceDTO> => {
-    const response = await api.post('/check-out', null, {
-      params: { employeeId, date }
-    });
+  checkOut: async (
+    employeeId: number,
+    date: string,
+  ): Promise<AttendanceDTO> => {
+    const response = await axiosInstance.post(
+      `${ATTENDANCE_API_BASE}/check-out`,
+      null,
+      {
+        params: { employeeId, date },
+      },
+    );
     return response.data;
   },
 
   // Get attendance by ID
   getAttendanceById: async (id: number): Promise<AttendanceDTO> => {
-    const response = await api.get(`/${id}`);
+    const response = await axiosInstance.get(`${ATTENDANCE_API_BASE}/${id}`);
     return response.data;
   },
 
   // Get employee attendance for specific date
   getEmployeeAttendanceForDate: async (
-    employeeId: number, 
-    date: string
+    employeeId: number,
+    date: string,
   ): Promise<AttendanceDTO | null> => {
     try {
-      const response = await api.get(`/employee/${employeeId}/date/${date}`);
+      const response = await axiosInstance.get(
+        `${ATTENDANCE_API_BASE}/employee/${employeeId}/date/${date}`,
+      );
       return response.data;
     } catch (error: any) {
       if (error.response?.status === 404) {
@@ -80,11 +87,14 @@ export const attendanceService = {
     organizationId: number,
     date: string,
     page: number = 0,
-    size: number = 20
+    size: number = 20,
   ): Promise<PagedAttendanceResponse> => {
-    const response = await api.get(`/organization/${organizationId}/date/${date}`, {
-      params: { page, size }
-    });
+    const response = await axiosInstance.get(
+      `${ATTENDANCE_API_BASE}/organization/${organizationId}/date/${date}`,
+      {
+        params: { page, size },
+      },
+    );
     return response.data;
   },
 
@@ -94,11 +104,14 @@ export const attendanceService = {
     startDate: string,
     endDate: string,
     page: number = 0,
-    size: number = 20
+    size: number = 20,
   ): Promise<PagedAttendanceResponse> => {
-    const response = await api.get(`/organization/${organizationId}/range`, {
-      params: { startDate, endDate, page, size }
-    });
+    const response = await axiosInstance.get(
+      `${ATTENDANCE_API_BASE}/organization/${organizationId}/range`,
+      {
+        params: { startDate, endDate, page, size },
+      },
+    );
     return response.data;
   },
 
@@ -106,22 +119,28 @@ export const attendanceService = {
   getEmployeeAttendanceHistory: async (
     employeeId: number,
     startDate: string,
-    endDate: string
+    endDate: string,
   ): Promise<AttendanceDTO[]> => {
-    const response = await api.get(`/employee/${employeeId}/history`, {
-      params: { startDate, endDate }
-    });
+    const response = await axiosInstance.get(
+      `${ATTENDANCE_API_BASE}/employee/${employeeId}/history`,
+      {
+        params: { startDate, endDate },
+      },
+    );
     return response.data;
   },
 
   // Get attendance stats for a date
   getAttendanceStats: async (
     organizationId: number,
-    date: string
+    date: string,
   ): Promise<AttendanceStatsDTO> => {
-    const response = await api.get(`/organization/${organizationId}/stats`, {
-      params: { date }
-    });
+    const response = await axiosInstance.get(
+      `${ATTENDANCE_API_BASE}/organization/${organizationId}/stats`,
+      {
+        params: { date },
+      },
+    );
     return response.data;
   },
 
@@ -129,11 +148,14 @@ export const attendanceService = {
   getEmployeeAttendanceSummary: async (
     employeeId: number,
     startDate: string,
-    endDate: string
+    endDate: string,
   ): Promise<AttendanceSummaryDTO> => {
-    const response = await api.get(`/employee/${employeeId}/summary`, {
-      params: { startDate, endDate }
-    });
+    const response = await axiosInstance.get(
+      `${ATTENDANCE_API_BASE}/employee/${employeeId}/summary`,
+      {
+        params: { startDate, endDate },
+      },
+    );
     return response.data;
   },
 };

@@ -1,66 +1,58 @@
-import axios from "axios";
-import { Sprint, SprintDTO } from "../types/sprint.types";
+import axiosInstance from "../axiosInstance";
+import type { Sprint, SprintDTO } from "../types/sprint.types";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
-
-const api = axios.create({
-  baseURL: `${API_URL}/api/sprint`,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
-
-// Add auth token to requests
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+const SPRINT_API_BASE = "/sprint";
 
 export const sprintService = {
   createSprint: async (data: SprintDTO): Promise<Sprint> => {
-    const response = await api.post("", data);
+    const response = await axiosInstance.post(SPRINT_API_BASE, data);
     return response.data;
   },
 
   updateSprint: async (id: number, data: SprintDTO): Promise<Sprint> => {
-    const response = await api.put(`/${id}`, data);
+    const response = await axiosInstance.put(`${SPRINT_API_BASE}/${id}`, data);
     return response.data;
   },
 
   deleteSprint: async (id: number): Promise<void> => {
-    await api.delete(`/${id}`);
+    await axiosInstance.delete(`${SPRINT_API_BASE}/${id}`);
   },
 
   getSprintById: async (id: number): Promise<Sprint> => {
-    const response = await api.get(`/${id}`);
+    const response = await axiosInstance.get(`${SPRINT_API_BASE}/${id}`);
     return response.data;
   },
 
   getAllSprints: async (organizationId: number): Promise<Sprint[]> => {
-    const response = await api.get("", { params: { organizationId } });
+    const response = await axiosInstance.get(SPRINT_API_BASE, {
+      params: { organizationId },
+    });
     return response.data;
   },
 
   getSprintsByProject: async (projectId: number): Promise<Sprint[]> => {
-    const response = await api.get(`/project/${projectId}`);
+    const response = await axiosInstance.get(
+      `${SPRINT_API_BASE}/project/${projectId}`,
+    );
     return response.data;
   },
 
   startSprint: async (id: number): Promise<Sprint> => {
-    const response = await api.put(`/${id}/start`);
+    const response = await axiosInstance.put(`${SPRINT_API_BASE}/${id}/start`);
     return response.data;
   },
 
   completeSprint: async (id: number): Promise<Sprint> => {
-    const response = await api.put(`/${id}/complete`);
+    const response = await axiosInstance.put(
+      `${SPRINT_API_BASE}/${id}/complete`,
+    );
     return response.data;
   },
 
   getActiveSprints: async (organizationId: number): Promise<Sprint[]> => {
-    const response = await api.get("/active", { params: { organizationId } });
+    const response = await axiosInstance.get(`${SPRINT_API_BASE}/active`, {
+      params: { organizationId },
+    });
     return response.data;
   },
 };

@@ -1,13 +1,12 @@
-import axios from "axios";
-import { LeaveRequestDTO, MinimalLeaveRequestDTO } from "../types/leave.types";
+import axiosInstance from "../axiosInstance";
+import type { LeaveRequestDTO, MinimalLeaveRequestDTO } from "../types/leave.types";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
-const BASE_URL = `${API_URL}/api/leave-requests`;
+const LEAVE_REQUESTS_API_BASE = "/leave-requests";
 
 export const leaveRequestService = {
   // Create a new leave request
   create: async (data: LeaveRequestDTO): Promise<LeaveRequestDTO> => {
-    const response = await axios.post<LeaveRequestDTO>(BASE_URL, data);
+    const response = await axiosInstance.post<LeaveRequestDTO>(LEAVE_REQUESTS_API_BASE, data);
     return response.data;
   },
 
@@ -16,8 +15,8 @@ export const leaveRequestService = {
     id: number,
     data: LeaveRequestDTO,
   ): Promise<LeaveRequestDTO> => {
-    const response = await axios.put<LeaveRequestDTO>(
-      `${BASE_URL}/${id}`,
+    const response = await axiosInstance.put<LeaveRequestDTO>(
+      `${LEAVE_REQUESTS_API_BASE}/${id}`,
       data,
     );
     return response.data;
@@ -25,7 +24,7 @@ export const leaveRequestService = {
 
   // Get by ID
   getById: async (id: number): Promise<LeaveRequestDTO> => {
-    const response = await axios.get<LeaveRequestDTO>(`${BASE_URL}/${id}`);
+    const response = await axiosInstance.get<LeaveRequestDTO>(`${LEAVE_REQUESTS_API_BASE}/${id}`);
     return response.data;
   },
 
@@ -33,8 +32,8 @@ export const leaveRequestService = {
   getEmployeeRequests: async (
     employeeId: number,
   ): Promise<LeaveRequestDTO[]> => {
-    const response = await axios.get<LeaveRequestDTO[]>(
-      `${BASE_URL}/employee/${employeeId}`,
+    const response = await axiosInstance.get<LeaveRequestDTO[]>(
+      `${LEAVE_REQUESTS_API_BASE}/employee/${employeeId}`,
     );
     return response.data;
   },
@@ -43,8 +42,8 @@ export const leaveRequestService = {
   getEmployeeRequestsMinimal: async (
     employeeId: number,
   ): Promise<MinimalLeaveRequestDTO[]> => {
-    const response = await axios.get<MinimalLeaveRequestDTO[]>(
-      `${BASE_URL}/employee/${employeeId}/minimal`,
+    const response = await axiosInstance.get<MinimalLeaveRequestDTO[]>(
+      `${LEAVE_REQUESTS_API_BASE}/employee/${employeeId}/minimal`,
     );
     return response.data;
   },
@@ -53,8 +52,8 @@ export const leaveRequestService = {
   getManagerPendingApprovals: async (
     managerId: number,
   ): Promise<LeaveRequestDTO[]> => {
-    const response = await axios.get<LeaveRequestDTO[]>(
-      `${BASE_URL}/manager/${managerId}/pending`,
+    const response = await axiosInstance.get<LeaveRequestDTO[]>(
+      `${LEAVE_REQUESTS_API_BASE}/manager/${managerId}/pending`,
     );
     return response.data;
   },
@@ -69,8 +68,8 @@ export const leaveRequestService = {
     if (comment) {
       params.append("comment", comment);
     }
-    const response = await axios.post<LeaveRequestDTO>(
-      `${BASE_URL}/${requestId}/approve?${params.toString()}`,
+    const response = await axiosInstance.post<LeaveRequestDTO>(
+      `${LEAVE_REQUESTS_API_BASE}/${requestId}/approve?${params.toString()}`,
     );
     return response.data;
   },
@@ -85,16 +84,16 @@ export const leaveRequestService = {
     if (comment) {
       params.append("comment", comment);
     }
-    const response = await axios.post<LeaveRequestDTO>(
-      `${BASE_URL}/${requestId}/reject?${params.toString()}`,
+    const response = await axiosInstance.post<LeaveRequestDTO>(
+      `${LEAVE_REQUESTS_API_BASE}/${requestId}/reject?${params.toString()}`,
     );
     return response.data;
   },
 
   // Cancel a leave request
   cancel: async (requestId: number): Promise<LeaveRequestDTO> => {
-    const response = await axios.post<LeaveRequestDTO>(
-      `${BASE_URL}/${requestId}/cancel`,
+    const response = await axiosInstance.post<LeaveRequestDTO>(
+      `${LEAVE_REQUESTS_API_BASE}/${requestId}/cancel`,
     );
     return response.data;
   },

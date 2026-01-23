@@ -85,6 +85,18 @@ public class AnnouncementServiceImpl implements AnnouncementService {
     }
 
     @Override
+    public void unarchiveAnnouncement(Long id) {
+        authorize("UPDATE");
+
+        Announcement entity = announcementRepository.findById(id)
+                .orElseThrow(() -> new BaseException("error.announcement.not.found", new Object[]{id}));
+
+        entity.setStatus("Active");
+        entity.setActive(true);
+        announcementRepository.save(entity);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public AnnouncementDTO getAnnouncementById(Long id) {
         authorize("READ");

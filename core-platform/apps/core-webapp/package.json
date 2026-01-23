@@ -11,6 +11,8 @@
     "check-types": "tsc -b"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.90.19",
+    "@tanstack/react-query-devtools": "^5.91.2",
     "axios": "^1.12.2",
     "date-fns": "^4.1.0",
     "formik": "^2.4.9",
@@ -22,6 +24,7 @@
     "react-hot-toast": "^2.6.0",
     "react-pdf": "^10.2.0",
     "react-router-dom": "^7.9.4",
+    "valtio": "^2.3.0",
     "yup": "^1.7.1"
   },
   "devDependencies": {

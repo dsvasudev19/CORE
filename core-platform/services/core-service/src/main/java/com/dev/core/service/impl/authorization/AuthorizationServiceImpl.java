@@ -146,6 +146,13 @@ public class AuthorizationServiceImpl implements AuthorizationService {
 
         log.debug("🧩 [AUTHZ] Extracted user roles → ids={}, names={}", roleIds, roleNames);
 
+        // ⭐ ADMIN and SUPER_ADMIN have full access to everything
+        if (roleNames.contains("ADMIN") || roleNames.contains("SUPER_ADMIN")) {
+            log.info("👑 [AUTHZ] Access GRANTED → user='{}' has ADMIN/SUPER_ADMIN role → resource='{}', action='{}'",
+                    user.getUsername(), resourceCode, actionCode);
+            return; // Allow access immediately
+        }
+
         // Fetch all policies for this organization
         var policies = policyRepository.findAllByOrganizationId(orgId);
         log.debug("📜 [AUTHZ] Loaded {} policies for orgId={}", policies.size(), orgId);

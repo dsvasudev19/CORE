@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSnapshot } from 'valtio';
 import { Search, Filter, Plus, Edit2, Trash2, Eye, ChevronDown, ChevronUp, X, Check } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { policyService } from '../../services/policy.service';
@@ -10,12 +11,47 @@ import type { RoleDTO } from '../../types/role.types';
 import type { ResourceDTO } from '../../types/resource.types';
 import type { ActionDTO } from '../../types/action.types';
 import { ConfirmDialog } from '../../components';
-import { useConfirmDialog } from '../../hooks';
+import { uiStore, uiActions } from '../../stores';
 
 const PolicyManagement = () => {
     const { user } = useAuth();
-    const { isOpen, options, confirm, handleConfirm, handleCancel } = useConfirmDialog();
+    const snap = useSnapshot(uiStore);
     const [showFilters, setShowFilters] = useState(false);
+
+    // Confirm dialog state
+    const [isOpen, setIsOpen] = useState(false);
+    const [confirmResolve, setConfirmResolve] = useState<((value: boolean) => void) | null>(null);
+    const [options, setOptions] = useState({
+        title: '',
+        message: '',
+        confirmText: 'Confirm',
+        cancelText: 'Cancel',
+        variant: 'danger' as 'danger' | 'warning' | 'info'
+    });
+
+    const confirm = (opts: typeof options): Promise<boolean> => {
+        return new Promise((resolve) => {
+            setOptions(opts);
+            setIsOpen(true);
+            setConfirmResolve(() => resolve);
+        });
+    };
+
+    const handleConfirm = () => {
+        if (confirmResolve) {
+            confirmResolve(true);
+            setConfirmResolve(null);
+        }
+        setIsOpen(false);
+    };
+
+    const handleCancel = () => {
+        if (confirmResolve) {
+            confirmResolve(false);
+            setConfirmResolve(null);
+        }
+        setIsOpen(false);
+    };
     const [policies, setPolicies] = useState<PolicyDTO[]>([]);
     const [roles, setRoles] = useState<RoleDTO[]>([]);
     const [resources, setResources] = useState<ResourceDTO[]>([]);

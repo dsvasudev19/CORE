@@ -1,27 +1,11 @@
-import axios from "axios";
-import { JobPosting, JobPostingDTO } from "../types/jobPosting.types";
+import axiosInstance from "../axiosInstance";
+import type { JobPosting, JobPostingDTO } from "../types/jobPosting.types";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
-
-const api = axios.create({
-  baseURL: `${API_URL}/api/job-posting`,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
-
-// Add auth token to requests
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+const JOB_POSTING_API_BASE = "/job-posting";
 
 export const jobPostingService = {
   createJobPosting: async (data: JobPostingDTO): Promise<JobPosting> => {
-    const response = await api.post("", data);
+    const response = await axiosInstance.post(JOB_POSTING_API_BASE, data);
     return response.data;
   },
 
@@ -29,45 +13,58 @@ export const jobPostingService = {
     id: number,
     data: JobPostingDTO,
   ): Promise<JobPosting> => {
-    const response = await api.put(`/${id}`, data);
+    const response = await axiosInstance.put(
+      `${JOB_POSTING_API_BASE}/${id}`,
+      data,
+    );
     return response.data;
   },
 
   deleteJobPosting: async (id: number): Promise<void> => {
-    await api.delete(`/${id}`);
+    await axiosInstance.delete(`${JOB_POSTING_API_BASE}/${id}`);
   },
 
   getJobPostingById: async (id: number): Promise<JobPosting> => {
-    const response = await api.get(`/${id}`);
+    const response = await axiosInstance.get(`${JOB_POSTING_API_BASE}/${id}`);
     return response.data;
   },
 
   getAllJobPostings: async (organizationId: number): Promise<JobPosting[]> => {
-    const response = await api.get("", { params: { organizationId } });
+    const response = await axiosInstance.get(JOB_POSTING_API_BASE, {
+      params: { organizationId },
+    });
     return response.data;
   },
 
   getActiveJobPostings: async (
     organizationId: number,
   ): Promise<JobPosting[]> => {
-    const response = await api.get("/active", { params: { organizationId } });
+    const response = await axiosInstance.get(`${JOB_POSTING_API_BASE}/active`, {
+      params: { organizationId },
+    });
     return response.data;
   },
 
   getJobPostingsByDepartment: async (
     departmentId: number,
   ): Promise<JobPosting[]> => {
-    const response = await api.get(`/department/${departmentId}`);
+    const response = await axiosInstance.get(
+      `${JOB_POSTING_API_BASE}/department/${departmentId}`,
+    );
     return response.data;
   },
 
   publishJobPosting: async (id: number): Promise<JobPosting> => {
-    const response = await api.put(`/${id}/publish`);
+    const response = await axiosInstance.put(
+      `${JOB_POSTING_API_BASE}/${id}/publish`,
+    );
     return response.data;
   },
 
   closeJobPosting: async (id: number): Promise<JobPosting> => {
-    const response = await api.put(`/${id}/close`);
+    const response = await axiosInstance.put(
+      `${JOB_POSTING_API_BASE}/${id}/close`,
+    );
     return response.data;
   },
 };

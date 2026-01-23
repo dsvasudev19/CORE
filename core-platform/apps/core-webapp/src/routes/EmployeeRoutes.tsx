@@ -33,6 +33,9 @@ import { LeaveRequests } from "../pages/leave";
 // Performance
 import { PerformanceReviews, PerformanceReviewDetails } from "../pages/performance";
 
+// Payroll
+import { EmployeePayroll } from "../pages/payroll";
+
 // Training
 import { TrainingDevelopment } from "../pages/training";
 
@@ -102,6 +105,9 @@ const EmployeeRoutes = () => {
             {/* Performance */}
             <Route path="performance" element={<PerformanceReviews />} />
             <Route path="performance/:id" element={<PerformanceReviewDetails />} />
+
+            {/* Payroll */}
+            <Route path="payroll" element={<EmployeePayroll />} />
 
             {/* Training */}
             <Route path="training" element={<TrainingDevelopment />} />

@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import { Search, Filter, Plus, Edit2, Trash2, Eye, ChevronDown, ChevronUp, X, Check } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { resourceService } from '../../services/resource.service';
+import { useSnapshot } from 'valtio';
 import type { ResourceDTO } from '../../types/resource.types';
 import { ConfirmDialog } from '../../components';
-import { useConfirmDialog } from '../../hooks';
+import { uiStore, uiActions } from '../../stores';
 
 const ResourceManagement = () => {
     const { user } = useAuth();
-    const { isOpen, options, confirm, handleConfirm, handleCancel } = useConfirmDialog();
+    const snap = useSnapshot(uiStore);
     const [showFilters, setShowFilters] = useState(false);
     const [resources, setResources] = useState<ResourceDTO[]>([]);
     const [loading, setLoading] = useState(false);
@@ -23,6 +24,41 @@ const ResourceManagement = () => {
         code: '',
         description: ''
     });
+
+    // Confirm dialog state
+    const [isOpen, setIsOpen] = useState(false);
+    const [confirmResolve, setConfirmResolve] = useState<((value: boolean) => void) | null>(null);
+    const [options, setOptions] = useState({
+        title: '',
+        message: '',
+        confirmText: 'Confirm',
+        cancelText: 'Cancel',
+        variant: 'danger' as 'danger' | 'warning' | 'info'
+    });
+
+    const confirm = (opts: typeof options): Promise<boolean> => {
+        return new Promise((resolve) => {
+            setOptions(opts);
+            setIsOpen(true);
+            setConfirmResolve(() => resolve);
+        });
+    };
+
+    const handleConfirm = () => {
+        if (confirmResolve) {
+            confirmResolve(true);
+            setConfirmResolve(null);
+        }
+        setIsOpen(false);
+    };
+
+    const handleCancel = () => {
+        if (confirmResolve) {
+            confirmResolve(false);
+            setConfirmResolve(null);
+        }
+        setIsOpen(false);
+    };
 
     const fetchResources = async () => {
         if (!user?.organizationId) return;

@@ -48,7 +48,9 @@ import { JobDetails } from "../pages/recruitment";
 import { TrainingDevelopment } from "../pages/training";
 
 // Announcements
-import { Announcements, AnnouncementDetails } from "../pages/announcements";
+import { Announcements, AnnouncementDetails, AnnouncementView } from "../pages/announcements";
+import CreateAnnouncement from "../pages/announcements/CreateAnnouncement";
+import EditAnnouncement from "../pages/announcements/EditAnnouncement";
 
 // Notifications
 import { NotificationsCenter } from "../pages/notifications";
@@ -80,6 +82,7 @@ import OrganizationSettings from "../pages/organization-settings/OrganizationSet
 import AdminProjectsOverview from "../pages/admin/AdminProjectsOverview";
 import AdminTimeTrackingOverview from "../pages/admin/AdminTimeTrackingOverview";
 
+// Payroll
 // Bugs
 import BugList from "../pages/bugs/BugList";
 
@@ -134,7 +137,9 @@ const AdminRoutes = () => {
 
             {/* Announcements */}
             <Route path="announcements" element={<Announcements />} />
-            <Route path="announcements/:id" element={<AnnouncementDetails />} />
+            <Route path="announcements/create" element={<CreateAnnouncement />} />
+            <Route path="announcements/edit/:id" element={<EditAnnouncement />} />
+            <Route path="announcements/:id" element={<AnnouncementView />} />
 
             {/* Notifications */}
             <Route path="notifications" element={<NotificationsCenter />} />
@@ -177,6 +182,9 @@ const AdminRoutes = () => {
 
             {/* Calendar */}
             <Route path="calendar" element={<Calendar />} />
+
+            {/* Payroll */}
+            <Route path="payroll" element={<PayrollManagement />} />
 
             {/* Bugs */}
             <Route path="bugs" element={<BugList />} />

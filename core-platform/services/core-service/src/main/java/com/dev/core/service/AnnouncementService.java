@@ -16,6 +16,8 @@ public interface AnnouncementService {
 
     void archiveAnnouncement(Long id);
 
+    void unarchiveAnnouncement(Long id);
+
     AnnouncementDTO getAnnouncementById(Long id);
 
     Page<AnnouncementDTO> getAllAnnouncements(Long organizationId, Pageable pageable);

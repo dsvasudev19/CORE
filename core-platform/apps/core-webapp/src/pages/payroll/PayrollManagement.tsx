@@ -1,320 +1,329 @@
 import { useState } from 'react';
+import { useSnapshot } from 'valtio';
 import {
-    DollarSign,
-    Download,
-    Filter,
-    Search,
-    Calendar,
-    TrendingUp,
-    Users,
-    AlertCircle,
-    CheckCircle,
-    Clock,
-    MoreVertical,
-    Eye,
-    Send,
-    FileText
+  DollarSign, Users, CheckCircle, Clock,
+  Search, Plus, MoreVertical
 } from 'lucide-react';
+import { appStore } from '../../stores/appStore';
+import {
+  usePayrollsByPeriod,
+  usePayrollSummary,
+  useGenerateMonthlyPayrolls,
+  useApprovePayroll,
+  useMarkPayrollAsPaid
+} from '../../hooks/usePayroll';
+import toast from 'react-hot-toast';
 
 const PayrollManagement = () => {
-    const [selectedPeriod, setSelectedPeriod] = useState('2024-11');
-    const [showFilters, setShowFilters] = useState(false);
+  const snap = useSnapshot(appStore);
+  const currentDate = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
-    const stats = [
-        { label: 'Total Payroll', value: '$487,250', change: '+5.2%', icon: DollarSign, color: 'bg-green-500' },
-        { label: 'Employees Paid', value: '232', change: '100%', icon: Users, color: 'bg-blue-500' },
-        { label: 'Pending', value: '12', change: '-3', icon: Clock, color: 'bg-yellow-500' },
-        { label: 'Avg Salary', value: '$2,100', change: '+2.1%', icon: TrendingUp, color: 'bg-purple-500' }
-    ];
+  const organizationId = snap.user?.organizationId || 1;
 
-    const payrollRecords = [
-        {
-            id: 1,
-            empId: 'EMP001',
-            name: 'Sarah Mitchell',
-            department: 'Engineering',
-            baseSalary: 5500,
-            allowances: 800,
-            deductions: 650,
-            netPay: 5650,
-            status: 'Paid',
-            payDate: '2024-11-30',
-            method: 'Bank Transfer'
-        },
-        {
-            id: 2,
-            empId: 'EMP002',
-            name: 'James Rodriguez',
-            department: 'Engineering',
-            baseSalary: 6200,
-            allowances: 900,
-            deductions: 720,
-            netPay: 6380,
-            status: 'Paid',
-            payDate: '2024-11-30',
-            method: 'Bank Transfer'
-        },
-        {
-            id: 3,
-            empId: 'EMP003',
-            name: 'Emily Chen',
-            department: 'Design',
-            baseSalary: 4800,
-            allowances: 600,
-            deductions: 550,
-            netPay: 4850,
-            status: 'Paid',
-            payDate: '2024-11-30',
-            method: 'Bank Transfer'
-        },
-        {
-            id: 4,
-            empId: 'EMP004',
-            name: 'Michael Brown',
-            department: 'Engineering',
-            baseSalary: 5800,
-            allowances: 750,
-            deductions: 680,
-            netPay: 5870,
-            status: 'Pending',
-            payDate: '2024-11-30',
-            method: 'Bank Transfer'
-        },
-        {
-            id: 5,
-            empId: 'EMP005',
-            name: 'Lisa Wang',
-            department: 'Product',
-            baseSalary: 6500,
-            allowances: 1000,
-            deductions: 800,
-            netPay: 6700,
-            status: 'Processing',
-            payDate: '2024-11-30',
-            method: 'Bank Transfer'
-        }
-    ];
+  const { data: payrolls, isLoading } = usePayrollsByPeriod(organizationId, selectedMonth, selectedYear);
+  const { data: summary } = usePayrollSummary(organizationId, selectedMonth, selectedYear);
+  const generatePayrolls = useGenerateMonthlyPayrolls();
+  const approvePayroll = useApprovePayroll();
+  const markAsPaid = useMarkPayrollAsPaid();
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'Paid': return 'bg-green-100 text-green-700 border-green-200';
-            case 'Processing': return 'bg-blue-100 text-blue-700 border-blue-200';
-            case 'Pending': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-            case 'Failed': return 'bg-red-100 text-red-700 border-red-200';
-            default: return 'bg-gray-100 text-gray-700 border-gray-200';
-        }
-    };
+  const handleGeneratePayrolls = async () => {
+    try {
+      await generatePayrolls.mutateAsync({ organizationId, month: selectedMonth, year: selectedYear });
+      toast.success('Payrolls generated successfully!');
+    } catch (error) {
+      toast.error('Failed to generate payrolls');
+    }
+  };
 
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD',
-            minimumFractionDigits: 0
-        }).format(amount);
-    };
+  const handleApprove = async (id: number) => {
+    try {
+      await approvePayroll.mutateAsync({ id, approvedBy: snap.user?.id || 1 });
+      toast.success('Payroll approved!');
+    } catch (error) {
+      toast.error('Failed to approve payroll');
+    }
+  };
 
-    return (
-        <div className="min-h-screen bg-gray-50 p-4">
-            {/* Header */}
-            <div className="mb-4">
-                <div className="flex items-center justify-between mb-3">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Payroll Management</h1>
-                        <p className="text-xs text-gray-500 mt-0.5">Manage employee compensation and payments</p>
-                    </div>
-                    <div className="flex gap-2">
-                        <button className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 flex items-center gap-1.5">
-                            <Download size={14} />
-                            Export Report
-                        </button>
-                        <button className="px-3 py-1.5 text-xs font-medium text-white bg-burgundy-600 rounded hover:bg-burgundy-700 flex items-center gap-1.5">
-                            <Send size={14} />
-                            Process Payroll
-                        </button>
-                    </div>
-                </div>
+  const handleMarkPaid = async (id: number) => {
+    try {
+      await markAsPaid.mutateAsync({ id, paidBy: snap.user?.id || 1 });
+      toast.success('Payroll marked as paid!');
+    } catch (error) {
+      toast.error('Failed to mark as paid');
+    }
+  };
 
-                {/* Stats */}
-                <div className="grid grid-cols-4 gap-3 mb-4">
-                    {stats.map((stat, idx) => (
-                        <div key={idx} className="bg-white rounded border border-gray-200 p-3">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-xs text-gray-500 mb-0.5">{stat.label}</p>
-                                    <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                                    <p className="text-xs text-green-600 mt-0.5 flex items-center gap-1">
-                                        <TrendingUp size={12} />
-                                        {stat.change}
-                                    </p>
-                                </div>
-                                <div className={`${stat.color} p-2 rounded`}>
-                                    <stat.icon size={18} className="text-white" />
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
 
-                {/* Filters */}
-                <div className="bg-white rounded border border-gray-200 p-3">
-                    <div className="flex gap-2 items-center">
-                        <div className="flex items-center gap-2">
-                            <Calendar size={16} className="text-gray-400" />
-                            <select
-                                value={selectedPeriod}
-                                onChange={(e) => setSelectedPeriod(e.target.value)}
-                                className="text-sm border border-gray-300 rounded px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-burgundy-500"
-                            >
-                                <option value="2024-11">November 2024</option>
-                                <option value="2024-10">October 2024</option>
-                                <option value="2024-09">September 2024</option>
-                                <option value="2024-08">August 2024</option>
-                            </select>
-                        </div>
-                        <div className="flex-1 relative">
-                            <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                            <input
-                                type="text"
-                                placeholder="Search by name, employee ID..."
-                                className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-burgundy-500"
-                            />
-                        </div>
-                        <button
-                            onClick={() => setShowFilters(!showFilters)}
-                            className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 flex items-center gap-1.5"
-                        >
-                            <Filter size={14} />
-                            Filters
-                        </button>
-                    </div>
+  const filteredPayrolls = payrolls?.filter(payroll => {
+    const matchesSearch = payroll.employeeName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      payroll.employeeCode?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'ALL' || payroll.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
-                    {showFilters && (
-                        <div className="mt-3 pt-3 border-t border-gray-200 grid grid-cols-4 gap-2">
-                            <select className="text-xs border border-gray-300 rounded px-2 py-1.5">
-                                <option>All Departments</option>
-                                <option>Engineering</option>
-                                <option>Design</option>
-                                <option>Product</option>
-                            </select>
-                            <select className="text-xs border border-gray-300 rounded px-2 py-1.5">
-                                <option>All Status</option>
-                                <option>Paid</option>
-                                <option>Processing</option>
-                                <option>Pending</option>
-                            </select>
-                            <select className="text-xs border border-gray-300 rounded px-2 py-1.5">
-                                <option>All Methods</option>
-                                <option>Bank Transfer</option>
-                                <option>Check</option>
-                                <option>Cash</option>
-                            </select>
-                            <button className="text-xs text-burgundy-600 hover:text-burgundy-700 font-medium">
-                                Clear All
-                            </button>
-                        </div>
-                    )}
-                </div>
-            </div>
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'DRAFT': return 'bg-gray-100 text-gray-800';
+      case 'PENDING': return 'bg-yellow-100 text-yellow-800';
+      case 'APPROVED': return 'bg-blue-100 text-blue-800';
+      case 'PAID': return 'bg-green-100 text-green-800';
+      case 'REJECTED': return 'bg-red-100 text-red-800';
+      case 'CANCELLED': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
 
-            {/* Payroll Table */}
-            <div className="bg-white rounded border border-gray-200 overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
-                        <thead className="bg-gray-50 border-b border-gray-200">
-                            <tr>
-                                <th className="w-8 px-3 py-2">
-                                    <input type="checkbox" className="rounded border-gray-300" />
-                                </th>
-                                <th className="px-3 py-2 text-left font-semibold text-gray-700">EMP ID</th>
-                                <th className="px-3 py-2 text-left font-semibold text-gray-700">Employee</th>
-                                <th className="px-3 py-2 text-left font-semibold text-gray-700">Department</th>
-                                <th className="px-3 py-2 text-right font-semibold text-gray-700">Base Salary</th>
-                                <th className="px-3 py-2 text-right font-semibold text-gray-700">Allowances</th>
-                                <th className="px-3 py-2 text-right font-semibold text-gray-700">Deductions</th>
-                                <th className="px-3 py-2 text-right font-semibold text-gray-700">Net Pay</th>
-                                <th className="px-3 py-2 text-left font-semibold text-gray-700">Pay Date</th>
-                                <th className="px-3 py-2 text-left font-semibold text-gray-700">Status</th>
-                                <th className="px-3 py-2 text-center font-semibold text-gray-700">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                            {payrollRecords.map((record) => (
-                                <tr key={record.id} className="hover:bg-gray-50">
-                                    <td className="px-3 py-2">
-                                        <input type="checkbox" className="rounded border-gray-300" />
-                                    </td>
-                                    <td className="px-3 py-2 font-medium text-gray-900">{record.empId}</td>
-                                    <td className="px-3 py-2">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-6 h-6 rounded-full bg-burgundy-100 flex items-center justify-center text-burgundy-700 font-semibold text-xs">
-                                                {record.name.split(' ').map(n => n[0]).join('')}
-                                            </div>
-                                            <span className="font-medium text-gray-900">{record.name}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-3 py-2 text-gray-600">{record.department}</td>
-                                    <td className="px-3 py-2 text-right font-medium text-gray-900">
-                                        {formatCurrency(record.baseSalary)}
-                                    </td>
-                                    <td className="px-3 py-2 text-right text-green-600">
-                                        +{formatCurrency(record.allowances)}
-                                    </td>
-                                    <td className="px-3 py-2 text-right text-red-600">
-                                        -{formatCurrency(record.deductions)}
-                                    </td>
-                                    <td className="px-3 py-2 text-right font-bold text-gray-900">
-                                        {formatCurrency(record.netPay)}
-                                    </td>
-                                    <td className="px-3 py-2 text-gray-600">{record.payDate}</td>
-                                    <td className="px-3 py-2">
-                                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(record.status)}`}>
-                                            {record.status}
-                                        </span>
-                                    </td>
-                                    <td className="px-3 py-2">
-                                        <div className="flex items-center justify-center gap-1">
-                                            <button className="p-1 hover:bg-gray-100 rounded" title="View Payslip">
-                                                <Eye size={14} className="text-gray-600" />
-                                            </button>
-                                            <button className="p-1 hover:bg-gray-100 rounded" title="Download">
-                                                <FileText size={14} className="text-gray-600" />
-                                            </button>
-                                            <button className="p-1 hover:bg-gray-100 rounded" title="More">
-                                                <MoreVertical size={14} className="text-gray-600" />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+  const formatCurrency = (amount?: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(amount || 0);
+  };
 
-                {/* Summary Footer */}
-                <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
-                    <div className="flex items-center justify-between">
-                        <div className="text-xs text-gray-600">
-                            Showing <span className="font-medium">5</span> of <span className="font-medium">232</span> records
-                        </div>
-                        <div className="flex items-center gap-4 text-xs">
-                            <div className="flex items-center gap-2">
-                                <CheckCircle size={14} className="text-green-600" />
-                                <span className="text-gray-700">Paid: <span className="font-semibold">220</span></span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Clock size={14} className="text-yellow-600" />
-                                <span className="text-gray-700">Pending: <span className="font-semibold">12</span></span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <AlertCircle size={14} className="text-red-600" />
-                                <span className="text-gray-700">Failed: <span className="font-semibold">0</span></span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Payroll Management</h1>
+          <p className="text-gray-600 mt-1">Manage employee salaries and payments</p>
         </div>
-    );
+        <button
+          onClick={handleGeneratePayrolls}
+          disabled={generatePayrolls.isPending}
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+        >
+          <Plus className="w-4 h-4" />
+          {generatePayrolls.isPending ? 'Generating...' : 'Generate Payrolls'}
+        </button>
+      </div>
+
+
+      {/* Summary Cards */}
+      {summary && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total Employees</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{summary.totalEmployees}</p>
+              </div>
+              <div className="p-3 bg-indigo-100 rounded-lg">
+                <Users className="w-6 h-6 text-indigo-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total Net Salary</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{formatCurrency(summary.totalNetSalary)}</p>
+              </div>
+              <div className="p-3 bg-green-100 rounded-lg">
+                <DollarSign className="w-6 h-6 text-green-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Pending Approvals</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{summary.pendingApprovals}</p>
+              </div>
+              <div className="p-3 bg-yellow-100 rounded-lg">
+                <Clock className="w-6 h-6 text-yellow-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Paid</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">{summary.paidPayrolls}</p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-lg">
+                <CheckCircle className="w-6 h-6 text-blue-600" />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* Filters */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Month</label>
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+            >
+              {months.map((month, index) => (
+                <option key={month} value={index + 1}>{month}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Year</label>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+            >
+              {[2024, 2025, 2026].map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="ALL">All Status</option>
+              <option value="DRAFT">Draft</option>
+              <option value="PENDING">Pending</option>
+              <option value="APPROVED">Approved</option>
+              <option value="PAID">Paid</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search employee..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      {/* Payroll Table */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Employee
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Department
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Gross Salary
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Deductions
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Net Salary
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {isLoading ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
+                    Loading payrolls...
+                  </td>
+                </tr>
+              ) : filteredPayrolls && filteredPayrolls.length > 0 ? (
+                filteredPayrolls.map((payroll) => (
+                  <tr key={payroll.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">{payroll.employeeName}</div>
+                        <div className="text-sm text-gray-500">{payroll.employeeCode}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {payroll.department || '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {formatCurrency(payroll.grossSalary)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {formatCurrency(payroll.totalDeductions)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {formatCurrency(payroll.netSalary)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(payroll.status)}`}>
+                        {payroll.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <div className="flex items-center gap-2">
+                        {payroll.status === 'PENDING' && (
+                          <button
+                            onClick={() => handleApprove(payroll.id!)}
+                            className="text-green-600 hover:text-green-900"
+                          >
+                            Approve
+                          </button>
+                        )}
+                        {payroll.status === 'APPROVED' && (
+                          <button
+                            onClick={() => handleMarkPaid(payroll.id!)}
+                            className="text-blue-600 hover:text-blue-900"
+                          >
+                            Mark Paid
+                          </button>
+                        )}
+                        <button className="text-gray-400 hover:text-gray-600">
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
+                    No payrolls found for this period
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default PayrollManagement;

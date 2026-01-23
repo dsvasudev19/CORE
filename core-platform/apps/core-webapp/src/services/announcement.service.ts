@@ -1,19 +1,19 @@
-import axios from "axios";
+import axiosInstance from "../axiosInstance";
 import type {
   AnnouncementDTO,
   PagedAnnouncementResponse,
   AnnouncementStats,
 } from "../types/announcement.types";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+const ANNOUNCEMENTS_API_BASE = "/announcements";
 
 export const announcementService = {
   /**
    * Create a new announcement
    */
   async createAnnouncement(dto: AnnouncementDTO): Promise<AnnouncementDTO> {
-    const response = await axios.post<AnnouncementDTO>(
-      `${API_URL}/api/announcements`,
+    const response = await axiosInstance.post<AnnouncementDTO>(
+      ANNOUNCEMENTS_API_BASE,
       dto,
     );
     return response.data;
@@ -26,8 +26,8 @@ export const announcementService = {
     id: number,
     dto: AnnouncementDTO,
   ): Promise<AnnouncementDTO> {
-    const response = await axios.put<AnnouncementDTO>(
-      `${API_URL}/api/announcements/${id}`,
+    const response = await axiosInstance.put<AnnouncementDTO>(
+      `${ANNOUNCEMENTS_API_BASE}/${id}`,
       dto,
     );
     return response.data;
@@ -37,22 +37,29 @@ export const announcementService = {
    * Delete an announcement (soft delete)
    */
   async deleteAnnouncement(id: number): Promise<void> {
-    await axios.delete(`${API_URL}/api/announcements/${id}`);
+    await axiosInstance.delete(`${ANNOUNCEMENTS_API_BASE}/${id}`);
   },
 
   /**
    * Archive an announcement
    */
   async archiveAnnouncement(id: number): Promise<void> {
-    await axios.patch(`${API_URL}/api/announcements/${id}/archive`);
+    await axiosInstance.patch(`${ANNOUNCEMENTS_API_BASE}/${id}/archive`);
+  },
+
+  /**
+   * Unarchive an announcement
+   */
+  async unarchiveAnnouncement(id: number): Promise<void> {
+    await axiosInstance.patch(`${ANNOUNCEMENTS_API_BASE}/${id}/unarchive`);
   },
 
   /**
    * Get announcement by ID
    */
   async getAnnouncementById(id: number): Promise<AnnouncementDTO> {
-    const response = await axios.get<AnnouncementDTO>(
-      `${API_URL}/api/announcements/${id}`,
+    const response = await axiosInstance.get<AnnouncementDTO>(
+      `${ANNOUNCEMENTS_API_BASE}/${id}`,
     );
     return response.data;
   },
@@ -65,8 +72,8 @@ export const announcementService = {
     page: number = 0,
     size: number = 20,
   ): Promise<PagedAnnouncementResponse> {
-    const response = await axios.get<PagedAnnouncementResponse>(
-      `${API_URL}/api/announcements/organization/${organizationId}`,
+    const response = await axiosInstance.get<PagedAnnouncementResponse>(
+      `${ANNOUNCEMENTS_API_BASE}/organization/${organizationId}`,
       {
         params: { page, size },
       },
@@ -82,8 +89,8 @@ export const announcementService = {
     page: number = 0,
     size: number = 20,
   ): Promise<PagedAnnouncementResponse> {
-    const response = await axios.get<PagedAnnouncementResponse>(
-      `${API_URL}/api/announcements/organization/${organizationId}/pinned`,
+    const response = await axiosInstance.get<PagedAnnouncementResponse>(
+      `${ANNOUNCEMENTS_API_BASE}/organization/${organizationId}/pinned`,
       {
         params: { page, size },
       },
@@ -99,8 +106,8 @@ export const announcementService = {
     page: number = 0,
     size: number = 20,
   ): Promise<PagedAnnouncementResponse> {
-    const response = await axios.get<PagedAnnouncementResponse>(
-      `${API_URL}/api/announcements/organization/${organizationId}/archived`,
+    const response = await axiosInstance.get<PagedAnnouncementResponse>(
+      `${ANNOUNCEMENTS_API_BASE}/organization/${organizationId}/archived`,
       {
         params: { page, size },
       },
@@ -117,8 +124,8 @@ export const announcementService = {
     page: number = 0,
     size: number = 20,
   ): Promise<PagedAnnouncementResponse> {
-    const response = await axios.get<PagedAnnouncementResponse>(
-      `${API_URL}/api/announcements/organization/${organizationId}/search`,
+    const response = await axiosInstance.get<PagedAnnouncementResponse>(
+      `${ANNOUNCEMENTS_API_BASE}/organization/${organizationId}/search`,
       {
         params: { keyword, page, size },
       },
@@ -139,8 +146,8 @@ export const announcementService = {
     page: number = 0,
     size: number = 20,
   ): Promise<PagedAnnouncementResponse> {
-    const response = await axios.get<PagedAnnouncementResponse>(
-      `${API_URL}/api/announcements/organization/${organizationId}/filter`,
+    const response = await axiosInstance.get<PagedAnnouncementResponse>(
+      `${ANNOUNCEMENTS_API_BASE}/organization/${organizationId}/filter`,
       {
         params: {
           ...filters,
@@ -156,21 +163,25 @@ export const announcementService = {
    * Toggle pin status of an announcement
    */
   async togglePin(id: number): Promise<void> {
-    await axios.patch(`${API_URL}/api/announcements/${id}/toggle-pin`);
+    await axiosInstance.patch(`${ANNOUNCEMENTS_API_BASE}/${id}/toggle-pin`);
   },
 
   /**
    * Increment view count for an announcement
    */
   async incrementViews(id: number): Promise<void> {
-    await axios.patch(`${API_URL}/api/announcements/${id}/increment-views`);
+    await axiosInstance.patch(
+      `${ANNOUNCEMENTS_API_BASE}/${id}/increment-views`,
+    );
   },
 
   /**
    * Increment reaction count for an announcement
    */
   async incrementReactions(id: number): Promise<void> {
-    await axios.patch(`${API_URL}/api/announcements/${id}/increment-reactions`);
+    await axiosInstance.patch(
+      `${ANNOUNCEMENTS_API_BASE}/${id}/increment-reactions`,
+    );
   },
 
   /**
@@ -179,8 +190,8 @@ export const announcementService = {
   async getAnnouncementStats(
     organizationId: number,
   ): Promise<AnnouncementStats> {
-    const response = await axios.get<AnnouncementStats>(
-      `${API_URL}/api/announcements/organization/${organizationId}/stats`,
+    const response = await axiosInstance.get<AnnouncementStats>(
+      `${ANNOUNCEMENTS_API_BASE}/organization/${organizationId}/stats`,
     );
     return response.data;
   },

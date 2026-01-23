@@ -43,6 +43,12 @@ public class AnnouncementController {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/{id}/unarchive")
+    public ResponseEntity<Void> unarchiveAnnouncement(@PathVariable Long id) {
+        announcementService.unarchiveAnnouncement(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<AnnouncementDTO> getAnnouncementById(@PathVariable Long id) {
         return ResponseEntity.ok(announcementService.getAnnouncementById(id));

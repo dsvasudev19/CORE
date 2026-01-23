@@ -1,23 +1,7 @@
-import axios from "axios";
+import axiosInstance from "../axiosInstance";
 import type { PerformanceCycleDTO } from "../types/performance.types";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
-
-const api = axios.create({
-  baseURL: `${API_URL}/api/performance/cycles`,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
-
-// Add auth token to requests
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+const PERFORMANCE_CYCLES_API_BASE = "/performance/cycles";
 
 export const performanceCycleService = {
   // Create a new performance cycle
@@ -26,9 +10,13 @@ export const performanceCycleService = {
     quarter: number,
     organizationId: number,
   ): Promise<PerformanceCycleDTO> => {
-    const response = await api.post("", null, {
-      params: { year, quarter, organizationId },
-    });
+    const response = await axiosInstance.post(
+      PERFORMANCE_CYCLES_API_BASE,
+      null,
+      {
+        params: { year, quarter, organizationId },
+      },
+    );
     return response.data;
   },
 
@@ -36,7 +24,9 @@ export const performanceCycleService = {
   getActiveCycle: async (
     organizationId: number,
   ): Promise<PerformanceCycleDTO> => {
-    const response = await api.get(`/active/${organizationId}`);
+    const response = await axiosInstance.get(
+      `${PERFORMANCE_CYCLES_API_BASE}/active/${organizationId}`,
+    );
     return response.data;
   },
 
@@ -44,13 +34,17 @@ export const performanceCycleService = {
   listCycles: async (
     organizationId: number,
   ): Promise<PerformanceCycleDTO[]> => {
-    const response = await api.get(`/organization/${organizationId}`);
+    const response = await axiosInstance.get(
+      `${PERFORMANCE_CYCLES_API_BASE}/organization/${organizationId}`,
+    );
     return response.data;
   },
 
   // Close a cycle
   closeCycle: async (cycleId: number): Promise<boolean> => {
-    const response = await api.post(`/${cycleId}/close`);
+    const response = await axiosInstance.post(
+      `${PERFORMANCE_CYCLES_API_BASE}/${cycleId}/close`,
+    );
     return response.data;
   },
 };

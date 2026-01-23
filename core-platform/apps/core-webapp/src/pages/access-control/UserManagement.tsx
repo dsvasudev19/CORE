@@ -6,13 +6,46 @@ import { roleService } from '../../services/role.service';
 import type { UserDTO, UserStatus } from '../../types/user.types';
 import type { RoleDTO } from '../../types/role.types';
 import { ConfirmDialog } from '../../components';
-import { useConfirmDialog } from '../../hooks';
 import { permissionService } from '../../services/permission.service';
 
 const UserManagement = () => {
     const { user } = useAuth();
-    const { isOpen, options, confirm, handleConfirm, handleCancel } = useConfirmDialog();
     const [showFilters, setShowFilters] = useState(false);
+
+    // Confirm dialog state
+    const [isOpen, setIsOpen] = useState(false);
+    const [confirmResolve, setConfirmResolve] = useState<((value: boolean) => void) | null>(null);
+    const [options, setOptions] = useState({
+        title: '',
+        message: '',
+        confirmText: 'Confirm',
+        cancelText: 'Cancel',
+        variant: 'danger' as 'danger' | 'warning' | 'info'
+    });
+
+    const confirm = (opts: typeof options): Promise<boolean> => {
+        return new Promise((resolve) => {
+            setOptions(opts);
+            setIsOpen(true);
+            setConfirmResolve(() => resolve);
+        });
+    };
+
+    const handleConfirm = () => {
+        if (confirmResolve) {
+            confirmResolve(true);
+            setConfirmResolve(null);
+        }
+        setIsOpen(false);
+    };
+
+    const handleCancel = () => {
+        if (confirmResolve) {
+            confirmResolve(false);
+            setConfirmResolve(null);
+        }
+        setIsOpen(false);
+    };
     const [users, setUsers] = useState<UserDTO[]>([]);
     const [roles, setRoles] = useState<RoleDTO[]>([]);
     const [loading, setLoading] = useState(false);

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Megaphone,
     Pin,
@@ -13,78 +14,86 @@ import {
     AlertCircle,
     CheckCircle,
     Info,
-    Bell
+    Bell,
+    Trash2,
+    Archive
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { announcementService } from '../../services/announcement.service';
+import AnnouncementModal from '../../components/AnnouncementModal';
 import type { AnnouncementDTO } from '../../types/announcement.types';
 import toast from 'react-hot-toast';
 
 const Announcements = () => {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<'all' | 'pinned' | 'archived'>('all');
     const [announcements, setAnnouncements] = useState<AnnouncementDTO[]>([]);
     const [loading, setLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('all');
     const [priorityFilter, setPriorityFilter] = useState('all');
+    const [showModal, setShowModal] = useState(false);
+    const [selectedAnnouncement, setSelectedAnnouncement] = useState<AnnouncementDTO | null>(null);
+    const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
     const [stats, setStats] = useState({
         totalPosts: 0,
         active: 0,
+        archived: 0,
     });
 
     // Fetch announcements based on active tab
     useEffect(() => {
-        const fetchAnnouncements = async () => {
-            if (!user?.organizationId) return;
-
-            setLoading(true);
-            try {
-                let response;
-
-                // If there's a search query, use search endpoint
-                if (searchQuery.trim()) {
-                    response = await announcementService.searchAnnouncements(
-                        user.organizationId,
-                        searchQuery,
-                        0,
-                        100
-                    );
-                }
-                // If there are filters, use filter endpoint
-                else if (categoryFilter !== 'all' || priorityFilter !== 'all') {
-                    response = await announcementService.filterAnnouncements(
-                        user.organizationId,
-                        {
-                            category: categoryFilter !== 'all' ? categoryFilter : undefined,
-                            priority: priorityFilter !== 'all' ? priorityFilter : undefined,
-                        },
-                        0,
-                        100
-                    );
-                }
-                // Otherwise use tab-based endpoints
-                else {
-                    if (activeTab === 'all') {
-                        response = await announcementService.getAllAnnouncements(user.organizationId, 0, 100);
-                    } else if (activeTab === 'pinned') {
-                        response = await announcementService.getPinnedAnnouncements(user.organizationId, 0, 100);
-                    } else {
-                        response = await announcementService.getArchivedAnnouncements(user.organizationId, 0, 100);
-                    }
-                }
-
-                setAnnouncements(response.content);
-            } catch (error) {
-                console.error('Error fetching announcements:', error);
-                toast.error('Failed to load announcements');
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchAnnouncements();
     }, [user, activeTab, searchQuery, categoryFilter, priorityFilter]);
+
+    const fetchAnnouncements = async () => {
+        if (!user?.organizationId) return;
+
+        setLoading(true);
+        try {
+            let response;
+
+            // If there's a search query, use search endpoint
+            if (searchQuery.trim()) {
+                response = await announcementService.searchAnnouncements(
+                    user.organizationId,
+                    searchQuery,
+                    0,
+                    100
+                );
+            }
+            // If there are filters, use filter endpoint
+            else if (categoryFilter !== 'all' || priorityFilter !== 'all') {
+                response = await announcementService.filterAnnouncements(
+                    user.organizationId,
+                    {
+                        category: categoryFilter !== 'all' ? categoryFilter : undefined,
+                        priority: priorityFilter !== 'all' ? priorityFilter : undefined,
+                    },
+                    0,
+                    100
+                );
+            }
+            // Otherwise use tab-based endpoints
+            else {
+                if (activeTab === 'all') {
+                    response = await announcementService.getAllAnnouncements(user.organizationId, 0, 100);
+                } else if (activeTab === 'pinned') {
+                    response = await announcementService.getPinnedAnnouncements(user.organizationId, 0, 100);
+                } else {
+                    response = await announcementService.getArchivedAnnouncements(user.organizationId, 0, 100);
+                }
+            }
+
+            setAnnouncements(response.content);
+        } catch (error) {
+            console.error('Error fetching announcements:', error);
+            toast.error('Failed to load announcements');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // Fetch stats
     useEffect(() => {
@@ -93,7 +102,14 @@ const Announcements = () => {
 
             try {
                 const statsData = await announcementService.getAnnouncementStats(user.organizationId);
-                setStats(statsData);
+
+                // Get archived count separately
+                const archivedResponse = await announcementService.getArchivedAnnouncements(user.organizationId, 0, 1);
+
+                setStats({
+                    ...statsData,
+                    archived: archivedResponse.totalElements,
+                });
             } catch (error) {
                 console.error('Error fetching stats:', error);
             }
@@ -106,37 +122,103 @@ const Announcements = () => {
         try {
             await announcementService.togglePin(id);
             toast.success('Pin status updated');
-            // Refresh announcements
-            if (user?.organizationId) {
-                const response = await announcementService.getAllAnnouncements(user.organizationId, 0, 100);
-                setAnnouncements(response.content);
-            }
+            fetchAnnouncements();
         } catch (error) {
             console.error('Error toggling pin:', error);
             toast.error('Failed to update pin status');
         }
     };
 
-    const handleIncrementViews = async (id: number) => {
-        try {
-            await announcementService.incrementViews(id);
-        } catch (error) {
-            console.error('Error incrementing views:', error);
-        }
+    const handleViewAnnouncement = (id: number) => {
+        navigate(`/a/announcements/${id}`);
     };
 
     const handleIncrementReactions = async (id: number) => {
         try {
             await announcementService.incrementReactions(id);
             toast.success('Reaction added!');
-            // Refresh to show updated count
-            if (user?.organizationId) {
-                const response = await announcementService.getAllAnnouncements(user.organizationId, 0, 100);
-                setAnnouncements(response.content);
-            }
+            fetchAnnouncements();
         } catch (error) {
             console.error('Error incrementing reactions:', error);
             toast.error('Failed to add reaction');
+        }
+    };
+
+    const handleCreateAnnouncement = () => {
+        setSelectedAnnouncement(null);
+        setModalMode('create');
+        setShowModal(true);
+    };
+
+    const handleEditAnnouncement = (announcement: AnnouncementDTO) => {
+        setSelectedAnnouncement(announcement);
+        setModalMode('edit');
+        setShowModal(true);
+    };
+
+    const handleDeleteAnnouncement = async (id: number) => {
+        if (!confirm('Are you sure you want to delete this announcement?')) {
+            return;
+        }
+
+        try {
+            await announcementService.deleteAnnouncement(id);
+            toast.success('Announcement deleted successfully');
+            fetchAnnouncements();
+        } catch (error) {
+            console.error('Error deleting announcement:', error);
+            toast.error('Failed to delete announcement');
+        }
+    };
+
+    const handleArchiveAnnouncement = async (id: number) => {
+        if (!confirm('Are you sure you want to archive this announcement?')) {
+            return;
+        }
+
+        try {
+            await announcementService.archiveAnnouncement(id);
+            toast.success('Announcement archived successfully');
+            fetchAnnouncements();
+        } catch (error) {
+            console.error('Error archiving announcement:', error);
+            toast.error('Failed to archive announcement');
+        }
+    };
+
+    const handleUnarchiveAnnouncement = async (id: number) => {
+        try {
+            await announcementService.unarchiveAnnouncement(id);
+            toast.success('Announcement unarchived successfully');
+            fetchAnnouncements();
+        } catch (error) {
+            console.error('Error unarchiving announcement:', error);
+            toast.error('Failed to unarchive announcement');
+        }
+    };
+
+    const handleSaveAnnouncement = async (announcementData: Partial<AnnouncementDTO>, isDraft: boolean) => {
+        try {
+            const data = {
+                ...announcementData,
+                organizationId: user?.organizationId,
+                author: user?.username || '',
+            } as AnnouncementDTO;
+
+            if (modalMode === 'create') {
+                await announcementService.createAnnouncement(data);
+                toast.success(isDraft ? 'Announcement saved as draft' : 'Announcement created successfully');
+            } else if (selectedAnnouncement?.id) {
+                await announcementService.updateAnnouncement(selectedAnnouncement.id, data);
+                toast.success('Announcement updated successfully');
+            }
+
+            fetchAnnouncements();
+            setShowModal(false);
+        } catch (error: any) {
+            console.error('Error saving announcement:', error);
+            toast.error(error.message || 'Failed to save announcement');
+            throw error;
         }
     };
 
@@ -199,7 +281,10 @@ const Announcements = () => {
                             <Bell size={14} />
                             Send Notification
                         </button>
-                        <button className="px-3 py-1.5 text-xs font-medium text-white bg-burgundy-600 rounded hover:bg-burgundy-700 flex items-center gap-1.5">
+                        <button
+                            onClick={handleCreateAnnouncement}
+                            className="px-3 py-1.5 text-xs font-medium text-white bg-burgundy-600 rounded hover:bg-burgundy-700 flex items-center gap-1.5"
+                        >
                             <Plus size={14} />
                             New Announcement
                         </button>
@@ -233,7 +318,7 @@ const Announcements = () => {
                         {[
                             { key: 'all', label: 'All Announcements', count: stats.totalPosts },
                             { key: 'pinned', label: 'Pinned', count: announcements.filter(a => a.isPinned).length },
-                            { key: 'archived', label: 'Archived', count: 0 }
+                            { key: 'archived', label: 'Archived', count: stats.archived }
                         ].map(({ key, label, count }) => (
                             <button
                                 key={key}
@@ -311,8 +396,8 @@ const Announcements = () => {
                         <div
                             key={announcement.id}
                             className={`bg-white rounded border ${announcement.isPinned ? 'border-burgundy-300 shadow-sm' : 'border-gray-200'
-                                } p-4 hover:shadow-md transition-shadow`}
-                            onClick={() => announcement.id && handleIncrementViews(announcement.id)}
+                                } p-4 hover:shadow-md transition-shadow cursor-pointer`}
+                            onClick={() => announcement.id && handleViewAnnouncement(announcement.id)}
                         >
                             <div className="flex items-start justify-between mb-3">
                                 <div className="flex-1">
@@ -321,8 +406,16 @@ const Announcements = () => {
                                             <Pin size={14} className="text-burgundy-600 fill-burgundy-600" />
                                         )}
                                         <h3 className="font-semibold text-gray-900">{announcement.title}</h3>
+                                        {announcement.status === 'Archived' && (
+                                            <span className="px-2 py-0.5 text-xs font-medium bg-gray-200 text-gray-700 rounded">
+                                                Archived
+                                            </span>
+                                        )}
                                     </div>
-                                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">{announcement.content}</p>
+                                    <div
+                                        className="text-sm text-gray-600 mb-3 line-clamp-2 prose prose-sm max-w-none"
+                                        dangerouslySetInnerHTML={{ __html: announcement.content }}
+                                    />
                                     <div className="flex items-center gap-3 text-xs text-gray-500">
                                         <span className={`px-2 py-0.5 rounded ${getCategoryColor(announcement.category)}`}>
                                             {announcement.category}
@@ -376,13 +469,50 @@ const Announcements = () => {
                                     <span>Expires: {announcement.expiryDate || 'No expiry'}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <button className="px-3 py-1 text-xs text-burgundy-600 hover:bg-burgundy-50 rounded flex items-center gap-1">
-                                        <Eye size={12} />
-                                        View Details
-                                    </button>
-                                    <button className="px-3 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded flex items-center gap-1">
-                                        <Edit2 size={12} />
-                                        Edit
+                                    {announcement.status === 'Archived' ? (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                announcement.id && handleUnarchiveAnnouncement(announcement.id);
+                                            }}
+                                            className="px-3 py-1 text-xs text-green-600 hover:bg-green-50 rounded flex items-center gap-1"
+                                        >
+                                            <Edit2 size={12} />
+                                            Unarchive
+                                        </button>
+                                    ) : (
+                                        <>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleEditAnnouncement(announcement);
+                                                }}
+                                                className="px-3 py-1 text-xs text-burgundy-600 hover:bg-burgundy-50 rounded flex items-center gap-1"
+                                            >
+                                                <Edit2 size={12} />
+                                                Edit
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    announcement.id && handleArchiveAnnouncement(announcement.id);
+                                                }}
+                                                className="px-3 py-1 text-xs text-gray-600 hover:bg-gray-50 rounded flex items-center gap-1"
+                                            >
+                                                <Trash2 size={12} />
+                                                Archive
+                                            </button>
+                                        </>
+                                    )}
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            announcement.id && handleDeleteAnnouncement(announcement.id);
+                                        }}
+                                        className="px-3 py-1 text-xs text-red-600 hover:bg-red-50 rounded flex items-center gap-1"
+                                    >
+                                        <Trash2 size={12} />
+                                        Delete
                                     </button>
                                 </div>
                             </div>
@@ -390,6 +520,15 @@ const Announcements = () => {
                     ))
                 )}
             </div>
+
+            {/* Modal */}
+            <AnnouncementModal
+                isOpen={showModal}
+                onClose={() => setShowModal(false)}
+                onSave={handleSaveAnnouncement}
+                announcement={selectedAnnouncement}
+                mode={modalMode}
+            />
 
             {/* Pagination */}
             <div className="mt-4 flex items-center justify-between">
