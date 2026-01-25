@@ -1,0 +1,67 @@
+╔══════════════════════════════════════════════════════════════╗
+║          NEON AI CHAT - QUICK START GUIDE                    ║
+╚══════════════════════════════════════════════════════════════╝
+
+📋 SETUP (One-time)
+───────────────────────────────────────────────────────────────
+1. Configure AI Provider:
+   cd services/neon-service
+   cp .env.example .env
+   # Edit .env and add your OPENAI_API_KEY or ANTHROPIC_API_KEY
+
+2. Install Dependencies (if not done):
+   npm install
+
+📦 START SERVICES
+───────────────────────────────────────────────────────────────
+Terminal 1 - Neon Service:
+   ./scripts/start-neon-service.sh
+
+Terminal 2 - Frontend (if needed):
+   cd apps/core-webapp && npm run dev
+
+✅ VERIFY
+───────────────────────────────────────────────────────────────
+Health Check:
+   curl http://localhost:3003/health
+
+Expected: {"status":"healthy","service":"neon-service",...}
+
+🎯 USAGE
+───────────────────────────────────────────────────────────────
+1. Login to employee dashboard
+2. Click sparkle icon (✨) in bottom-right
+3. Type your message
+4. Use special syntax:
+   @username  - Mention user
+   #123       - Reference task
+   ^Project   - Reference project
+
+💬 EXAMPLE COMMANDS
+───────────────────────────────────────────────────────────────
+• Show my tasks for today
+• Create task "Fix bug" in ^Frontend
+• Ask @john about #456
+• What's the status of #123?
+• Schedule meeting with @sarah
+• Show my time for this week
+
+🔧 TROUBLESHOOTING
+───────────────────────────────────────────────────────────────
+Chat not working?
+→ Check service: curl http://localhost:3003/health
+→ Check browser console for errors
+→ Verify you're logged in
+
+AI not responding?
+→ Check .env has valid API key
+→ Check logs: services/neon-service/logs/
+→ Fallback responses should still work
+
+📚 DOCUMENTATION
+───────────────────────────────────────────────────────────────
+• AI_CHAT_COMPLETE.md - Full implementation guide
+• services/neon-service/AI_CHAT_IMPLEMENTATION.md - Details
+• services/neon-service/NEON_ARCHITECTURE.md - Architecture
+
+🚀 STATUS: READY TO USE

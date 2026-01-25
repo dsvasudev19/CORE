@@ -1,0 +1,12 @@
+node_modules/
+package-lock.json
+.env
+.env.local
+logs/
+*.log
+.DS_Store
+.vscode/
+.idea/
+coverage/
+dist/
+build/
