@@ -183,8 +183,8 @@ const RequestLeaveModal = ({ isOpen, onClose, onSubmit }: RequestLeaveModalProps
         try {
             setSubmitting(true);
 
-            const requestData: Partial<LeaveRequestDTO> = {
-                employeeId: user!.employeeId,
+            // Don't send employeeId - backend will get it from authenticated user
+            const requestData: LeaveRequestDTO = {
                 leaveTypeId: parseInt(formData.leaveTypeId),
                 startDate: formData.startDate,
                 endDate: formData.isHalfDay ? formData.startDate : formData.endDate,
@@ -193,7 +193,7 @@ const RequestLeaveModal = ({ isOpen, onClose, onSubmit }: RequestLeaveModalProps
                 status: 'PENDING'
             };
 
-            await leaveRequestService.create(requestData as LeaveRequestDTO);
+            await leaveRequestService.create(requestData);
 
             toast.success('Leave request submitted successfully');
 

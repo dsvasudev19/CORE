@@ -4,6 +4,8 @@ import com.dev.core.domain.Bug;
 import com.dev.core.constants.BugStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -25,4 +27,14 @@ public interface BugRepository extends JpaRepository<Bug, Long>, JpaSpecificatio
     List<Bug> findByStatus(BugStatus status);
 
     List<Bug> findByDueDateBeforeAndStatusNot(LocalDateTime date, BugStatus status);
+    
+    // Get bugs where user is either the reporter or assignee
+    @Query("""
+        SELECT DISTINCT b
+        FROM Bug b
+        WHERE b.organizationId = :orgId
+          AND (b.reportedBy.id = :employeeId OR b.assignedTo.id = :employeeId)
+        ORDER BY b.createdAt DESC
+    """)
+    List<Bug> findMyBugs(@Param("orgId") Long orgId, @Param("employeeId") Long employeeId);
 }

@@ -17,26 +17,29 @@ export interface JobPosting {
   organizationId: number;
   createdAt: string;
   updatedAt: string;
+  applicantsCount?: number;
+  shortlistedCount?: number;
+  interviewedCount?: number;
 }
 
 export enum JobType {
-  FULL_TIME = 'FULL_TIME',
-  PART_TIME = 'PART_TIME',
-  CONTRACT = 'CONTRACT',
-  INTERNSHIP = 'INTERNSHIP'
+  FULL_TIME = "FULL_TIME",
+  PART_TIME = "PART_TIME",
+  CONTRACT = "CONTRACT",
+  INTERNSHIP = "INTERNSHIP",
 }
 
 export enum JobStatus {
-  DRAFT = 'DRAFT',
-  ACTIVE = 'ACTIVE',
-  CLOSED = 'CLOSED',
-  ON_HOLD = 'ON_HOLD'
+  DRAFT = "DRAFT",
+  ACTIVE = "ACTIVE",
+  CLOSED = "CLOSED",
+  ON_HOLD = "ON_HOLD",
 }
 
 export enum JobUrgency {
-  HIGH = 'HIGH',
-  MEDIUM = 'MEDIUM',
-  LOW = 'LOW'
+  HIGH = "HIGH",
+  MEDIUM = "MEDIUM",
+  LOW = "LOW",
 }
 
 export interface JobPostingDTO {
@@ -44,10 +47,10 @@ export interface JobPostingDTO {
   description: string;
   requirements: string;
   responsibilities: string;
-  departmentId: number;
+  departmentId?: number;
   location: string;
   type: JobType;
-  salaryRange: string;
+  salaryRange?: string;
   status: JobStatus;
   urgency: JobUrgency;
   postedDate?: string;

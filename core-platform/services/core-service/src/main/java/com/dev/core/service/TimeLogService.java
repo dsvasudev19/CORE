@@ -170,4 +170,36 @@ public interface TimeLogService {
      * Get employee-wise time summary for an organization
      */
     List<Map<String, Object>> getEmployeeTimeSummary(Long organizationId, LocalDate fromDate, LocalDate toDate);
+    
+    // ---------------------------------------------------------
+    // MANAGER-SUBORDINATE VISIBILITY
+    // ---------------------------------------------------------
+    
+    /**
+     * Get time logs for a user and their subordinates (if user is a manager)
+     * This allows managers to view time logs of people reporting to them
+     */
+    List<TimeLogDTO> getTimeLogsWithSubordinates(
+            Long userId,
+            Long projectId,
+            Long taskId,
+            Long bugId,
+            LocalDate fromDate,
+            LocalDate toDate
+    );
+    
+    /**
+     * Get daily logs for a user and their subordinates
+     */
+    List<TimeLogDTO> getDailyLogsWithSubordinates(Long userId, LocalDate date);
+    
+    /**
+     * Get weekly logs for a user and their subordinates
+     */
+    List<TimeLogDTO> getWeeklyLogsWithSubordinates(Long userId, LocalDate weekStartDate);
+    
+    /**
+     * Get monthly logs for a user and their subordinates
+     */
+    List<TimeLogDTO> getMonthlyLogsWithSubordinates(Long userId, int year, int month);
 }

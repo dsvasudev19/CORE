@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Eye, MoreVertical, Search, Filter, Calendar, Star } from 'lucide-react';
 import { candidateService } from '../../services/candidate.service';
 import { Candidate, CandidateStatus } from '../../types/candidate.types';
+import ScheduleInterviewModal from '../../modals/ScheduleInterviewModal';
 
 const CandidateList = () => {
     const navigate = useNavigate();
@@ -11,6 +12,8 @@ const CandidateList = () => {
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<CandidateStatus | 'ALL'>('ALL');
+    const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+    const [showScheduleModal, setShowScheduleModal] = useState(false);
 
     const organizationId = Number(localStorage.getItem('organizationId')) || 1;
 
@@ -46,6 +49,15 @@ const CandidateList = () => {
         } catch (err: any) {
             alert('Failed to reject candidate');
         }
+    };
+
+    const handleScheduleInterview = (candidate: Candidate) => {
+        setSelectedCandidate(candidate);
+        setShowScheduleModal(true);
+    };
+
+    const handleScheduleSuccess = () => {
+        loadCandidates();
     };
 
     const filteredCandidates = candidates.filter(candidate => {
@@ -177,12 +189,22 @@ const CandidateList = () => {
                                     <td className="px-3 py-2">
                                         <div className="flex items-center justify-center gap-1">
                                             <button
-                                                onClick={() => navigate(`/recruitment/candidates/${candidate.id}`)}
+                                                onClick={() => navigate(`/a/recruitment/candidates/${candidate.id}`)}
                                                 className="p-1 hover:bg-gray-100 rounded"
                                                 title="View"
                                             >
                                                 <Eye size={14} className="text-gray-600" />
                                             </button>
+                                            {(candidate.status === 'SHORTLISTED' || candidate.status === 'UNDER_REVIEW') && (
+                                                <button
+                                                    onClick={() => handleScheduleInterview(candidate)}
+                                                    className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-1"
+                                                    title="Schedule Interview"
+                                                >
+                                                    <Calendar size={12} />
+                                                    Schedule
+                                                </button>
+                                            )}
                                             {candidate.status === 'UNDER_REVIEW' && (
                                                 <button
                                                     onClick={() => handleShortlist(candidate.id)}
@@ -207,6 +229,18 @@ const CandidateList = () => {
                     </table>
                 </div>
             </div>
+
+            {/* Schedule Interview Modal */}
+            {showScheduleModal && selectedCandidate && (
+                <ScheduleInterviewModal
+                    candidate={selectedCandidate}
+                    onClose={() => {
+                        setShowScheduleModal(false);
+                        setSelectedCandidate(null);
+                    }}
+                    onSuccess={handleScheduleSuccess}
+                />
+            )}
         </div>
     );
 };

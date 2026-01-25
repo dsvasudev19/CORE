@@ -114,6 +114,13 @@ export const todoService = {
     );
     return response.data;
   },
+  
+  getMyTodos: async (): Promise<TodoDTO[]> => {
+    const response = await axiosInstance.get(
+      `${TODO_API_BASE}/my-todos`,
+    );
+    return response.data;
+  },
 
   getTodosByProject: async (projectCode: string): Promise<TodoDTO[]> => {
     const response = await axiosInstance.get(

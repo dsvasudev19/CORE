@@ -125,8 +125,11 @@ public class AttendanceServiceImpl implements AttendanceService {
                 .checkInTime(checkInTime)
                 .location(location)
                 .status("Present")
+                .isLate(false)
+                .lateByMinutes(0)
                 .build();
 
+        // Set organizationId from employee
         entity.setOrganizationId(employee.getOrganizationId());
         entity.setActive(true);
 

@@ -1,6 +1,8 @@
 package com.dev.core.controller;
 
 import com.dev.core.model.CalendarEventDTO;
+import com.dev.core.model.MinimalEmployeeDTO;
+import com.dev.core.security.SecurityContextUtil;
 import com.dev.core.service.CalendarEventService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -19,6 +21,7 @@ import java.util.Map;
 public class CalendarEventController {
 
     private final CalendarEventService calendarEventService;
+    private final SecurityContextUtil securityContextUtil;
 
     @PostMapping
     public ResponseEntity<CalendarEventDTO> createEvent(@RequestBody CalendarEventDTO dto) {
@@ -75,11 +78,15 @@ public class CalendarEventController {
         return ResponseEntity.ok(calendarEventService.getEventsByTypeAndDateRange(organizationId, eventType, startDate, endDate));
     }
 
-    @GetMapping("/organization/{organizationId}/employee/{employeeId}")
-    public ResponseEntity<List<CalendarEventDTO>> getEventsByEmployee(
-            @PathVariable Long organizationId,
-            @PathVariable Long employeeId) {
-        return ResponseEntity.ok(calendarEventService.getEventsByEmployee(organizationId, employeeId));
+    /**
+     * Get events for the currently authenticated employee
+     * Uses SecurityContextUtil to get the current employee ID from the JWT token
+     */
+    @GetMapping("/my-events")
+    public ResponseEntity<List<CalendarEventDTO>> getMyEvents() {
+        MinimalEmployeeDTO currentEmployee = securityContextUtil.getCurrentEmployee();
+        Long organizationId = securityContextUtil.getCurrentOrganizationId();
+        return ResponseEntity.ok(calendarEventService.getEventsByEmployee(organizationId, currentEmployee.getId()));
     }
 
     @GetMapping("/organization/{organizationId}/search")

@@ -14,6 +14,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { attendanceService } from '../../services/attendance.service';
 import type { AttendanceDTO, AttendanceStatsDTO } from '../../types/attendance.types';
+import AttendanceDetailsModal from '../../modals/AttendanceDetailsModal';
 import toast from 'react-hot-toast';
 
 const AttendanceDashboard = () => {
@@ -21,6 +22,8 @@ const AttendanceDashboard = () => {
     const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('day');
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [attendanceRecords, setAttendanceRecords] = useState<AttendanceDTO[]>([]);
+    const [filteredRecords, setFilteredRecords] = useState<AttendanceDTO[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
     const [stats, setStats] = useState<AttendanceStatsDTO>({
         presentToday: 0,
         absent: 0,
@@ -28,6 +31,12 @@ const AttendanceDashboard = () => {
         onLeave: 0,
     });
     const [loading, setLoading] = useState(false);
+    const [currentPage, setCurrentPage] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
+    const [totalElements, setTotalElements] = useState(0);
+    const pageSize = 20;
+    const [selectedAttendance, setSelectedAttendance] = useState<AttendanceDTO | null>(null);
+    const [detailsModalOpen, setDetailsModalOpen] = useState(false);
 
     // Fetch attendance records
     useEffect(() => {
@@ -39,10 +48,13 @@ const AttendanceDashboard = () => {
                 const response = await attendanceService.getAttendanceByDate(
                     user.organizationId,
                     selectedDate,
-                    0,
-                    100
+                    currentPage,
+                    pageSize
                 );
                 setAttendanceRecords(response.content);
+                setFilteredRecords(response.content);
+                setTotalPages(response.totalPages);
+                setTotalElements(response.totalElements);
             } catch (error) {
                 console.error('Error fetching attendance:', error);
                 toast.error('Failed to load attendance records');
@@ -52,7 +64,23 @@ const AttendanceDashboard = () => {
         };
 
         fetchAttendance();
-    }, [user, selectedDate]);
+    }, [user, selectedDate, currentPage]);
+
+    // Filter records based on search
+    useEffect(() => {
+        if (!searchQuery.trim()) {
+            setFilteredRecords(attendanceRecords);
+            return;
+        }
+
+        const query = searchQuery.toLowerCase();
+        const filtered = attendanceRecords.filter(record =>
+            record.employeeName?.toLowerCase().includes(query) ||
+            record.employeeCode?.toLowerCase().includes(query) ||
+            record.department?.toLowerCase().includes(query)
+        );
+        setFilteredRecords(filtered);
+    }, [searchQuery, attendanceRecords]);
 
     // Fetch stats
     useEffect(() => {
@@ -121,6 +149,27 @@ const AttendanceDashboard = () => {
         });
     };
 
+    const navigateDate = (direction: 'prev' | 'next') => {
+        const currentDate = new Date(selectedDate);
+        if (direction === 'prev') {
+            currentDate.setDate(currentDate.getDate() - 1);
+        } else {
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+        setSelectedDate(currentDate.toISOString().split('T')[0]);
+        setCurrentPage(0); // Reset to first page when changing date
+    };
+
+    const goToToday = () => {
+        setSelectedDate(new Date().toISOString().split('T')[0]);
+        setCurrentPage(0);
+    };
+
+    const handleViewDetails = (attendance: AttendanceDTO) => {
+        setSelectedAttendance(attendance);
+        setDetailsModalOpen(true);
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-50 p-4 flex items-center justify-center">
@@ -172,17 +221,37 @@ const AttendanceDashboard = () => {
                 <div className="bg-white rounded border border-gray-200 p-3">
                     <div className="flex gap-2 items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <button className="p-1.5 hover:bg-gray-100 rounded">
+                            <button
+                                onClick={() => navigateDate('prev')}
+                                className="p-1.5 hover:bg-gray-100 rounded"
+                            >
                                 <ChevronLeft size={16} className="text-gray-600" />
                             </button>
                             <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded">
                                 <Calendar size={16} className="text-gray-400" />
-                                <span className="text-sm font-medium text-gray-900">
-                                    {formatDate(selectedDate)}
-                                </span>
+                                <input
+                                    type="date"
+                                    value={selectedDate}
+                                    onChange={(e) => {
+                                        setSelectedDate(e.target.value);
+                                        setCurrentPage(0);
+                                    }}
+                                    max={new Date().toISOString().split('T')[0]}
+                                    className="text-sm font-medium text-gray-900 bg-transparent border-none outline-none"
+                                />
                             </div>
-                            <button className="p-1.5 hover:bg-gray-100 rounded">
+                            <button
+                                onClick={() => navigateDate('next')}
+                                disabled={selectedDate >= new Date().toISOString().split('T')[0]}
+                                className="p-1.5 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
                                 <ChevronRight size={16} className="text-gray-600" />
+                            </button>
+                            <button
+                                onClick={goToToday}
+                                className="px-3 py-1.5 text-xs font-medium text-burgundy-600 hover:bg-burgundy-50 rounded"
+                            >
+                                Today
                             </button>
                         </div>
 
@@ -206,6 +275,8 @@ const AttendanceDashboard = () => {
                                 <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                                 <input
                                     type="text"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
                                     placeholder="Search employees..."
                                     className="pl-9 pr-3 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-burgundy-500"
                                 />
@@ -241,60 +312,71 @@ const AttendanceDashboard = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                            {attendanceRecords.map((record) => (
-                                <tr key={record.id} className="hover:bg-gray-50">
-                                    <td className="px-3 py-2">
-                                        <input type="checkbox" className="rounded border-gray-300" />
-                                    </td>
-                                    <td className="px-3 py-2 font-medium text-gray-900">{record.employeeCode || '-'}</td>
-                                    <td className="px-3 py-2">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-6 h-6 rounded-full bg-burgundy-100 flex items-center justify-center text-burgundy-700 font-semibold text-xs">
-                                                {record.employeeName?.split(' ').map(n => n[0]).join('') || '?'}
-                                            </div>
-                                            <span className="font-medium text-gray-900">{record.employeeName || 'Unknown'}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-3 py-2 text-gray-600">{record.department || '-'}</td>
-                                    <td className="px-3 py-2">
-                                        <span className={record.checkInTime ? 'text-gray-900 font-medium' : 'text-gray-400'}>
-                                            {formatTime(record.checkInTime)}
-                                        </span>
-                                    </td>
-                                    <td className="px-3 py-2">
-                                        <span className={record.checkOutTime ? 'text-gray-900 font-medium' : 'text-gray-400'}>
-                                            {formatTime(record.checkOutTime) || 'In Progress'}
-                                        </span>
-                                    </td>
-                                    <td className="px-3 py-2">
-                                        <span className={record.workHours ? 'text-gray-900 font-medium' : 'text-gray-400'}>
-                                            {formatWorkHours(record.workHours)}
-                                        </span>
-                                    </td>
-                                    <td className="px-3 py-2">
-                                        {record.location !== '-' && (
-                                            <span className={`px-2 py-0.5 rounded text-xs ${record.location === 'Office'
-                                                ? 'bg-blue-50 text-blue-700'
-                                                : 'bg-purple-50 text-purple-700'
-                                                }`}>
-                                                {record.location}
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="px-3 py-2">
-                                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(record.status)}`}>
-                                            {record.status}
-                                        </span>
-                                    </td>
-                                    <td className="px-3 py-2">
-                                        <div className="flex items-center justify-center gap-1">
-                                            <button className="px-2 py-1 text-xs text-burgundy-600 hover:bg-burgundy-50 rounded">
-                                                View Details
-                                            </button>
-                                        </div>
+                            {filteredRecords.length === 0 ? (
+                                <tr>
+                                    <td colSpan={10} className="px-3 py-8 text-center text-gray-500">
+                                        {loading ? 'Loading attendance records...' : 'No attendance records found for this date'}
                                     </td>
                                 </tr>
-                            ))}
+                            ) : (
+                                filteredRecords.map((record) => (
+                                    <tr key={record.id} className="hover:bg-gray-50">
+                                        <td className="px-3 py-2">
+                                            <input type="checkbox" className="rounded border-gray-300" />
+                                        </td>
+                                        <td className="px-3 py-2 font-medium text-gray-900">{record.employeeCode || '-'}</td>
+                                        <td className="px-3 py-2">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-6 h-6 rounded-full bg-burgundy-100 flex items-center justify-center text-burgundy-700 font-semibold text-xs">
+                                                    {record.employeeName?.split(' ').map(n => n[0]).join('') || '?'}
+                                                </div>
+                                                <span className="font-medium text-gray-900">{record.employeeName || 'Unknown'}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-3 py-2 text-gray-600">{record.department || '-'}</td>
+                                        <td className="px-3 py-2">
+                                            <span className={record.checkInTime ? 'text-gray-900 font-medium' : 'text-gray-400'}>
+                                                {formatTime(record.checkInTime)}
+                                            </span>
+                                        </td>
+                                        <td className="px-3 py-2">
+                                            <span className={record.checkOutTime ? 'text-gray-900 font-medium' : 'text-gray-400'}>
+                                                {formatTime(record.checkOutTime) || 'In Progress'}
+                                            </span>
+                                        </td>
+                                        <td className="px-3 py-2">
+                                            <span className={record.workHours ? 'text-gray-900 font-medium' : 'text-gray-400'}>
+                                                {formatWorkHours(record.workHours)}
+                                            </span>
+                                        </td>
+                                        <td className="px-3 py-2">
+                                            {record.location && record.location !== '-' && (
+                                                <span className={`px-2 py-0.5 rounded text-xs ${record.location === 'Office'
+                                                    ? 'bg-blue-50 text-blue-700'
+                                                    : 'bg-purple-50 text-purple-700'
+                                                    }`}>
+                                                    {record.location}
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="px-3 py-2">
+                                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(record.status)}`}>
+                                                {record.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-3 py-2">
+                                            <div className="flex items-center justify-center gap-1">
+                                                <button
+                                                    onClick={() => handleViewDetails(record)}
+                                                    className="px-2 py-1 text-xs text-burgundy-600 hover:bg-burgundy-50 rounded"
+                                                >
+                                                    View Details
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
                         </tbody>
                     </table>
                 </div>
@@ -302,16 +384,49 @@ const AttendanceDashboard = () => {
                 {/* Footer */}
                 <div className="px-4 py-2 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
                     <div className="text-xs text-gray-600">
-                        Showing <span className="font-medium">6</span> of <span className="font-medium">232</span> employees
+                        Showing <span className="font-medium">{filteredRecords.length}</span> of <span className="font-medium">{totalElements}</span> employees
                     </div>
                     <div className="flex gap-1">
-                        <button className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-white">Previous</button>
-                        <button className="px-2 py-1 text-xs bg-burgundy-600 text-white rounded">1</button>
-                        <button className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-white">2</button>
-                        <button className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-white">Next</button>
+                        <button
+                            onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                            disabled={currentPage === 0}
+                            className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Previous
+                        </button>
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                            const pageNum = currentPage < 3 ? i : currentPage - 2 + i;
+                            if (pageNum >= totalPages) return null;
+                            return (
+                                <button
+                                    key={pageNum}
+                                    onClick={() => setCurrentPage(pageNum)}
+                                    className={`px-2 py-1 text-xs rounded ${currentPage === pageNum
+                                        ? 'bg-burgundy-600 text-white'
+                                        : 'border border-gray-300 hover:bg-white'
+                                        }`}
+                                >
+                                    {pageNum + 1}
+                                </button>
+                            );
+                        })}
+                        <button
+                            onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
+                            disabled={currentPage >= totalPages - 1}
+                            className="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Next
+                        </button>
                     </div>
                 </div>
             </div>
+
+            {/* Attendance Details Modal */}
+            <AttendanceDetailsModal
+                isOpen={detailsModalOpen}
+                onClose={() => setDetailsModalOpen(false)}
+                attendance={selectedAttendance}
+            />
         </div>
     );
 };

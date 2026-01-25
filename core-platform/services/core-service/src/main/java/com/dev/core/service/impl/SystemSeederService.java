@@ -199,6 +199,7 @@ public class SystemSeederService {
     private final EmployeeRepository employeeRepository;
     private final DepartmentRepository departmentRepository;
     private final DesignationRepository designationRepository;
+    private final com.dev.core.repository.leave.LeaveTypeRepository leaveTypeRepository;
 
     @Lazy
     private final PasswordEncoder passwordEncoder;
@@ -208,8 +209,8 @@ public class SystemSeederService {
     private static final String DEFAULT_ADMIN_EMAIL = "admin@system.com";
     private static final String DEFAULT_ADMIN_PASSWORD = "Admin@123"; // CHANGE IMMEDIATELY AFTER FIRST LOGIN
     
-    private static final String SAMPLE_EMPLOYEE_EMAIL = "rajesh.kumar@system.com";
-    private static final String SAMPLE_EMPLOYEE_PASSWORD = "Employee@123";
+    private static final String SAMPLE_EMPLOYEE_EMAIL = "rajesh.kumar@yopmail.com";
+    private static final String SAMPLE_EMPLOYEE_PASSWORD = "Welcome@123";
 
     private static final List<String> RESOURCES = Arrays.asList(
             "USER", "ROLE", "POLICY", "RESOURCE", "ACTION", "PERMISSION",
@@ -219,7 +220,8 @@ public class SystemSeederService {
             "CLIENT_DOCUMENT","PROJECTPHASE","PROJECT_MEMBER","TASKCOMMENT","TASKTAGS","TASK_TAGS","TASKATTACHMENT",
             "BUG_HISTORY","BUG_COMMENT","BUG_ATTACHMENT","TODO","TIMELOG",
             "PAYROLL", "PAYROLL_HISTORY", "ATTENDANCE", "PERFORMANCE", "ANNOUNCEMENT", "MESSAGING",
-            "CALENDAR", "CALENDAR_EVENT"
+            "CALENDAR", "CALENDAR_EVENT", "JOB-POSTING", "LEAVE_REQUEST", "LEAVE_TYPE", "CANDIDATE", "INTERVIEW",
+            "EPIC", "ISSUE", "SPRINT"
     );
 
     private static final List<String> ACTIONS = Arrays.asList("CREATE", "READ", "UPDATE", "DELETE");
@@ -256,16 +258,18 @@ public class SystemSeederService {
         createRoleWithPolicies("PROJECT_MANAGER", "Manages projects, tasks, teams, clients", allPermissions, org, roleMatrix);
         createRoleWithPolicies("TEAM_LEAD", "Leads team, assigns tasks, reviews work", allPermissions, org, roleMatrix);
         createRoleWithPolicies("DEVELOPER", "Develops features, fixes bugs, logs time", allPermissions, org, roleMatrix);
+        createRoleWithPolicies("EMPLOYEE", "Basic employee with read access to most resources", allPermissions, org, roleMatrix);
         createRoleWithPolicies("CLIENT", "External stakeholder – view only", allPermissions, org, roleMatrix);
         createRoleWithPolicies("GUEST", "Minimal read access", allPermissions, org, roleMatrix);
 
         log.info("========================================");
-        log.info("Seeding departments and designations...");
+        log.info("Seeding departments, designations, and leave types...");
         log.info("========================================");
         
         // Seed comprehensive departments and designations
         seedDepartments(org);
         seedDesignations(org);
+        seedLeaveTypes(org);
 
         log.info("========================================");
         log.info("Creating sample users and employees...");
@@ -289,7 +293,7 @@ public class SystemSeederService {
         log.info("   - {} Resources", resources.size());
         log.info("   - {} Permissions", allPermissions.size());
         log.info("   - {} Roles with permissions", roleMatrix.size());
-        log.info("   - Departments and designations seeded");
+        log.info("   - Departments, designations, and leave types seeded");
         log.info("   - Sample employees created with auto role assignment");
         log.info("========================================");
         
@@ -306,7 +310,7 @@ public class SystemSeederService {
         log.info("========================================");
         
         List<String> roleNames = Arrays.asList("SUPER_ADMIN", "ORG_ADMIN", "PROJECT_MANAGER", 
-                                               "TEAM_LEAD", "DEVELOPER", "CLIENT", "GUEST");
+                                               "TEAM_LEAD", "DEVELOPER", "EMPLOYEE", "CLIENT", "GUEST");
         
         for (String roleName : roleNames) {
             roleRepository.findByNameAndOrganizationId(roleName, org.getId())
@@ -416,6 +420,9 @@ public class SystemSeederService {
                 "PROJECT:CREATE", "PROJECT:READ", "PROJECT:UPDATE", "PROJECT:DELETE",
                 "TASK:CREATE", "TASK:READ", "TASK:UPDATE", "TASK:DELETE",
                 "BUG:CREATE", "BUG:READ", "BUG:UPDATE", "BUG:DELETE",
+                "EPIC:CREATE", "EPIC:READ", "EPIC:UPDATE", "EPIC:DELETE",
+                "ISSUE:CREATE", "ISSUE:READ", "ISSUE:UPDATE", "ISSUE:DELETE",
+                "SPRINT:CREATE", "SPRINT:READ", "SPRINT:UPDATE", "SPRINT:DELETE",
                 "CLIENT:READ", "CLIENT:UPDATE",
                 "TEAM:READ", "TEAM:UPDATE",
                 "DOCUMENT:CREATE", "DOCUMENT:READ", "DOCUMENT:UPDATE", "DOCUMENT:DELETE",
@@ -426,13 +433,22 @@ public class SystemSeederService {
                 "CALENDAR:READ", "CALENDAR:CREATE", "CALENDAR:UPDATE", "CALENDAR:DELETE",
                 "CALENDAR_EVENT:CREATE", "CALENDAR_EVENT:READ", "CALENDAR_EVENT:UPDATE", "CALENDAR_EVENT:DELETE",
                 "USER:READ",
-                "MESSAGING:CREATE", "MESSAGING:READ", "MESSAGING:UPDATE", "MESSAGING:DELETE"
+                "MESSAGING:CREATE", "MESSAGING:READ", "MESSAGING:UPDATE", "MESSAGING:DELETE",
+                "JOB-POSTING:CREATE", "JOB-POSTING:READ", "JOB-POSTING:UPDATE", "JOB-POSTING:DELETE",
+                "CANDIDATE:CREATE", "CANDIDATE:READ", "CANDIDATE:UPDATE", "CANDIDATE:DELETE",
+                "INTERVIEW:CREATE", "INTERVIEW:READ", "INTERVIEW:UPDATE", "INTERVIEW:DELETE",
+                "LEAVE_REQUEST:READ", "LEAVE_REQUEST:UPDATE",
+                "LEAVE_TYPE:READ", "LEAVE_TYPE:CREATE", "LEAVE_TYPE:UPDATE", "LEAVE_TYPE:DELETE",
+                "ATTENDANCE:READ"
         ));
 
         matrix.put("TEAM_LEAD", Set.of(
                 "PROJECT:READ",
                 "TASK:READ", "TASK:UPDATE", "TASK:CREATE",
                 "BUG:READ", "BUG:UPDATE", "BUG:CREATE",
+                "EPIC:READ", "EPIC:UPDATE", "EPIC:CREATE",
+                "ISSUE:READ", "ISSUE:UPDATE", "ISSUE:CREATE",
+                "SPRINT:READ", "SPRINT:UPDATE", "SPRINT:CREATE",
                 "DOCUMENT:READ", "DOCUMENT:CREATE",
                 "EMPLOYEE:READ", 
                 "TIMESHEET:READ", "TIMELOG:READ",
@@ -440,13 +456,20 @@ public class SystemSeederService {
                 "CALENDAR:READ", "CALENDAR:CREATE", "CALENDAR:UPDATE",
                 "CALENDAR_EVENT:CREATE", "CALENDAR_EVENT:READ", "CALENDAR_EVENT:UPDATE", "CALENDAR_EVENT:DELETE",
                 "USER:READ",
-                "MESSAGING:CREATE", "MESSAGING:READ", "MESSAGING:UPDATE"
+                "MESSAGING:CREATE", "MESSAGING:READ", "MESSAGING:UPDATE",
+                "LEAVE_REQUEST:READ",
+                "LEAVE_TYPE:READ",
+                "JOB-POSTING:READ",
+                "CANDIDATE:READ"
         ));
 
         matrix.put("DEVELOPER", Set.of(
                 "PROJECT:READ",
-                "TASK:READ", "TASK:UPDATE",
-                "BUG:READ", "BUG:UPDATE", "BUG:CREATE",
+                "TASK:CREATE", "TASK:READ", "TASK:UPDATE", "TASK:DELETE",
+                "BUG:CREATE", "BUG:READ", "BUG:UPDATE", "BUG:DELETE",
+                "EPIC:CREATE", "EPIC:READ", "EPIC:UPDATE", "EPIC:DELETE",
+                "ISSUE:CREATE", "ISSUE:READ", "ISSUE:UPDATE", "ISSUE:DELETE",
+                "SPRINT:READ",
                 "DOCUMENT:READ", "DOCUMENT:CREATE",
                 "TIMESHEET:CREATE", "TIMESHEET:READ", "TIMESHEET:UPDATE",
                 "TIMELOG:CREATE", "TIMELOG:READ", "TIMELOG:UPDATE",
@@ -454,8 +477,37 @@ public class SystemSeederService {
                 "CALENDAR:READ", "CALENDAR:CREATE", "CALENDAR:UPDATE",
                 "CALENDAR_EVENT:CREATE", "CALENDAR_EVENT:READ", "CALENDAR_EVENT:UPDATE", "CALENDAR_EVENT:DELETE",
                 "USER:READ",
-                "MESSAGING:CREATE", "MESSAGING:READ", "MESSAGING:UPDATE"
+                "MESSAGING:CREATE", "MESSAGING:READ", "MESSAGING:UPDATE",
+                "LEAVE_REQUEST:CREATE", "LEAVE_REQUEST:READ", "LEAVE_REQUEST:UPDATE",
+                "LEAVE_TYPE:READ",
+                "JOB-POSTING:READ",
+                "CANDIDATE:CREATE",
+                "ATTENDANCE:CREATE", "ATTENDANCE:READ"
         ));
+
+        // EMPLOYEE role - READ access to most resources
+        Set<String> employeePermissions = new HashSet<>();
+        for (String resource : RESOURCES) {
+            // Skip system/admin resources
+            if (!resource.equals("ACTION") && !resource.equals("RESOURCE") && 
+                !resource.equals("PERMISSION") && !resource.equals("POLICY") &&
+                !resource.equals("ROLE") && !resource.equals("ORGANIZATION")) {
+                employeePermissions.add(resource + ":READ");
+            }
+        }
+        // Add some basic CREATE/UPDATE permissions for personal items
+        employeePermissions.add("TODO:CREATE");
+        employeePermissions.add("TODO:UPDATE");
+        employeePermissions.add("TODO:DELETE");
+        employeePermissions.add("CALENDAR_EVENT:CREATE");
+        employeePermissions.add("CALENDAR_EVENT:UPDATE");
+        employeePermissions.add("CALENDAR_EVENT:DELETE");
+        employeePermissions.add("MESSAGING:CREATE");
+        employeePermissions.add("MESSAGING:UPDATE");
+        employeePermissions.add("LEAVE_REQUEST:CREATE");
+        employeePermissions.add("LEAVE_REQUEST:UPDATE");
+        employeePermissions.add("ATTENDANCE:CREATE");
+        matrix.put("EMPLOYEE", employeePermissions);
 
         matrix.put("CLIENT", Set.of(
                 "PROJECT:READ", "TASK:READ", "BUG:READ", "DOCUMENT:READ",
@@ -757,32 +809,32 @@ public class SystemSeederService {
             new DesignationData("Data Science Manager", "DSM", "Data Science Manager", "PROJECT_MANAGER"),
             
             // HR
-            new DesignationData("HR Coordinator", "HRC", "HR Coordinator", "DEVELOPER"),
+            new DesignationData("HR Coordinator", "HRC", "HR Coordinator", "EMPLOYEE"),
             new DesignationData("HR Manager", "HRM", "HR Manager", "PROJECT_MANAGER"),
             new DesignationData("VP of HR", "VPHR", "Vice President of HR", "ORG_ADMIN"),
             
             // Finance
-            new DesignationData("Accountant", "ACC", "Accountant", "DEVELOPER"),
+            new DesignationData("Accountant", "ACC", "Accountant", "EMPLOYEE"),
             new DesignationData("Finance Manager", "FM", "Finance Manager", "PROJECT_MANAGER"),
             new DesignationData("CFO", "CFO", "Chief Financial Officer", "ORG_ADMIN"),
             
             // Sales
-            new DesignationData("Sales Representative", "SR", "Sales Representative", "DEVELOPER"),
-            new DesignationData("Account Executive", "AE", "Account Executive", "DEVELOPER"),
+            new DesignationData("Sales Representative", "SR", "Sales Representative", "EMPLOYEE"),
+            new DesignationData("Account Executive", "AE", "Account Executive", "EMPLOYEE"),
             new DesignationData("Sales Manager", "SM", "Sales Manager", "PROJECT_MANAGER"),
             new DesignationData("VP of Sales", "VPS", "Vice President of Sales", "ORG_ADMIN"),
             
             // Marketing
-            new DesignationData("Marketing Coordinator", "MC", "Marketing Coordinator", "DEVELOPER"),
+            new DesignationData("Marketing Coordinator", "MC", "Marketing Coordinator", "EMPLOYEE"),
             new DesignationData("Marketing Manager", "MM", "Marketing Manager", "PROJECT_MANAGER"),
             new DesignationData("VP of Marketing", "VPM", "Vice President of Marketing", "ORG_ADMIN"),
             
             // Customer Success
-            new DesignationData("Customer Success Representative", "CSR", "Customer Success Rep", "DEVELOPER"),
+            new DesignationData("Customer Success Representative", "CSR", "Customer Success Rep", "EMPLOYEE"),
             new DesignationData("Customer Success Manager", "CSM", "Customer Success Manager", "PROJECT_MANAGER"),
             
             // IT Support
-            new DesignationData("IT Support Specialist", "ITS", "IT Support Specialist", "DEVELOPER"),
+            new DesignationData("IT Support Specialist", "ITS", "IT Support Specialist", "EMPLOYEE"),
             new DesignationData("IT Manager", "ITM", "IT Manager", "PROJECT_MANAGER"),
             
             // Executive
@@ -852,28 +904,29 @@ public class SystemSeederService {
         designationRoleMap.put("ML Engineer", "DEVELOPER");
         designationRoleMap.put("Data Science Manager", "PROJECT_MANAGER");
         
-        // Other departments
-        designationRoleMap.put("HR Coordinator", "DEVELOPER");
+        // Other departments - most get EMPLOYEE role by default
+        designationRoleMap.put("HR Coordinator", "EMPLOYEE");
         designationRoleMap.put("HR Manager", "PROJECT_MANAGER");
         designationRoleMap.put("VP of HR", "ORG_ADMIN");
-        designationRoleMap.put("Accountant", "DEVELOPER");
+        designationRoleMap.put("Accountant", "EMPLOYEE");
         designationRoleMap.put("Finance Manager", "PROJECT_MANAGER");
         designationRoleMap.put("CFO", "ORG_ADMIN");
-        designationRoleMap.put("Sales Representative", "DEVELOPER");
-        designationRoleMap.put("Account Executive", "DEVELOPER");
+        designationRoleMap.put("Sales Representative", "EMPLOYEE");
+        designationRoleMap.put("Account Executive", "EMPLOYEE");
         designationRoleMap.put("Sales Manager", "PROJECT_MANAGER");
         designationRoleMap.put("VP of Sales", "ORG_ADMIN");
-        designationRoleMap.put("Marketing Coordinator", "DEVELOPER");
+        designationRoleMap.put("Marketing Coordinator", "EMPLOYEE");
         designationRoleMap.put("Marketing Manager", "PROJECT_MANAGER");
         designationRoleMap.put("VP of Marketing", "ORG_ADMIN");
-        designationRoleMap.put("Customer Success Representative", "DEVELOPER");
+        designationRoleMap.put("Customer Success Representative", "EMPLOYEE");
         designationRoleMap.put("Customer Success Manager", "PROJECT_MANAGER");
-        designationRoleMap.put("IT Support Specialist", "DEVELOPER");
+        designationRoleMap.put("IT Support Specialist", "EMPLOYEE");
         designationRoleMap.put("IT Manager", "PROJECT_MANAGER");
         designationRoleMap.put("CEO", "SUPER_ADMIN");
         designationRoleMap.put("COO", "ORG_ADMIN");
         
-        return designationRoleMap.getOrDefault(designationTitle, "DEVELOPER");
+        // Default to EMPLOYEE role for any designation not explicitly mapped
+        return designationRoleMap.getOrDefault(designationTitle, "EMPLOYEE");
     }
     
     /**
@@ -881,14 +934,14 @@ public class SystemSeederService {
      */
     private void createSampleEmployees(Organization org) {
         List<SampleEmployeeData> sampleEmployees = Arrays.asList(
-            new SampleEmployeeData("Priya", "Sharma", "priya.sharma@system.com", "Engineering", "Senior Software Engineer", "EMP-ENG-002"),
-            new SampleEmployeeData("Amit", "Patel", "amit.patel@system.com", "Engineering", "Lead Software Engineer", "EMP-ENG-003"),
-            new SampleEmployeeData("Sneha", "Reddy", "sneha.reddy@system.com", "Quality Assurance", "QA Lead", "EMP-QA-001"),
-            new SampleEmployeeData("Vikram", "Singh", "vikram.singh@system.com", "Product Management", "Product Manager", "EMP-PM-001"),
-            new SampleEmployeeData("Ananya", "Iyer", "ananya.iyer@system.com", "Design", "UI/UX Designer", "EMP-DES-001"),
-            new SampleEmployeeData("Arjun", "Mehta", "arjun.mehta@system.com", "DevOps", "DevOps Engineer", "EMP-DO-001"),
-            new SampleEmployeeData("Kavya", "Nair", "kavya.nair@system.com", "Human Resources", "HR Manager", "EMP-HR-001"),
-            new SampleEmployeeData("Rohan", "Gupta", "rohan.gupta@system.com", "Engineering", "Engineering Manager", "EMP-ENG-004")
+            new SampleEmployeeData("Priya", "Sharma", "priya.sharma@yopmail.com", "Engineering", "Senior Software Engineer", "EMP-ENG-002"),
+            new SampleEmployeeData("Amit", "Patel", "amit.patel@yopmail.com", "Engineering", "Lead Software Engineer", "EMP-ENG-003"),
+            new SampleEmployeeData("Sneha", "Reddy", "sneha.reddy@yopmail.com", "Quality Assurance", "QA Lead", "EMP-QA-001"),
+            new SampleEmployeeData("Vikram", "Singh", "vikram.singh@yopmail.com", "Product Management", "Product Manager", "EMP-PM-001"),
+            new SampleEmployeeData("Ananya", "Iyer", "ananya.iyer@yopmail.com", "Design", "UI/UX Designer", "EMP-DES-001"),
+            new SampleEmployeeData("Arjun", "Mehta", "arjun.mehta@yopmail.com", "DevOps", "DevOps Engineer", "EMP-DO-001"),
+            new SampleEmployeeData("Kavya", "Nair", "kavya.nair@yopmail.com", "Human Resources", "HR Manager", "EMP-HR-001"),
+            new SampleEmployeeData("Rohan", "Gupta", "rohan.gupta@yopmail.com", "Engineering", "Engineering Manager", "EMP-ENG-004")
         );
         
         for (SampleEmployeeData data : sampleEmployees) {
@@ -960,6 +1013,69 @@ public class SystemSeederService {
             log.info("Created sample employee: {} {} ({}) - Department: {}, Designation: {}, Role: {}",
                     data.firstName, data.lastName, data.employeeCode, 
                     data.departmentName, data.designationTitle, roleName);
+        }
+    }
+    
+    /**
+     * Seeds default leave types for the organization
+     */
+    private void seedLeaveTypes(Organization org) {
+        List<LeaveTypeData> leaveTypes = Arrays.asList(
+            new LeaveTypeData("Casual Leave", 12, null, null, false, false, 0),
+            new LeaveTypeData("Sick Leave", 12, null, null, false, false, 0),
+            new LeaveTypeData("Earned Leave", 24, null, null, true, true, 15),
+            new LeaveTypeData("Privilege Leave", 15, null, null, false, true, 10),
+            new LeaveTypeData("Maternity Leave", 180, null, null, false, false, 0),
+            new LeaveTypeData("Paternity Leave", 15, null, null, false, false, 0),
+            new LeaveTypeData("Compensatory Off", 12, null, null, false, false, 0),
+            new LeaveTypeData("Work From Home", null, 8, null, false, false, 0),
+            new LeaveTypeData("Bereavement Leave", 5, null, null, false, false, 0),
+            new LeaveTypeData("Marriage Leave", 7, null, null, false, false, 0),
+            new LeaveTypeData("Study Leave", 10, null, null, false, false, 0),
+            new LeaveTypeData("Unpaid Leave", null, null, null, false, false, 0)
+        );
+        
+        for (LeaveTypeData data : leaveTypes) {
+            // Check if leave type already exists
+            List<com.dev.core.domain.leave.LeaveType> existing = leaveTypeRepository.findByOrganizationId(org.getId());
+            boolean exists = existing.stream().anyMatch(lt -> lt.getName().equals(data.name));
+            
+            if (!exists) {
+                com.dev.core.domain.leave.LeaveType leaveType = new com.dev.core.domain.leave.LeaveType();
+                leaveType.setName(data.name);
+                leaveType.setAnnualLimit(data.annualLimit);
+                leaveType.setMonthlyLimit(data.monthlyLimit);
+                leaveType.setQuarterlyLimit(data.quarterlyLimit);
+                leaveType.setEarnedLeave(data.earnedLeave);
+                leaveType.setCarryForward(data.carryForward);
+                leaveType.setMaxCarryForward(data.maxCarryForward);
+                leaveType.setOrganizationId(org.getId());
+                leaveTypeRepository.save(leaveType);
+                log.info("Created leave type: {} (Annual: {}, Monthly: {}, Earned: {}, Carry Forward: {})", 
+                        data.name, data.annualLimit, data.monthlyLimit, data.earnedLeave, data.carryForward);
+            }
+        }
+    }
+    
+    // Helper class for leave type data
+    private static class LeaveTypeData {
+        String name;
+        Integer annualLimit;
+        Integer monthlyLimit;
+        Integer quarterlyLimit;
+        Boolean earnedLeave;
+        Boolean carryForward;
+        Integer maxCarryForward;
+        
+        LeaveTypeData(String name, Integer annualLimit, Integer monthlyLimit, Integer quarterlyLimit,
+                     Boolean earnedLeave, Boolean carryForward, Integer maxCarryForward) {
+            this.name = name;
+            this.annualLimit = annualLimit;
+            this.monthlyLimit = monthlyLimit;
+            this.quarterlyLimit = quarterlyLimit;
+            this.earnedLeave = earnedLeave;
+            this.carryForward = carryForward;
+            this.maxCarryForward = maxCarryForward;
         }
     }
     

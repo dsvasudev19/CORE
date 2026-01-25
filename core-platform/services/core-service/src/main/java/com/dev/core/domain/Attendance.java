@@ -17,7 +17,7 @@ import java.time.LocalTime;
 @Builder
 public class Attendance extends BaseEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "employee_id", nullable = false)
     private Employee employee;
 

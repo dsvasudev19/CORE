@@ -21,6 +21,8 @@ public interface BugService {
     List<BugDTO> getBugsByProject(Long projectId);
 
     List<BugDTO> getBugsByAssignee(Long userId);
+    
+    List<BugDTO> getMyBugs(Long organizationId);
 
     BugDTO changeBugStatus(Long bugId, String newStatus);
 

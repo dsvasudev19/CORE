@@ -29,6 +29,7 @@ import type { TimeLogDTO } from '../types/timelog.types';
 import { AIAgent, ChatToggle } from '../components/chat';
 import ClockInModal from '../modals/ClockInModal';
 import { useAuth } from '../contexts/AuthContext';
+import { useConfirm } from '../hooks/useConfirm';
 
 const EmployeeLayout = () => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -41,9 +42,17 @@ const EmployeeLayout = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const { user, logout } = useAuth();
+    const { confirm, ConfirmDialog } = useConfirm();
 
     const handleLogout = async () => {
-        if (confirm('Are you sure you want to logout?')) {
+        const confirmed = await confirm({
+            title: 'Confirm Logout',
+            message: 'Are you sure you want to logout?',
+            confirmText: 'Logout',
+            type: 'warning'
+        });
+
+        if (confirmed) {
             await logout();
             navigate('/login');
         }
@@ -93,6 +102,7 @@ const EmployeeLayout = () => {
         { name: 'Calendar', href: '/e/calendar', icon: Calendar },
         { name: 'Time Tracking', href: '/e/timesheet', icon: Clock },
         { name: 'Team', href: '/e/team', icon: Users },
+        { name: 'Careers', href: '/e/careers', icon: Briefcase },
         { name: 'Messages', href: '/e/messages', icon: MessageSquare },
         { name: 'Settings', href: '/e/settings', icon: Settings },
     ];
@@ -407,6 +417,9 @@ const EmployeeLayout = () => {
                 isOpen={clockInModalOpen}
                 onClose={() => setClockInModalOpen(false)}
             />
+
+            {/* Confirm Dialog */}
+            <ConfirmDialog />
         </div>
     );
 };

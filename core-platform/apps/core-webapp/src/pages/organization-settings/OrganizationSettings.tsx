@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Building2, Users } from 'lucide-react';
+import { Building2, Users, Calendar } from 'lucide-react';
 import DepartmentList from '../departments/DepartmentList';
 import DesignationList from '../designations/DesignationList';
-
 import TeamList from '../teams/TeamList';
+import LeaveTypeList from '../leave-types/LeaveTypeList';
 
-type TabType = 'departments' | 'designations' | 'teams';
+type TabType = 'departments' | 'designations' | 'teams' | 'leaveTypes';
 
 const ORG_SETTINGS_TAB_KEY = 'orgSettingsActiveTab';
 
@@ -23,6 +23,7 @@ const OrganizationSettings = () => {
     { id: 'departments' as TabType, label: 'Departments', icon: Building2 },
     { id: 'designations' as TabType, label: 'Designations', icon: Users },
     { id: 'teams' as TabType, label: 'Teams', icon: Users },
+    { id: 'leaveTypes' as TabType, label: 'Leave Types', icon: Calendar },
   ];
 
   return (
@@ -33,7 +34,7 @@ const OrganizationSettings = () => {
           <Building2 size={24} className="text-burgundy-600" />
           <div>
             <h1 className="text-2xl font-bold text-steel-900">Organization Settings</h1>
-            <p className="text-xs text-steel-500 mt-0.5">Manage departments, designations, and teams for your organization</p>
+            <p className="text-xs text-steel-500 mt-0.5">Manage departments, designations, teams, and leave types for your organization</p>
           </div>
         </div>
 
@@ -59,6 +60,7 @@ const OrganizationSettings = () => {
         {activeTab === 'departments' && <DepartmentList key="departments" />}
         {activeTab === 'designations' && <DesignationList key="designations" />}
         {activeTab === 'teams' && <TeamList key="teams" />}
+        {activeTab === 'leaveTypes' && <LeaveTypeList key="leaveTypes" />}
       </div>
     </div>
   );

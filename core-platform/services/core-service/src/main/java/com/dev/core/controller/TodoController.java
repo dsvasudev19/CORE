@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.dev.core.model.TodoDTO;
+import com.dev.core.security.SecurityContextUtil;
 import com.dev.core.service.todo.TodoService;
 
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 public class TodoController {
 
     private final TodoService todoService;
+    private final SecurityContextUtil securityContextUtil;
 
     // -------------------------------------------------------------------------
     // CRUD
@@ -124,6 +126,12 @@ public class TodoController {
     @GetMapping("/assignee/{employeeId}")
     public ResponseEntity<List<TodoDTO>> getTodosByAssignee(@PathVariable Long employeeId) {
         return ResponseEntity.ok(todoService.getTodosByAssignee(employeeId));
+    }
+    
+    @GetMapping("/my-todos")
+    public ResponseEntity<List<TodoDTO>> getMyTodos() {
+        Long organizationId = securityContextUtil.getCurrentOrganizationId();
+        return ResponseEntity.ok(todoService.getMyTodos(organizationId));
     }
 
     @GetMapping("/project/{projectCode}")

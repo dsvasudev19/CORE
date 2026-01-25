@@ -41,7 +41,12 @@ import { ReportsAnalytics } from "../pages/reports";
 // Recruitment
 import RecruitmentDashboard from "../pages/recruitment/RecruitmentDashboard";
 import JobPostingList from "../pages/recruitment/JobPostingList";
+import CreateJobPosting from "../pages/recruitment/CreateJobPosting";
+import JobPostingView from "../pages/recruitment/JobPostingView";
+import EditJobPosting from "../pages/recruitment/EditJobPosting";
 import CandidateList from "../pages/recruitment/CandidateList";
+import InterviewsList from "../pages/recruitment/InterviewsList";
+import ScheduleInterviews from "../pages/recruitment/ScheduleInterviews";
 import { JobDetails } from "../pages/recruitment";
 
 // Training
@@ -132,7 +137,12 @@ const AdminRoutes = () => {
             {/* Recruitment */}
             <Route path="recruitment" element={<RecruitmentDashboard />} />
             <Route path="recruitment/jobs" element={<JobPostingList />} />
+            <Route path="recruitment/jobs/new" element={<CreateJobPosting />} />
+            <Route path="recruitment/jobs/:id" element={<JobPostingView />} />
+            <Route path="recruitment/jobs/:id/edit" element={<EditJobPosting />} />
             <Route path="recruitment/candidates" element={<CandidateList />} />
+            <Route path="recruitment/interviews" element={<InterviewsList />} />
+            <Route path="recruitment/schedule-interviews" element={<ScheduleInterviews />} />
             <Route path="recruitment/job/:id" element={<JobDetails />} />
 
             {/* Announcements */}

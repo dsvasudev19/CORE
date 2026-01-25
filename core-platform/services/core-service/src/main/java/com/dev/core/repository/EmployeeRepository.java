@@ -32,5 +32,14 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
     
     Employee findByUserId(Long employeeId);
     
+    /**
+     * Find all employees who report to a specific manager
+     */
+    List<Employee> findByManager_Id(Long managerId);
+    
+    /**
+     * Find all employees who report to a specific manager within an organization
+     */
+    List<Employee> findByManager_IdAndOrganizationId(Long managerId, Long organizationId);
 
 }

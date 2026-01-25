@@ -4,6 +4,8 @@ import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.dev.core.constants.TodoStatus;
@@ -57,4 +59,14 @@ public interface TodoRepository extends JpaRepository<Todo, Long> {
     List<Todo> findByOrganizationId(Long organizationId);
 
     List<Todo> findByOrganizationIdAndAssignee_Id(Long organizationId, Long assigneeId);
+    
+    // Get todos where user is either the creator or assignee
+    @Query("""
+        SELECT DISTINCT t
+        FROM Todo t
+        WHERE t.organizationId = :orgId
+          AND (t.createdBy = :employeeId OR t.assignee.id = :employeeId)
+        ORDER BY t.dueDate ASC
+    """)
+    List<Todo> findMyTodos(@Param("orgId") Long orgId, @Param("employeeId") Long employeeId);
 }

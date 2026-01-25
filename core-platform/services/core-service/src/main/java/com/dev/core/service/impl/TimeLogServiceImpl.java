@@ -11,6 +11,7 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 
 import com.dev.core.domain.Bug;
+import com.dev.core.domain.Employee;
 import com.dev.core.domain.Project;
 import com.dev.core.domain.Task;
 import com.dev.core.domain.TimeLog;
@@ -19,6 +20,7 @@ import com.dev.core.mapper.TimeLogMapper;
 import com.dev.core.model.EmployeeDTO;
 import com.dev.core.model.TimeLogDTO;
 import com.dev.core.model.UserDTO;
+import com.dev.core.repository.EmployeeRepository;
 import com.dev.core.repository.ProjectRepository;
 import com.dev.core.repository.TimeLogRepository;
 import com.dev.core.repository.bug.BugRepository;
@@ -46,6 +48,7 @@ public class TimeLogServiceImpl implements TimeLogService {
     private final EmployeeService employeeService;
     private final TimeLogValidator validator;
     private final SecurityContextUtil securityContextUtil;
+    private final EmployeeRepository employeeRepository;
 
 
     // ---------------------------------------------------------
@@ -595,6 +598,105 @@ public class TimeLogServiceImpl implements TimeLogService {
         ));
         
         return summary;
+    }
+    
+    // ---------------------------------------------------------
+    // MANAGER-SUBORDINATE VISIBILITY
+    // ---------------------------------------------------------
+    
+    /**
+     * Helper method to get all user IDs that should be visible to the given user
+     * (the user themselves + any subordinates if they are a manager)
+     */
+    private List<Long> getVisibleUserIds(Long userId) {
+        List<Long> visibleUserIds = new java.util.ArrayList<>();
+        visibleUserIds.add(userId); // Always include the user themselves
+        
+        // Find the employee record for this user
+        Employee employee = employeeRepository.findByUserId(userId);
+        
+        if (employee != null) {
+            // Find all employees who report to this manager
+            List<Employee> subordinates = employeeRepository.findByManager_IdAndOrganizationId(
+                    employee.getId(), 
+                    securityContextUtil.getCurrentOrganizationId()
+            );
+            
+            // Add subordinate user IDs
+            subordinates.stream()
+                    .filter(e -> e.getUser() != null)
+                    .map(e -> e.getUser().getId())
+                    .forEach(visibleUserIds::add);
+            
+            log.debug("User {} can view time logs for {} users (self + {} subordinates)", 
+                    userId, visibleUserIds.size(), subordinates.size());
+        }
+        
+        return visibleUserIds;
+    }
+    
+    @Override
+    public List<TimeLogDTO> getTimeLogsWithSubordinates(Long userId, Long projectId, Long taskId, 
+                                                         Long bugId, LocalDate fromDate, LocalDate toDate) {
+        List<Long> visibleUserIds = getVisibleUserIds(userId);
+        
+        List<TimeLog> logs;
+        
+        if (fromDate != null && toDate != null) {
+            validator.validateRange(fromDate, toDate);
+            logs = timeLogRepository.findByUserIdInAndWorkDateBetween(visibleUserIds, fromDate, toDate);
+        } else {
+            logs = timeLogRepository.findByUserIdIn(visibleUserIds);
+        }
+        
+        return logs.stream()
+                .filter(l ->
+                        (projectId == null || (l.getProject() != null && l.getProject().getId().equals(projectId))) &&
+                        (taskId == null || (l.getTask() != null && l.getTask().getId().equals(taskId))) &&
+                        (bugId == null || (l.getBug() != null && l.getBug().getId().equals(bugId)))
+                )
+                .map(TimeLogMapper::toDTO)
+                .toList();
+    }
+    
+    @Override
+    public List<TimeLogDTO> getDailyLogsWithSubordinates(Long userId, LocalDate date) {
+        validator.validateDailyFetch(userId, date);
+        
+        List<Long> visibleUserIds = getVisibleUserIds(userId);
+        
+        return timeLogRepository.findByUserIdInAndWorkDate(visibleUserIds, date)
+                .stream()
+                .map(TimeLogMapper::toDTO)
+                .toList();
+    }
+    
+    @Override
+    public List<TimeLogDTO> getWeeklyLogsWithSubordinates(Long userId, LocalDate monday) {
+        validator.validateWeeklyFetch(userId, monday);
+        
+        List<Long> visibleUserIds = getVisibleUserIds(userId);
+        LocalDate sunday = monday.plusDays(6);
+        
+        return timeLogRepository.findByUserIdInAndWorkDateBetween(visibleUserIds, monday, sunday)
+                .stream()
+                .map(TimeLogMapper::toDTO)
+                .toList();
+    }
+    
+    @Override
+    public List<TimeLogDTO> getMonthlyLogsWithSubordinates(Long userId, int year, int month) {
+        validator.validateMonthlyFetch(userId, year, month);
+        
+        List<Long> visibleUserIds = getVisibleUserIds(userId);
+        
+        LocalDate start = LocalDate.of(year, month, 1);
+        LocalDate end = start.plusMonths(1).minusDays(1);
+        
+        return timeLogRepository.findByUserIdInAndWorkDateBetween(visibleUserIds, start, end)
+                .stream()
+                .map(TimeLogMapper::toDTO)
+                .toList();
     }
 
 	

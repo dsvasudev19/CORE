@@ -2,6 +2,7 @@ package com.dev.core.controller.bug;
 
 import com.dev.core.api.ControllerHelper;
 import com.dev.core.model.bug.BugDTO;
+import com.dev.core.security.SecurityContextUtil;
 import com.dev.core.service.bug.BugService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +21,8 @@ public class BugController {
 
     private final BugService bugService;
     private final ControllerHelper helper;
+    private final SecurityContextUtil securityContextUtil;
+
 
     // --------------------------------------------------------------
     // CREATE
@@ -91,6 +94,14 @@ public class BugController {
         log.info("👤 Getting bugs assigned to user [{}]", userId);
         List<BugDTO> bugs = bugService.getBugsByAssignee(userId);
         return helper.success("Bugs fetched for assignee", bugs);
+    }
+    
+    @GetMapping("/my-bugs")
+    public ResponseEntity<?> getMyBugs() {
+        log.info("👤 Getting my bugs (reported by me or assigned to me)");
+        Long organizationId = securityContextUtil.getCurrentOrganizationId();
+        List<BugDTO> bugs = bugService.getMyBugs(organizationId);
+        return helper.success("My bugs fetched successfully", bugs);
     }
 
     // --------------------------------------------------------------

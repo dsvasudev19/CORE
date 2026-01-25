@@ -96,7 +96,7 @@ const JobPostingList = () => {
                         <p className="text-xs text-gray-500 mt-0.5">Manage job openings and recruitment</p>
                     </div>
                     <button
-                        onClick={() => navigate('/recruitment/jobs/new')}
+                        onClick={() => navigate('/a/recruitment/jobs/new')}
                         className="px-3 py-1.5 text-xs font-medium text-white bg-burgundy-600 rounded hover:bg-burgundy-700 flex items-center gap-1.5"
                     >
                         <Plus size={14} />
@@ -206,14 +206,14 @@ const JobPostingList = () => {
                                     <td className="px-3 py-2">
                                         <div className="flex items-center justify-center gap-1">
                                             <button
-                                                onClick={() => navigate(`/recruitment/jobs/${job.id}`)}
+                                                onClick={() => navigate(`/a/recruitment/jobs/${job.id}`)}
                                                 className="p-1 hover:bg-gray-100 rounded"
                                                 title="View"
                                             >
                                                 <Eye size={14} className="text-gray-600" />
                                             </button>
                                             <button
-                                                onClick={() => navigate(`/recruitment/jobs/${job.id}/edit`)}
+                                                onClick={() => navigate(`/a/recruitment/jobs/${job.id}/edit`)}
                                                 className="p-1 hover:bg-gray-100 rounded"
                                                 title="Edit"
                                             >

@@ -10,11 +10,11 @@ const API_BASE = "/calendar/events";
 export const calendarEventService = {
   // Create event
   createEvent: async (event: CalendarEventDTO): Promise<CalendarEventDTO> => {
-    const response = await axiosInstance.post<{ data: CalendarEventDTO }>(
+    const response = await axiosInstance.post<CalendarEventDTO>(
       API_BASE,
       event,
     );
-    return response.data.data;
+    return response.data;
   },
 
   // Update event
@@ -22,11 +22,11 @@ export const calendarEventService = {
     id: number,
     event: CalendarEventDTO,
   ): Promise<CalendarEventDTO> => {
-    const response = await axiosInstance.put<{ data: CalendarEventDTO }>(
+    const response = await axiosInstance.put<CalendarEventDTO>(
       `${API_BASE}/${id}`,
       event,
     );
-    return response.data.data;
+    return response.data;
   },
 
   // Delete event
@@ -41,10 +41,10 @@ export const calendarEventService = {
 
   // Get event by ID
   getEventById: async (id: number): Promise<CalendarEventDTO> => {
-    const response = await axiosInstance.get<{ data: CalendarEventDTO }>(
+    const response = await axiosInstance.get<CalendarEventDTO>(
       `${API_BASE}/${id}`,
     );
-    return response.data.data;
+    return response.data;
   },
 
   // Get all events (paginated)
@@ -53,12 +53,11 @@ export const calendarEventService = {
     page: number = 0,
     size: number = 10,
   ): Promise<CalendarEventPageResponse> => {
-    const response = await axiosInstance.get<{
-      data: CalendarEventPageResponse;
-    }>(`${API_BASE}/organization/${organizationId}`, {
-      params: { page, size },
-    });
-    return response.data.data;
+    const response = await axiosInstance.get<CalendarEventPageResponse>(
+      `${API_BASE}/organization/${organizationId}`,
+      { params: { page, size } },
+    );
+    return response.data;
   },
 
   // Get events between dates
@@ -67,11 +66,11 @@ export const calendarEventService = {
     startDate: string,
     endDate: string,
   ): Promise<CalendarEventDTO[]> => {
-    const response = await axiosInstance.get<{ data: CalendarEventDTO[] }>(
+    const response = await axiosInstance.get<CalendarEventDTO[]>(
       `${API_BASE}/organization/${organizationId}/range`,
       { params: { startDate, endDate } },
     );
-    return response.data.data;
+    return response.data;
   },
 
   // Get events by type and date range
@@ -81,11 +80,11 @@ export const calendarEventService = {
     startDate: string,
     endDate: string,
   ): Promise<CalendarEventDTO[]> => {
-    const response = await axiosInstance.get<{ data: CalendarEventDTO[] }>(
+    const response = await axiosInstance.get<CalendarEventDTO[]>(
       `${API_BASE}/organization/${organizationId}/type/${eventType}`,
       { params: { startDate, endDate } },
     );
-    return response.data.data;
+    return response.data;
   },
 
   // Get events by employee
@@ -93,10 +92,18 @@ export const calendarEventService = {
     organizationId: number,
     employeeId: number,
   ): Promise<CalendarEventDTO[]> => {
-    const response = await axiosInstance.get<{ data: CalendarEventDTO[] }>(
+    const response = await axiosInstance.get<CalendarEventDTO[]>(
       `${API_BASE}/organization/${organizationId}/employee/${employeeId}`,
     );
-    return response.data.data;
+    return response.data;
+  },
+
+  // Get my events (current authenticated employee)
+  getMyEvents: async (): Promise<CalendarEventDTO[]> => {
+    const response = await axiosInstance.get<CalendarEventDTO[]>(
+      `${API_BASE}/my-events`,
+    );
+    return response.data;
   },
 
   // Search events
@@ -106,12 +113,11 @@ export const calendarEventService = {
     page: number = 0,
     size: number = 10,
   ): Promise<CalendarEventPageResponse> => {
-    const response = await axiosInstance.get<{
-      data: CalendarEventPageResponse;
-    }>(`${API_BASE}/organization/${organizationId}/search`, {
-      params: { keyword, page, size },
-    });
-    return response.data.data;
+    const response = await axiosInstance.get<CalendarEventPageResponse>(
+      `${API_BASE}/organization/${organizationId}/search`,
+      { params: { keyword, page, size } },
+    );
+    return response.data;
   },
 
   // Get events by status
@@ -119,29 +125,29 @@ export const calendarEventService = {
     organizationId: number,
     status: string,
   ): Promise<CalendarEventDTO[]> => {
-    const response = await axiosInstance.get<{ data: CalendarEventDTO[] }>(
+    const response = await axiosInstance.get<CalendarEventDTO[]>(
       `${API_BASE}/organization/${organizationId}/status/${status}`,
     );
-    return response.data.data;
+    return response.data;
   },
 
   // Get recurring events
   getRecurringEvents: async (
     organizationId: number,
   ): Promise<CalendarEventDTO[]> => {
-    const response = await axiosInstance.get<{ data: CalendarEventDTO[] }>(
+    const response = await axiosInstance.get<CalendarEventDTO[]>(
       `${API_BASE}/organization/${organizationId}/recurring`,
     );
-    return response.data.data;
+    return response.data;
   },
 
   // Get event statistics
   getEventStats: async (
     organizationId: number,
   ): Promise<CalendarEventStatsDTO> => {
-    const response = await axiosInstance.get<{ data: CalendarEventStatsDTO }>(
+    const response = await axiosInstance.get<CalendarEventStatsDTO>(
       `${API_BASE}/organization/${organizationId}/stats`,
     );
-    return response.data.data;
+    return response.data;
   },
 };

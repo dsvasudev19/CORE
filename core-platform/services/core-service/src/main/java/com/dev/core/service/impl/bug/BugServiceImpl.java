@@ -193,6 +193,16 @@ public class BugServiceImpl implements BugService {
                 .map(bug -> bugMapper.toDTO(bug, BugMapperOptions.builder().includeProject(true).build()))
                 .toList();
     }
+    
+    @Override
+    public List<BugDTO> getMyBugs(Long organizationId) {
+        authorize("READ");
+        Long employeeId = securityContextUtil.getCurrentEmployee().getId();
+        return bugRepository.findMyBugs(organizationId, employeeId)
+                .stream()
+                .map(bug -> bugMapper.toDTO(bug, BugMapperOptions.builder().includeProject(true).build()))
+                .toList();
+    }
 
     // --------------------------------------------------------------
     // STATUS CHANGE

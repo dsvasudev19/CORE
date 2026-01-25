@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, X, Calendar, Users, Tag, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Save, X, Calendar, Users, Tag, AlertCircle, Pin } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { announcementService } from '../../services/announcement.service';
+import { RichTextEditor } from '../../components/RichTextEditor';
 import type { AnnouncementDTO } from '../../types/announcement.types';
 import toast from 'react-hot-toast';
 
@@ -40,13 +41,17 @@ const CreateAnnouncement = () => {
     ];
 
     const handleChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+        e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
     ) => {
         const { name, value, type } = e.target;
         setFormData((prev) => ({
             ...prev,
             [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
         }));
+    };
+
+    const handleContentChange = (content: string) => {
+        setFormData((prev) => ({ ...prev, content }));
     };
 
     const handleSubmit = async (e: React.FormEvent, isDraft: boolean = false) => {
@@ -72,7 +77,7 @@ const CreateAnnouncement = () => {
                     ? 'Announcement saved as draft'
                     : 'Announcement created successfully'
             );
-            navigate('/announcements');
+            navigate('/a/announcements');
         } catch (error: any) {
             console.error('Error creating announcement:', error);
             toast.error(error.message || 'Failed to create announcement');
@@ -124,23 +129,17 @@ const CreateAnnouncement = () => {
                                 />
                             </div>
 
-                            {/* Content */}
+                            {/* Content - Rich Text Editor */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Content <span className="text-red-500">*</span>
                                 </label>
-                                <textarea
-                                    name="content"
-                                    value={formData.content}
-                                    onChange={handleChange}
-                                    placeholder="Enter announcement content"
-                                    rows={6}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-burgundy-500"
-                                    required
+                                <RichTextEditor
+                                    value={formData.content || ''}
+                                    onChange={handleContentChange}
+                                    placeholder="Write your announcement content here..."
+                                    minHeight="300px"
                                 />
-                                <p className="text-xs text-gray-500 mt-1">
-                                    {formData.content?.length || 0} characters
-                                </p>
                             </div>
 
                             {/* Category and Priority */}
@@ -256,7 +255,8 @@ const CreateAnnouncement = () => {
                                 onChange={handleChange}
                                 className="w-4 h-4 text-burgundy-600 border-gray-300 rounded focus:ring-burgundy-500"
                             />
-                            <label htmlFor="isPinned" className="text-sm text-gray-700">
+                            <label htmlFor="isPinned" className="text-sm text-gray-700 flex items-center gap-2">
+                                <Pin size={14} />
                                 Pin this announcement to the top
                             </label>
                         </div>

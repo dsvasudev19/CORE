@@ -8,8 +8,11 @@ import {
     CheckSquare,
     Bug,
     ListTodo,
-    Filter
+    Filter,
+    X,
+    Trash2
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { taskService } from '../../services/task.service';
 import { bugService } from '../../services/bug.service';
@@ -19,7 +22,7 @@ import type { TaskDTO } from '../../types/task.types';
 import type { BugDTO } from '../../types/bug.types';
 import type { TodoDTO } from '../../types/todo.types';
 import type { CalendarEventDTO } from '../../types/calendarEvent.types';
-import toast from 'react-hot-toast';
+import { useConfirm } from '../../hooks/useConfirm';
 
 const cn = (...inputs: (string | undefined | null | false)[]) =>
     inputs.filter(Boolean).join(' ');
@@ -39,11 +42,30 @@ interface CalendarEvent {
 
 const Calendar = () => {
     const { user } = useAuth();
+    const { confirm, ConfirmDialog } = useConfirm();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterType, setFilterType] = useState<string>('all');
     const [expandedDay, setExpandedDay] = useState<string | null>(null);
+    const [showEventModal, setShowEventModal] = useState(false);
+    const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+    const [isEditMode, setIsEditMode] = useState(false);
+    const [newEventData, setNewEventData] = useState({
+        title: '',
+        description: '',
+        startTime: '09:00',
+        endTime: '10:00',
+        eventType: 'Meeting',
+        location: '',
+        isAllDay: false,
+        priority: 'Medium',
+        reminderMinutes: 15,
+        isRecurring: false,
+        recurrencePattern: 'Daily',
+        meetingLink: '',
+        notes: ''
+    });
 
     // State for tasks, bugs, todos, and calendar events
     const [tasks, setTasks] = useState<TaskDTO[]>([]);
@@ -52,40 +74,44 @@ const Calendar = () => {
     const [calendarEvents, setCalendarEvents] = useState<CalendarEventDTO[]>([]);
     const [loading, setLoading] = useState(false);
 
+    // Fetch calendar events for current month
+    const fetchCalendarEvents = async () => {
+        if (!user?.organizationId) return;
+
+        try {
+            // Use getMyEvents to fetch only the current employee's events
+            const eventsData = await calendarEventService.getMyEvents();
+            console.log('Fetched calendar events:', eventsData);
+            setCalendarEvents(eventsData);
+        } catch (error) {
+            console.error('Error fetching calendar events:', error);
+        }
+    };
+
     // Fetch tasks, bugs, todos, and calendar events
     useEffect(() => {
         const fetchData = async () => {
-            if (!user?.organizationId) return;
+            if (!user?.organizationId || !user?.id) return;
 
             setLoading(true);
             try {
-                // Fetch tasks
-                const tasksResponse = await taskService.searchTasks({
-                    organizationId: user.organizationId,
-                    page: 0,
-                    size: 1000
+                // Fetch only my tasks (assigned to OR created by current user)
+                const tasksResponse = await taskService.getMyTasks(user.id, {
+                    status: undefined,
+                    priority: undefined
                 });
-                setTasks(tasksResponse.content);
+                setTasks(tasksResponse);
 
-                // Fetch bugs assigned to current user
-                if (user.id) {
-                    const bugsData = await bugService.getBugsByAssignee(user.id);
-                    setBugs(bugsData);
-                }
+                // Fetch bugs (reported by OR assigned to current user)
+                const bugsData = await bugService.getMyBugs();
+                setBugs(bugsData);
 
-                // Fetch todos
-                const todosData = await todoService.getAllTodos();
+                // Fetch only my todos (created by OR assigned to current user)
+                const todosData = await todoService.getMyTodos();
                 setTodos(todosData);
 
-                // Fetch calendar events for current month
-                const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-                const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-                const eventsData = await calendarEventService.getEventsBetweenDates(
-                    user.organizationId,
-                    startOfMonth.toISOString(),
-                    endOfMonth.toISOString()
-                );
-                setCalendarEvents(eventsData);
+                // Fetch calendar events for current employee
+                await fetchCalendarEvents();
             } catch (error) {
                 console.error('Error fetching calendar data:', error);
                 toast.error('Failed to load calendar data');
@@ -97,8 +123,18 @@ const Calendar = () => {
         fetchData();
     }, [user]);
 
+    // Refetch calendar events when month changes
+    useEffect(() => {
+        if (user?.organizationId) {
+            fetchCalendarEvents();
+        }
+    }, [currentDate, user?.organizationId]);
+
     // Map tasks to calendar events
     const mapTasksToEvents = (): CalendarEvent[] => {
+        if (!tasks || !Array.isArray(tasks)) {
+            return [];
+        }
         return tasks
             .filter(task => task.dueDate)
             .map(task => ({
@@ -117,6 +153,9 @@ const Calendar = () => {
 
     // Map bugs to calendar events
     const mapBugsToEvents = (): CalendarEvent[] => {
+        if (!bugs || !Array.isArray(bugs)) {
+            return [];
+        }
         return bugs
             .filter(bug => bug.dueDate || bug.resolvedAt)
             .map(bug => ({
@@ -135,6 +174,9 @@ const Calendar = () => {
 
     // Map todos to calendar events
     const mapTodosToEvents = (): CalendarEvent[] => {
+        if (!todos || !Array.isArray(todos)) {
+            return [];
+        }
         return todos
             .filter(todo => todo.dueDate)
             .map(todo => ({
@@ -153,6 +195,11 @@ const Calendar = () => {
 
     // Map calendar events to calendar format
     const mapCalendarEventsToEvents = (): CalendarEvent[] => {
+        if (!calendarEvents || !Array.isArray(calendarEvents)) {
+            console.log('No calendar events or not an array:', calendarEvents);
+            return [];
+        }
+        console.log('Mapping calendar events:', calendarEvents.length, 'events');
         return calendarEvents.map(event => ({
             id: `event-${event.id}`,
             title: event.title,
@@ -299,6 +346,102 @@ const Calendar = () => {
         setSelectedDate(new Date());
     };
 
+    const openEventModal = (event?: CalendarEvent) => {
+        if (event && event.type === 'event') {
+            // Load event details for editing
+            setSelectedEvent(event);
+            setIsEditMode(true);
+            setSelectedDate(event.startTime); // Set the date to the event's date
+
+            // Find the full event data from calendarEvents
+            const fullEvent = calendarEvents.find(e => e.id === event.sourceId);
+            if (fullEvent) {
+                const startDate = new Date(fullEvent.startTime);
+                const endDate = new Date(fullEvent.endTime);
+
+                setNewEventData({
+                    title: fullEvent.title,
+                    description: fullEvent.description || '',
+                    startTime: fullEvent.isAllDay ? '09:00' : startDate.toTimeString().slice(0, 5),
+                    endTime: fullEvent.isAllDay ? '10:00' : endDate.toTimeString().slice(0, 5),
+                    eventType: fullEvent.eventType || 'Meeting',
+                    location: fullEvent.location || '',
+                    isAllDay: fullEvent.isAllDay || false,
+                    priority: fullEvent.priority || 'Medium',
+                    reminderMinutes: fullEvent.reminderMinutes || 15,
+                    isRecurring: fullEvent.isRecurring || false,
+                    recurrencePattern: fullEvent.recurrencePattern || 'Daily',
+                    meetingLink: fullEvent.meetingLink || '',
+                    notes: fullEvent.notes || ''
+                });
+            }
+        } else {
+            // Create new event
+            setSelectedEvent(null);
+            setIsEditMode(false);
+            setNewEventData({
+                title: '',
+                description: '',
+                startTime: '09:00',
+                endTime: '10:00',
+                eventType: 'Meeting',
+                location: '',
+                isAllDay: false,
+                priority: 'Medium',
+                reminderMinutes: 15,
+                isRecurring: false,
+                recurrencePattern: 'Daily',
+                meetingLink: '',
+                notes: ''
+            });
+        }
+        setShowEventModal(true);
+    };
+
+    const closeEventModal = () => {
+        setShowEventModal(false);
+        setSelectedEvent(null);
+        setIsEditMode(false);
+        setNewEventData({
+            title: '',
+            description: '',
+            startTime: '09:00',
+            endTime: '10:00',
+            eventType: 'Meeting',
+            location: '',
+            isAllDay: false,
+            priority: 'Medium',
+            reminderMinutes: 15,
+            isRecurring: false,
+            recurrencePattern: 'Daily',
+            meetingLink: '',
+            notes: ''
+        });
+    };
+
+    const handleDeleteEvent = async () => {
+        if (!selectedEvent || !selectedEvent.sourceId) return;
+
+        const confirmed = await confirm({
+            title: 'Delete Event',
+            message: 'Are you sure you want to delete this event?',
+            confirmText: 'Delete',
+            type: 'danger'
+        });
+
+        if (!confirmed) return;
+
+        try {
+            await calendarEventService.deleteEvent(selectedEvent.sourceId);
+            toast.success('Event deleted successfully');
+            closeEventModal();
+            await fetchCalendarEvents();
+        } catch (error) {
+            console.error('Error deleting event:', error);
+            toast.error('Failed to delete event');
+        }
+    };
+
     const getEventIcon = (type: string) => {
         switch (type) {
             case 'task': return CheckSquare;
@@ -339,7 +482,10 @@ const Calendar = () => {
                         isToday && 'bg-burgundy-50 border-burgundy-300 ring-2 ring-burgundy-200',
                         isSelected && 'ring-2 ring-burgundy-500'
                     )}
-                    onClick={() => setSelectedDate(date)}
+                    onClick={() => {
+                        setSelectedDate(date);
+                        openEventModal();
+                    }}
                 >
                     <div className={cn(
                         'text-xs font-bold mb-1',
@@ -352,10 +498,16 @@ const Calendar = () => {
                             <div
                                 key={event.id}
                                 className={cn(
-                                    'text-[10px] px-1.5 py-0.5 rounded text-white truncate font-medium shadow-sm',
+                                    'text-[10px] px-1.5 py-0.5 rounded text-white truncate font-medium shadow-sm cursor-pointer hover:opacity-80 transition-opacity',
                                     event.color
                                 )}
                                 title={`${event.title} - ${event.status}`}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (event.type === 'event') {
+                                        openEventModal(event);
+                                    }
+                                }}
                             >
                                 {event.title}
                             </div>
@@ -537,6 +689,11 @@ const Calendar = () => {
                                                 <div
                                                     key={event.id}
                                                     className="p-3 hover:bg-steel-50 transition-colors cursor-pointer"
+                                                    onClick={() => {
+                                                        if (event.type === 'event') {
+                                                            openEventModal(event);
+                                                        }
+                                                    }}
                                                 >
                                                     <div className="flex items-start gap-2">
                                                         <div className={cn('w-8 h-8 rounded flex items-center justify-center flex-shrink-0', event.color)}>
@@ -575,6 +732,308 @@ const Calendar = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Enhanced Event Creation Modal */}
+            {showEventModal && selectedDate && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between p-4 border-b border-steel-200 sticky top-0 bg-white">
+                            <h3 className="text-lg font-semibold text-steel-900">
+                                {isEditMode ? 'Event Details' : `Create Event for ${selectedDate.toLocaleDateString()}`}
+                            </h3>
+                            <div className="flex items-center gap-2">
+                                {isEditMode && selectedEvent?.type === 'event' && (
+                                    <button
+                                        type="button"
+                                        onClick={handleDeleteEvent}
+                                        className="p-1.5 hover:bg-red-50 rounded text-red-600 hover:text-red-700"
+                                        title="Delete event"
+                                    >
+                                        <Trash2 size={18} />
+                                    </button>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={closeEventModal}
+                                    className="p-1 hover:bg-steel-100 rounded"
+                                >
+                                    <X size={20} className="text-steel-500" />
+                                </button>
+                            </div>
+                        </div>
+                        <form
+                            onSubmit={async (e) => {
+                                e.preventDefault();
+
+                                try {
+                                    const eventPayload: Partial<CalendarEventDTO> = {
+                                        title: newEventData.title,
+                                        description: newEventData.description || undefined,
+                                        startTime: newEventData.isAllDay
+                                            ? new Date(selectedDate.toISOString().split('T')[0]).toISOString()
+                                            : new Date(`${selectedDate.toISOString().split('T')[0]}T${newEventData.startTime}`).toISOString(),
+                                        endTime: newEventData.isAllDay
+                                            ? new Date(selectedDate.toISOString().split('T')[0]).toISOString()
+                                            : new Date(`${selectedDate.toISOString().split('T')[0]}T${newEventData.endTime}`).toISOString(),
+                                        eventType: newEventData.eventType,
+                                        location: newEventData.location || undefined,
+                                        isAllDay: newEventData.isAllDay,
+                                        priority: newEventData.priority,
+                                        reminderMinutes: newEventData.reminderMinutes,
+                                        isRecurring: newEventData.isRecurring,
+                                        recurrencePattern: newEventData.isRecurring ? newEventData.recurrencePattern : undefined,
+                                        meetingLink: newEventData.meetingLink || undefined,
+                                        notes: newEventData.notes || undefined,
+                                        organizationId: user?.organizationId,
+                                        createdBy: user?.id,
+                                        status: 'Scheduled',
+                                        color: 'bg-indigo-500'
+                                    };
+
+                                    if (isEditMode && selectedEvent?.sourceId) {
+                                        // Update existing event
+                                        await calendarEventService.updateEvent(selectedEvent.sourceId, eventPayload as CalendarEventDTO);
+                                        toast.success('Event updated successfully');
+                                    } else {
+                                        // Create new event
+                                        await calendarEventService.createEvent(eventPayload as CalendarEventDTO);
+                                        toast.success('Event created successfully');
+                                    }
+
+                                    closeEventModal();
+                                    await fetchCalendarEvents();
+                                } catch (error) {
+                                    console.error('Error saving event:', error);
+                                    toast.error(isEditMode ? 'Failed to update event' : 'Failed to create event');
+                                }
+                            }}
+                            className="p-4 space-y-4"
+                        >
+                            {/* Title */}
+                            <div>
+                                <label className="block text-sm font-medium text-steel-700 mb-1">
+                                    Event Title *
+                                </label>
+                                <input
+                                    type="text"
+                                    value={newEventData.title}
+                                    onChange={(e) => setNewEventData({ ...newEventData, title: e.target.value })}
+                                    required
+                                    className="w-full px-3 py-2 border border-steel-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-burgundy-500"
+                                    placeholder="Enter event title"
+                                />
+                            </div>
+
+                            {/* Description */}
+                            <div>
+                                <label className="block text-sm font-medium text-steel-700 mb-1">
+                                    Description
+                                </label>
+                                <textarea
+                                    value={newEventData.description}
+                                    onChange={(e) => setNewEventData({ ...newEventData, description: e.target.value })}
+                                    rows={3}
+                                    className="w-full px-3 py-2 border border-steel-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-burgundy-500"
+                                    placeholder="Enter event description"
+                                />
+                            </div>
+
+                            {/* Event Type and Priority */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-sm font-medium text-steel-700 mb-1">
+                                        Event Type *
+                                    </label>
+                                    <select
+                                        value={newEventData.eventType}
+                                        onChange={(e) => setNewEventData({ ...newEventData, eventType: e.target.value })}
+                                        className="w-full px-3 py-2 border border-steel-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-burgundy-500"
+                                    >
+                                        <option value="Meeting">Meeting</option>
+                                        <option value="Deadline">Deadline</option>
+                                        <option value="Holiday">Holiday</option>
+                                        <option value="Training">Training</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-steel-700 mb-1">
+                                        Priority *
+                                    </label>
+                                    <select
+                                        value={newEventData.priority}
+                                        onChange={(e) => setNewEventData({ ...newEventData, priority: e.target.value })}
+                                        className="w-full px-3 py-2 border border-steel-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-burgundy-500"
+                                    >
+                                        <option value="Low">Low</option>
+                                        <option value="Medium">Medium</option>
+                                        <option value="High">High</option>
+                                        <option value="Critical">Critical</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Location */}
+                            <div>
+                                <label className="block text-sm font-medium text-steel-700 mb-1">
+                                    Location
+                                </label>
+                                <input
+                                    type="text"
+                                    value={newEventData.location}
+                                    onChange={(e) => setNewEventData({ ...newEventData, location: e.target.value })}
+                                    className="w-full px-3 py-2 border border-steel-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-burgundy-500"
+                                    placeholder="Enter location or room number"
+                                />
+                            </div>
+
+                            {/* All Day Checkbox */}
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    id="isAllDay"
+                                    checked={newEventData.isAllDay}
+                                    onChange={(e) => setNewEventData({ ...newEventData, isAllDay: e.target.checked })}
+                                    className="w-4 h-4 text-burgundy-600 border-steel-300 rounded focus:ring-burgundy-500"
+                                />
+                                <label htmlFor="isAllDay" className="text-sm font-medium text-steel-700">
+                                    All Day Event
+                                </label>
+                            </div>
+
+                            {/* Time Fields (hidden if all day) */}
+                            {!newEventData.isAllDay && (
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-sm font-medium text-steel-700 mb-1">
+                                            Start Time *
+                                        </label>
+                                        <input
+                                            type="time"
+                                            value={newEventData.startTime}
+                                            onChange={(e) => setNewEventData({ ...newEventData, startTime: e.target.value })}
+                                            required
+                                            className="w-full px-3 py-2 border border-steel-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-burgundy-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-steel-700 mb-1">
+                                            End Time *
+                                        </label>
+                                        <input
+                                            type="time"
+                                            value={newEventData.endTime}
+                                            onChange={(e) => setNewEventData({ ...newEventData, endTime: e.target.value })}
+                                            required
+                                            className="w-full px-3 py-2 border border-steel-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-burgundy-500"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Reminder */}
+                            <div>
+                                <label className="block text-sm font-medium text-steel-700 mb-1">
+                                    Reminder
+                                </label>
+                                <select
+                                    value={newEventData.reminderMinutes}
+                                    onChange={(e) => setNewEventData({ ...newEventData, reminderMinutes: parseInt(e.target.value) })}
+                                    className="w-full px-3 py-2 border border-steel-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-burgundy-500"
+                                >
+                                    <option value={0}>No reminder</option>
+                                    <option value={5}>5 minutes before</option>
+                                    <option value={15}>15 minutes before</option>
+                                    <option value={30}>30 minutes before</option>
+                                    <option value={60}>1 hour before</option>
+                                    <option value={1440}>1 day before</option>
+                                </select>
+                            </div>
+
+                            {/* Recurring Checkbox */}
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    id="isRecurring"
+                                    checked={newEventData.isRecurring}
+                                    onChange={(e) => setNewEventData({ ...newEventData, isRecurring: e.target.checked })}
+                                    className="w-4 h-4 text-burgundy-600 border-steel-300 rounded focus:ring-burgundy-500"
+                                />
+                                <label htmlFor="isRecurring" className="text-sm font-medium text-steel-700">
+                                    Recurring Event
+                                </label>
+                            </div>
+
+                            {/* Recurrence Pattern (shown if recurring) */}
+                            {newEventData.isRecurring && (
+                                <div>
+                                    <label className="block text-sm font-medium text-steel-700 mb-1">
+                                        Recurrence Pattern
+                                    </label>
+                                    <select
+                                        value={newEventData.recurrencePattern}
+                                        onChange={(e) => setNewEventData({ ...newEventData, recurrencePattern: e.target.value })}
+                                        className="w-full px-3 py-2 border border-steel-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-burgundy-500"
+                                    >
+                                        <option value="Daily">Daily</option>
+                                        <option value="Weekly">Weekly</option>
+                                        <option value="Monthly">Monthly</option>
+                                        <option value="Yearly">Yearly</option>
+                                    </select>
+                                </div>
+                            )}
+
+                            {/* Meeting Link */}
+                            <div>
+                                <label className="block text-sm font-medium text-steel-700 mb-1">
+                                    Meeting Link
+                                </label>
+                                <input
+                                    type="url"
+                                    value={newEventData.meetingLink}
+                                    onChange={(e) => setNewEventData({ ...newEventData, meetingLink: e.target.value })}
+                                    className="w-full px-3 py-2 border border-steel-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-burgundy-500"
+                                    placeholder="https://meet.google.com/..."
+                                />
+                            </div>
+
+                            {/* Notes */}
+                            <div>
+                                <label className="block text-sm font-medium text-steel-700 mb-1">
+                                    Notes
+                                </label>
+                                <textarea
+                                    value={newEventData.notes}
+                                    onChange={(e) => setNewEventData({ ...newEventData, notes: e.target.value })}
+                                    rows={2}
+                                    className="w-full px-3 py-2 border border-steel-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-burgundy-500"
+                                    placeholder="Additional notes or agenda"
+                                />
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex items-center justify-end gap-3 pt-2 border-t border-steel-200">
+                                <button
+                                    type="button"
+                                    onClick={closeEventModal}
+                                    className="px-4 py-2 text-sm font-medium text-steel-700 bg-white border border-steel-300 rounded-lg hover:bg-steel-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 text-sm font-medium text-white bg-burgundy-600 rounded-lg hover:bg-burgundy-700"
+                                >
+                                    {isEditMode ? 'Update Event' : 'Create Event'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Confirm Dialog */}
+            <ConfirmDialog />
         </div>
     );
 };

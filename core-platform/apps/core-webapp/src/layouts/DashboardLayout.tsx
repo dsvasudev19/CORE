@@ -286,22 +286,33 @@ import {
     History
 } from 'lucide-react';
 import { AIAgent, ChatToggle } from '../components/chat';
+import TodoCreationPanel from '../components/TodoCreationPanel';
 
 import { useChatContext } from '../contexts/ChatContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useConfirm } from '../hooks/useConfirm';
 
 const DashboardLayout = () => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const [chatOpen, setChatOpen] = useState(false);
+    const [todoCreationOpen, setTodoCreationOpen] = useState(false);
     const location = useLocation();
     const navigate = useNavigate();
     const { getTotalUnreadCount } = useChatContext();
     const { user, logout } = useAuth();
+    const { confirm, ConfirmDialog } = useConfirm();
 
     const handleLogout = async () => {
-        if (confirm('Are you sure you want to logout?')) {
+        const confirmed = await confirm({
+            title: 'Confirm Logout',
+            message: 'Are you sure you want to logout?',
+            confirmText: 'Logout',
+            type: 'warning'
+        });
+
+        if (confirmed) {
             await logout();
             navigate('/login');
         }
@@ -446,11 +457,24 @@ const DashboardLayout = () => {
                         <div className="flex items-center gap-4">
                             {/* Quick Actions */}
                             <div className="hidden lg:flex items-center gap-2">
-                                <button className="btn-secondary btn-sm">
+                                <button
+                                    onClick={() => navigate('/a/employees/add')}
+                                    className="btn-secondary btn-sm"
+                                >
                                     <UserPlus size={16} />
                                     Add Employee
                                 </button>
-                                <button className="btn-primary btn-sm">
+                                <button
+                                    onClick={() => setTodoCreationOpen(true)}
+                                    className="btn-secondary btn-sm"
+                                >
+                                    <CheckSquare size={16} />
+                                    New Todo
+                                </button>
+                                <button
+                                    onClick={() => navigate('/a/projects/add')}
+                                    className="btn-primary btn-sm"
+                                >
                                     <FolderOpen size={16} />
                                     New Project
                                 </button>
@@ -556,6 +580,18 @@ const DashboardLayout = () => {
                 onClick={() => setChatOpen(!chatOpen)}
                 position="right"
             />
+
+            {/* Todo Creation Panel */}
+            <TodoCreationPanel
+                isOpen={todoCreationOpen}
+                onClose={() => setTodoCreationOpen(false)}
+                onSuccess={() => {
+                    // Optionally refresh data
+                }}
+            />
+
+            {/* Confirm Dialog */}
+            <ConfirmDialog />
         </div>
     );
 };

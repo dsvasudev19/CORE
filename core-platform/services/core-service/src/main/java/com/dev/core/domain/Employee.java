@@ -56,12 +56,12 @@ public class Employee extends BaseEntity {
 	@Column(nullable = false, length = 20)
 	private EmployeeStatus status;
 
-	@ManyToOne(fetch = FetchType.LAZY)
+	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "department_id")
 	@EqualsAndHashCode.Exclude
 	private Department department;
 
-	@ManyToOne(fetch = FetchType.LAZY)
+	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "designation_id")
 	@EqualsAndHashCode.Exclude
 	private Designation designation;

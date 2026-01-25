@@ -68,6 +68,11 @@ export const bugService = {
     return response.data.data;
   },
 
+  getMyBugs: async (): Promise<BugDTO[]> => {
+    const response = await axiosInstance.get(`${BUG_API_BASE}/my-bugs`);
+    return response.data.data;
+  },
+
   // Status Management
   changeStatus: async (id: number, newStatus: string): Promise<BugDTO> => {
     const response = await axiosInstance.put(

@@ -282,5 +282,56 @@ public class TimeLogController {
         return helper.success("Employee time summary fetched",
                 timeLogService.getEmployeeTimeSummary(organizationId, fromDate, toDate));
     }
+    
+    // ---------------------------------------------------------
+    // MANAGER-SUBORDINATE VISIBILITY
+    // ---------------------------------------------------------
+    
+    @GetMapping("/with-subordinates")
+    public ResponseEntity<?> getTimeLogsWithSubordinates(
+            @RequestParam Long userId,
+            @RequestParam(required = false) Long projectId,
+            @RequestParam(required = false) Long taskId,
+            @RequestParam(required = false) Long bugId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate
+    ) {
+        log.info("👥 Fetching time logs for user {} including subordinates", userId);
+        List<TimeLogDTO> logs = timeLogService.getTimeLogsWithSubordinates(
+                userId, projectId, taskId, bugId, fromDate, toDate
+        );
+        return helper.success("Time logs with subordinates fetched", logs);
+    }
+    
+    @GetMapping("/daily/with-subordinates")
+    public ResponseEntity<?> getDailyLogsWithSubordinates(
+            @RequestParam Long userId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+    ) {
+        log.info("👥 Fetching daily logs for user {} including subordinates", userId);
+        return helper.success("Daily logs with subordinates fetched",
+                timeLogService.getDailyLogsWithSubordinates(userId, date));
+    }
+    
+    @GetMapping("/weekly/with-subordinates")
+    public ResponseEntity<?> getWeeklyLogsWithSubordinates(
+            @RequestParam Long userId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart
+    ) {
+        log.info("👥 Fetching weekly logs for user {} including subordinates", userId);
+        return helper.success("Weekly logs with subordinates fetched",
+                timeLogService.getWeeklyLogsWithSubordinates(userId, weekStart));
+    }
+    
+    @GetMapping("/monthly/with-subordinates")
+    public ResponseEntity<?> getMonthlyLogsWithSubordinates(
+            @RequestParam Long userId,
+            @RequestParam int year,
+            @RequestParam int month
+    ) {
+        log.info("👥 Fetching monthly logs for user {} including subordinates", userId);
+        return helper.success("Monthly logs with subordinates fetched",
+                timeLogService.getMonthlyLogsWithSubordinates(userId, year, month));
+    }
 }
 

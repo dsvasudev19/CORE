@@ -1,302 +1,5 @@
-// import {
-//     Users,
-//     FolderOpen,
-//     Target,
-//     Clock,
-//     TrendingUp,
-//     AlertCircle,
-//     CheckCircle,
-//     Calendar,
-//     BarChart3,
-//     Activity,
-//     Building2,
-//     UserPlus,
-//     Briefcase
-// } from 'lucide-react';
-
-// const Dashboard = () => {
-//     const stats = [
-//         {
-//             title: 'Active Projects',
-//             value: '24',
-//             change: '+12%',
-//             trend: 'up',
-//             icon: FolderOpen,
-//             color: 'text-blue-600',
-//             bgColor: 'bg-blue-50'
-//         },
-//         {
-//             title: 'Team Members',
-//             value: '156',
-//             change: '+8%',
-//             trend: 'up',
-//             icon: Users,
-//             color: 'text-green-600',
-//             bgColor: 'bg-green-50'
-//         },
-//         {
-//             title: 'Tasks Completed',
-//             value: '1,247',
-//             change: '+23%',
-//             trend: 'up',
-//             icon: Target,
-//             color: 'text-purple-600',
-//             bgColor: 'bg-purple-50'
-//         },
-//         {
-//             title: 'Hours Tracked',
-//             value: '8,432',
-//             change: '+15%',
-//             trend: 'up',
-//             icon: Clock,
-//             color: 'text-orange-600',
-//             bgColor: 'bg-orange-50'
-//         }
-//     ];
-
-//     const recentProjects = [
-//         {
-//             id: 1,
-//             name: 'CORE Platform Development',
-//             status: 'In Progress',
-//             progress: 75,
-//             team: 8,
-//             deadline: '2025-12-15',
-//             priority: 'High'
-//         },
-//         {
-//             id: 2,
-//             name: 'Mobile App Redesign',
-//             status: 'In Progress',
-//             progress: 60,
-//             team: 5,
-//             deadline: '2025-11-30',
-//             priority: 'Medium'
-//         },
-//         {
-//             id: 3,
-//             name: 'Client Portal Integration',
-//             status: 'Planning',
-//             progress: 25,
-//             team: 6,
-//             deadline: '2026-01-20',
-//             priority: 'Low'
-//         }
-//     ];
-
-//     const recentActivities = [
-//         {
-//             id: 1,
-//             user: 'Sarah Chen',
-//             action: 'completed task',
-//             target: 'API Integration',
-//             time: '2 minutes ago',
-//             type: 'task'
-//         },
-//         {
-//             id: 2,
-//             user: 'James Rodriguez',
-//             action: 'created project',
-//             target: 'Q4 Marketing Campaign',
-//             time: '15 minutes ago',
-//             type: 'project'
-//         },
-//         {
-//             id: 3,
-//             user: 'Alice Smith',
-//             action: 'joined team',
-//             target: 'Frontend Development',
-//             time: '1 hour ago',
-//             type: 'team'
-//         },
-//         {
-//             id: 4,
-//             user: 'Bob Johnson',
-//             action: 'uploaded document',
-//             target: 'Project Requirements.pdf',
-//             time: '2 hours ago',
-//             type: 'document'
-//         }
-//     ];
-
-//     const getStatusColor = (status: string) => {
-//         switch (status) {
-//             case 'In Progress': return 'bg-blue-100 text-blue-700 border-blue-200';
-//             case 'Planning': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-//             case 'Completed': return 'bg-green-100 text-green-700 border-green-200';
-//             default: return 'bg-steel-100 text-steel-700 border-steel-200';
-//         }
-//     };
-
-//     const getPriorityColor = (priority: string) => {
-//         switch (priority) {
-//             case 'High': return 'text-red-600';
-//             case 'Medium': return 'text-yellow-600';
-//             case 'Low': return 'text-green-600';
-//             default: return 'text-steel-600';
-//         }
-//     };
-
-//     return (
-//         <div className="space-y-6">
-//             {/* Header */}
-//             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-//                 <div>
-//                     <h1 className="text-2xl font-bold text-steel-900">Dashboard</h1>
-//                     <p className="text-steel-600 mt-1">Welcome back, Vasudev! Here's what's happening with your organization.</p>
-//                 </div>
-//                 <div className="flex items-center gap-3">
-//                     <button className="btn-secondary">
-//                         <BarChart3 size={16} />
-//                         View Reports
-//                     </button>
-//                     <button className="btn-primary">
-//                         <UserPlus size={16} />
-//                         Add Team Member
-//                     </button>
-//                 </div>
-//             </div>
-
-//             {/* Stats Grid */}
-//             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-//                 {stats.map((stat) => {
-//                     const Icon = stat.icon;
-//                     return (
-//                         <div key={stat.title} className="card">
-//                             <div className="flex items-center justify-between">
-//                                 <div>
-//                                     <p className="text-sm font-medium text-steel-600">{stat.title}</p>
-//                                     <p className="text-2xl font-bold text-steel-900 mt-1">{stat.value}</p>
-//                                     <div className="flex items-center gap-1 mt-2">
-//                                         <TrendingUp size={12} className="text-green-600" />
-//                                         <span className="text-xs font-medium text-green-600">{stat.change}</span>
-//                                         <span className="text-xs text-steel-500">vs last month</span>
-//                                     </div>
-//                                 </div>
-//                                 <div className={`w-12 h-12 ${stat.bgColor} rounded-lg flex items-center justify-center`}>
-//                                     <Icon size={24} className={stat.color} />
-//                                 </div>
-//                             </div>
-//                         </div>
-//                     );
-//                 })}
-//             </div>
-
-//             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-//                 {/* Recent Projects */}
-//                 <div className="lg:col-span-2">
-//                     <div className="card">
-//                         <div className="flex items-center justify-between mb-6">
-//                             <h2 className="text-lg font-semibold text-steel-900">Recent Projects</h2>
-//                             <button className="text-sm text-burgundy-600 hover:text-burgundy-700 font-medium">
-//                                 View All
-//                             </button>
-//                         </div>
-//                         <div className="space-y-4">
-//                             {recentProjects.map((project) => (
-//                                 <div key={project.id} className="border border-steel-200 rounded-lg p-4 hover:bg-steel-50 transition-colors">
-//                                     <div className="flex items-start justify-between mb-3">
-//                                         <div className="flex-1">
-//                                             <h3 className="font-medium text-steel-900">{project.name}</h3>
-//                                             <div className="flex items-center gap-4 mt-2 text-sm text-steel-600">
-//                                                 <span className="flex items-center gap-1">
-//                                                     <Users size={14} />
-//                                                     {project.team} members
-//                                                 </span>
-//                                                 <span className="flex items-center gap-1">
-//                                                     <Calendar size={14} />
-//                                                     Due {new Date(project.deadline).toLocaleDateString()}
-//                                                 </span>
-//                                             </div>
-//                                         </div>
-//                                         <div className="flex items-center gap-2">
-//                                             <span className={`badge ${getStatusColor(project.status)}`}>
-//                                                 {project.status}
-//                                             </span>
-//                                             <span className={`text-xs font-medium ${getPriorityColor(project.priority)}`}>
-//                                                 {project.priority}
-//                                             </span>
-//                                         </div>
-//                                     </div>
-//                                     <div className="flex items-center justify-between">
-//                                         <div className="flex-1">
-//                                             <div className="flex items-center justify-between text-sm mb-1">
-//                                                 <span className="text-steel-600">Progress</span>
-//                                                 <span className="font-medium text-steel-900">{project.progress}%</span>
-//                                             </div>
-//                                             <div className="w-full bg-steel-200 rounded-full h-2">
-//                                                 <div
-//                                                     className="bg-burgundy-600 h-2 rounded-full transition-all"
-//                                                     style={{ width: `${project.progress}%` }}
-//                                                 />
-//                                             </div>
-//                                         </div>
-//                                     </div>
-//                                 </div>
-//                             ))}
-//                         </div>
-//                     </div>
-//                 </div>
-
-//                 {/* Recent Activity */}
-//                 <div>
-//                     <div className="card">
-//                         <div className="flex items-center justify-between mb-6">
-//                             <h2 className="text-lg font-semibold text-steel-900">Recent Activity</h2>
-//                             <Activity size={20} className="text-steel-400" />
-//                         </div>
-//                         <div className="space-y-4">
-//                             {recentActivities.map((activity) => (
-//                                 <div key={activity.id} className="flex items-start gap-3">
-//                                     <div className="w-8 h-8 bg-burgundy-100 rounded-full flex items-center justify-center flex-shrink-0">
-//                                         {activity.type === 'task' && <CheckCircle size={14} className="text-burgundy-600" />}
-//                                         {activity.type === 'project' && <FolderOpen size={14} className="text-burgundy-600" />}
-//                                         {activity.type === 'team' && <Users size={14} className="text-burgundy-600" />}
-//                                         {activity.type === 'document' && <Briefcase size={14} className="text-burgundy-600" />}
-//                                     </div>
-//                                     <div className="flex-1 min-w-0">
-//                                         <p className="text-sm text-steel-900">
-//                                             <span className="font-medium">{activity.user}</span>{' '}
-//                                             {activity.action}{' '}
-//                                             <span className="font-medium">{activity.target}</span>
-//                                         </p>
-//                                         <p className="text-xs text-steel-500 mt-1">{activity.time}</p>
-//                                     </div>
-//                                 </div>
-//                             ))}
-//                         </div>
-//                     </div>
-//                 </div>
-//             </div>
-
-//             {/* Quick Actions */}
-//             <div className="card">
-//                 <h2 className="text-lg font-semibold text-steel-900 mb-4">Quick Actions</h2>
-//                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-//                     <button className="flex flex-col items-center gap-2 p-4 border border-steel-200 rounded-lg hover:bg-steel-50 transition-colors">
-//                         <FolderOpen size={24} className="text-burgundy-600" />
-//                         <span className="text-sm font-medium text-steel-900">New Project</span>
-//                     </button>
-//                     <button className="flex flex-col items-center gap-2 p-4 border border-steel-200 rounded-lg hover:bg-steel-50 transition-colors">
-//                         <UserPlus size={24} className="text-burgundy-600" />
-//                         <span className="text-sm font-medium text-steel-900">Add Employee</span>
-//                     </button>
-//                     <button className="flex flex-col items-center gap-2 p-4 border border-steel-200 rounded-lg hover:bg-steel-50 transition-colors">
-//                         <Building2 size={24} className="text-burgundy-600" />
-//                         <span className="text-sm font-medium text-steel-900">New Client</span>
-//                     </button>
-//                     <button className="flex flex-col items-center gap-2 p-4 border border-steel-200 rounded-lg hover:bg-steel-50 transition-colors">
-//                         <Target size={24} className="text-burgundy-600" />
-//                         <span className="text-sm font-medium text-steel-900">Create Task</span>
-//                     </button>
-//                 </div>
-//             </div>
-//         </div>
-//     );
-// };
-
-// export default Dashboard;
-
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Users,
     FolderOpen,
@@ -306,162 +9,267 @@ import {
     CheckCircle,
     Calendar,
     BarChart3,
-    Activity,
-    Building2,
     UserPlus,
     Briefcase,
+    Building2,
+    Shield,
+    Zap,
+    AlertCircle,
+    ArrowRight,
+    Bug,
+    CheckSquare,
+    History,
+    Layers,
+    GitBranch,
+    Settings,
+    Pin
 } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { announcementService } from '../../services/announcement.service';
+import type { AnnouncementDTO } from '../../types/announcement.types';
+import TodoCreationPanel from '../../components/TodoCreationPanel';
 
 const Dashboard = () => {
+    const navigate = useNavigate();
+    const { user } = useAuth();
+    const [announcements, setAnnouncements] = useState<AnnouncementDTO[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [todoCreationOpen, setTodoCreationOpen] = useState(false);
+
+    useEffect(() => {
+        const fetchAnnouncements = async () => {
+            if (user?.organizationId) {
+                try {
+                    const response = await announcementService.getPinnedAnnouncements(
+                        user.organizationId,
+                        0,
+                        3
+                    );
+                    setAnnouncements(response.content || []);
+                } catch (error) {
+                    console.error('Failed to fetch announcements:', error);
+                } finally {
+                    setLoading(false);
+                }
+            }
+        };
+
+        fetchAnnouncements();
+    }, [user?.organizationId]);
+
+    // Key metrics stats
     const stats = [
+        {
+            title: 'Total Employees',
+            value: '156',
+            change: '+8 this month',
+            trend: 'up',
+            icon: Users,
+            color: 'text-blue-600',
+            bgColor: 'bg-blue-50',
+            link: '/a/employees'
+        },
         {
             title: 'Active Projects',
             value: '24',
-            change: '+12%',
+            change: '+3 this week',
             trend: 'up',
             icon: FolderOpen,
-            color: 'text-blue-600',
-            bgColor: 'bg-blue-50',
+            color: 'text-burgundy-600',
+            bgColor: 'bg-burgundy-50',
+            link: '/a/projects'
         },
         {
-            title: 'Team Members',
-            value: '156',
-            change: '+8%',
-            trend: 'up',
-            icon: Users,
-            color: 'text-green-600',
-            bgColor: 'bg-green-50',
-        },
-        {
-            title: 'Tasks Completed',
-            value: '1,247',
-            change: '+23%',
-            trend: 'up',
-            icon: Target,
+            title: 'Open Positions',
+            value: '12',
+            change: '5 urgent',
+            trend: 'neutral',
+            icon: Briefcase,
             color: 'text-purple-600',
             bgColor: 'bg-purple-50',
+            link: '/a/recruitment'
         },
         {
-            title: 'Hours Tracked',
-            value: '8,432',
-            change: '+15%',
-            trend: 'up',
-            icon: Clock,
+            title: 'Pending Approvals',
+            value: '18',
+            change: 'Requires action',
+            trend: 'warning',
+            icon: AlertCircle,
             color: 'text-orange-600',
             bgColor: 'bg-orange-50',
-        },
+            link: '/a/attendance'
+        }
     ];
 
-    const recentProjects = [
+    // Quick links to admin-only pages (not in sidebar or less accessible)
+    const quickLinks = [
+        {
+            title: 'Departments',
+            description: 'Manage organizational departments',
+            icon: Building2,
+            color: 'text-blue-600',
+            bgColor: 'bg-blue-50',
+            link: '/a/departments'
+        },
+        {
+            title: 'Designations',
+            description: 'Configure job titles and roles',
+            icon: Shield,
+            color: 'text-purple-600',
+            bgColor: 'bg-purple-50',
+            link: '/a/designation'
+        },
+        {
+            title: 'Sprint Planning',
+            description: 'Manage sprints and epics',
+            icon: GitBranch,
+            color: 'text-green-600',
+            bgColor: 'bg-green-50',
+            link: '/a/sprints'
+        },
+        {
+            title: 'Sprint Board',
+            description: 'Visual sprint management',
+            icon: Layers,
+            color: 'text-indigo-600',
+            bgColor: 'bg-indigo-50',
+            link: '/a/sprint-board'
+        },
+        {
+            title: 'Epic Management',
+            description: 'Manage project epics',
+            icon: Target,
+            color: 'text-coral-600',
+            bgColor: 'bg-coral-50',
+            link: '/a/epic-management'
+        },
+        {
+            title: 'Bug Tracking',
+            description: 'Track and resolve bugs',
+            icon: Bug,
+            color: 'text-red-600',
+            bgColor: 'bg-red-50',
+            link: '/a/bugs'
+        },
+        {
+            title: 'Todo Management',
+            description: 'Manage team todos',
+            icon: CheckSquare,
+            color: 'text-teal-600',
+            bgColor: 'bg-teal-50',
+            link: '/a/todos'
+        },
+        {
+            title: 'Audit Logs',
+            description: 'View system activity logs',
+            icon: History,
+            color: 'text-steel-600',
+            bgColor: 'bg-steel-50',
+            link: '/a/audit-logs'
+        },
+        {
+            title: 'Organization Settings',
+            description: 'Configure organization details',
+            icon: Settings,
+            color: 'text-navy-600',
+            bgColor: 'bg-navy-50',
+            link: '/a/organization-settings'
+        },
+        {
+            title: 'Access Control',
+            description: 'Manage roles and permissions',
+            icon: Shield,
+            color: 'text-red-600',
+            bgColor: 'bg-red-50',
+            link: '/a/access-control'
+        }
+    ];
+
+    // Recent activity summary
+    const recentActivity = [
         {
             id: 1,
-            name: 'CORE Platform Development',
-            status: 'In Progress',
-            progress: 75,
-            team: 8,
-            deadline: '2025-12-15',
-            priority: 'High',
+            user: 'Rajesh Kumar',
+            action: 'joined the organization',
+            time: '10 minutes ago',
+            type: 'user',
+            icon: UserPlus
         },
         {
             id: 2,
-            name: 'Mobile App Redesign',
-            status: 'In Progress',
-            progress: 60,
-            team: 5,
-            deadline: '2025-11-30',
-            priority: 'Medium',
-        },
-        {
-            id: 3,
-            name: 'Client Portal Integration',
-            status: 'Planning',
-            progress: 25,
-            team: 6,
-            deadline: '2026-01-20',
-            priority: 'Low',
-        },
-    ];
-
-    const recentActivities = [
-        {
-            id: 1,
-            user: 'Sarah Chen',
-            action: 'completed task',
-            target: 'API Integration',
-            time: '2 minutes ago',
-            type: 'task',
-        },
-        {
-            id: 2,
-            user: 'James Rodriguez',
-            action: 'created project',
-            target: 'Q4 Marketing Campaign',
-            time: '15 minutes ago',
-            type: 'project',
-        },
-        {
-            id: 3,
-            user: 'Alice Smith',
-            action: 'joined team',
-            target: 'Frontend Development',
+            user: 'Priya Sharma',
+            action: 'completed project milestone',
+            target: 'CORE Platform v2.0',
             time: '1 hour ago',
-            type: 'team',
+            type: 'project',
+            icon: CheckCircle
+        },
+        {
+            id: 3,
+            user: 'Amit Patel',
+            action: 'submitted leave request',
+            time: '2 hours ago',
+            type: 'leave',
+            icon: Calendar
         },
         {
             id: 4,
-            user: 'Bob Johnson',
-            action: 'uploaded document',
-            target: 'Project Requirements.pdf',
-            time: '2 hours ago',
-            type: 'document',
-        },
+            user: 'Sneha Reddy',
+            action: 'created new job posting',
+            target: 'Senior Frontend Developer',
+            time: '3 hours ago',
+            type: 'recruitment',
+            icon: Briefcase
+        }
     ];
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'In Progress':
-                return 'bg-blue-100 text-blue-700 border-blue-200';
-            case 'Planning':
+    const getPriorityBadge = (priority: string) => {
+        switch (priority) {
+            case 'HIGH':
+                return 'bg-red-100 text-red-700 border-red-200';
+            case 'MEDIUM':
                 return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-            case 'Completed':
+            case 'LOW':
                 return 'bg-green-100 text-green-700 border-green-200';
             default:
-                return 'bg-gray-100 text-gray-700 border-gray-200';
-        }
-    };
-
-    const getPriorityColor = (priority: string) => {
-        switch (priority) {
-            case 'High':
-                return 'text-red-600';
-            case 'Medium':
-                return 'text-yellow-600';
-            case 'Low':
-                return 'text-green-600';
-            default:
-                return 'text-gray-600';
+                return 'bg-steel-100 text-steel-700 border-steel-200';
         }
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+        <div className="min-h-screen bg-steel-50 p-4 sm:p-6 lg:p-8">
             <div className="mx-auto max-w-7xl space-y-6">
                 {/* Header */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h1 className="text-2xl sm:text-3xl font-bold text-steel-900">Dashboard</h1>
+                        <h1 className="text-2xl sm:text-3xl font-bold text-steel-900">
+                            Admin Dashboard
+                        </h1>
                         <p className="mt-1 text-sm sm:text-base text-steel-600">
-                            Welcome back, Vasudev! Here's what's happening with your organization.
+                            Welcome back, {user?.firstName || 'Admin'}! Here's your organization overview.
                         </p>
                     </div>
                     <div className="flex flex-wrap gap-2 sm:gap-3">
-                        <button className="flex items-center gap-2 rounded-lg border border-steel-300 bg-white px-4 py-2 text-sm font-medium text-steel-700 transition-colors hover:bg-steel-50">
-                            <BarChart3 size={16} />
-                            View Reports
-                        </button>
-                        <button className="flex items-center gap-2 rounded-lg bg-burgundy-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-burgundy-700">
+                        <button
+                            onClick={() => navigate('/a/employees/add')}
+                            className="flex items-center gap-2 rounded-lg border border-steel-300 bg-white px-4 py-2 text-sm font-medium text-steel-700 transition-colors hover:bg-steel-50"
+                        >
                             <UserPlus size={16} />
-                            Add Team Member
+                            Add Employee
+                        </button>
+                        <button
+                            onClick={() => setTodoCreationOpen(true)}
+                            className="flex items-center gap-2 rounded-lg border border-steel-300 bg-white px-4 py-2 text-sm font-medium text-steel-700 transition-colors hover:bg-steel-50"
+                        >
+                            <CheckSquare size={16} />
+                            New Todo
+                        </button>
+                        <button
+                            onClick={() => navigate('/a/projects/add')}
+                            className="flex items-center gap-2 rounded-lg bg-burgundy-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-burgundy-700 shadow-lg shadow-burgundy/30"
+                        >
+                            <FolderOpen size={16} />
+                            New Project
                         </button>
                     </div>
                 </div>
@@ -471,151 +279,183 @@ const Dashboard = () => {
                     {stats.map((stat) => {
                         const Icon = stat.icon;
                         return (
-                            <div
+                            <button
                                 key={stat.title}
-                                className="rounded-xl border border-steel-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
+                                onClick={() => navigate(stat.link)}
+                                className="rounded-xl border border-steel-200 bg-white p-5 shadow-sm transition-all hover:shadow-md hover:border-burgundy-200 text-left"
                             >
                                 <div className="flex items-start justify-between">
-                                    <div className="space-y-1">
+                                    <div className="space-y-1 flex-1">
                                         <p className="text-sm font-medium text-steel-600">{stat.title}</p>
                                         <p className="text-2xl font-bold text-steel-900">{stat.value}</p>
                                         <div className="flex items-center gap-1">
-                                            <TrendingUp size={14} className="text-green-600" />
-                                            <span className="text-xs font-medium text-green-600">{stat.change}</span>
-                                            <span className="text-xs text-steel-500">vs last month</span>
+                                            {stat.trend === 'up' && <TrendingUp size={14} className="text-green-600" />}
+                                            {stat.trend === 'warning' && <AlertCircle size={14} className="text-orange-600" />}
+                                            <span className={`text-xs font-medium ${stat.trend === 'up' ? 'text-green-600' :
+                                                stat.trend === 'warning' ? 'text-orange-600' :
+                                                    'text-steel-600'
+                                                }`}>
+                                                {stat.change}
+                                            </span>
                                         </div>
                                     </div>
-                                    <div
-                                        className={`flex h-12 w-12 items-center justify-center rounded-lg ${stat.bgColor}`}
-                                    >
+                                    <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${stat.bgColor} flex-shrink-0`}>
                                         <Icon size={24} className={stat.color} />
                                     </div>
                                 </div>
-                            </div>
+                            </button>
                         );
                     })}
                 </div>
 
-                {/* Main Content: Projects + Activity */}
+                {/* Main Content Grid */}
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                    {/* Recent Projects */}
+                    {/* Quick Links - Takes 2 columns */}
                     <div className="lg:col-span-2">
                         <div className="rounded-xl border border-steel-200 bg-white p-5 shadow-sm">
                             <div className="mb-5 flex items-center justify-between">
-                                <h2 className="text-lg font-semibold text-steel-900">Recent Projects</h2>
-                                <button className="text-sm font-medium text-burgundy-600 hover:text-burgundy-700">
-                                    View All →
-                                </button>
+                                <h2 className="text-lg font-semibold text-steel-900">Quick Access</h2>
+                                <Zap size={20} className="text-burgundy-600" />
                             </div>
-                            <div className="space-y-4">
-                                {recentProjects.map((project) => (
-                                    <div
-                                        key={project.id}
-                                        className="rounded-lg border border-steel-200 p-4 transition-colors hover:bg-steel-50"
-                                    >
-                                        <div className="mb-3 flex items-start justify-between gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                {quickLinks.map((link) => {
+                                    const Icon = link.icon;
+                                    return (
+                                        <button
+                                            key={link.title}
+                                            onClick={() => navigate(link.link)}
+                                            className="flex flex-col items-start gap-2 rounded-lg border border-steel-200 p-4 text-left transition-all hover:bg-steel-50 hover:border-burgundy-200 hover:shadow-sm group"
+                                        >
+                                            <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${link.bgColor} group-hover:scale-110 transition-transform`}>
+                                                <Icon size={20} className={link.color} />
+                                            </div>
                                             <div className="flex-1 min-w-0">
-                                                <h3 className="truncate font-medium text-steel-900">{project.name}</h3>
-                                                <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-steel-600">
-                                                    <span className="flex items-center gap-1">
-                                                        <Users size={14} />
-                                                        {project.team} members
-                                                    </span>
-                                                    <span className="flex items-center gap-1">
-                                                        <Calendar size={14} />
-                                                        Due {new Date(project.deadline).toLocaleDateString('en-US', {
-                                                            month: 'short',
-                                                            day: 'numeric',
-                                                        })}
-                                                    </span>
-                                                </div>
+                                                <h3 className="text-sm font-semibold text-steel-900 truncate">
+                                                    {link.title}
+                                                </h3>
+                                                <p className="text-xs text-steel-600 line-clamp-2">
+                                                    {link.description}
+                                                </p>
                                             </div>
-                                            <div className="flex flex-shrink-0 items-center gap-2">
-                                                <span
-                                                    className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusColor(
-                                                        project.status
-                                                    )}`}
-                                                >
-                                                    {project.status}
-                                                </span>
-                                                <span className={`text-xs font-medium ${getPriorityColor(project.priority)}`}>
-                                                    • {project.priority}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div className="mb-1 flex items-center justify-between text-sm">
-                                                <span className="text-steel-600">Progress</span>
-                                                <span className="font-medium text-steel-900">{project.progress}%</span>
-                                            </div>
-                                            <div className="h-2 w-full overflow-hidden rounded-full bg-steel-200">
-                                                <div
-                                                    className="h-full rounded-full bg-burgundy-600 transition-all duration-300"
-                                                    style={{ width: `${project.progress}%` }}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>
 
-                    {/* Recent Activity */}
+                    {/* Recent Announcements - Takes 1 column */}
                     <div className="lg:col-span-1">
                         <div className="rounded-xl border border-steel-200 bg-white p-5 shadow-sm">
                             <div className="mb-5 flex items-center justify-between">
-                                <h2 className="text-lg font-semibold text-steel-900">Recent Activity</h2>
-                                <Activity size={20} className="text-steel-400" />
+                                <h2 className="text-lg font-semibold text-steel-900">Announcements</h2>
+                                <button
+                                    onClick={() => navigate('/a/announcements')}
+                                    className="text-sm font-medium text-burgundy-600 hover:text-burgundy-700 flex items-center gap-1"
+                                >
+                                    View All <ArrowRight size={14} />
+                                </button>
                             </div>
-                            <div className="space-y-4">
-                                {recentActivities.map((activity) => (
-                                    <div key={activity.id} className="flex gap-3">
-                                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-burgundy-100">
-                                            {activity.type === 'task' && <CheckCircle size={14} className="text-burgundy-600" />}
-                                            {activity.type === 'project' && <FolderOpen size={14} className="text-burgundy-600" />}
-                                            {activity.type === 'team' && <Users size={14} className="text-burgundy-600" />}
-                                            {activity.type === 'document' && <Briefcase size={14} className="text-burgundy-600" />}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="truncate text-sm text-steel-900">
-                                                <span className="font-medium">{activity.user}</span>{' '}
-                                                {activity.action}{' '}
-                                                <span className="font-medium">{activity.target}</span>
-                                            </p>
-                                            <p className="text-xs text-steel-500">{activity.time}</p>
-                                        </div>
+                            <div className="space-y-3">
+                                {loading ? (
+                                    <div className="text-center py-8 text-steel-500">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-burgundy-600 mx-auto"></div>
+                                        <p className="mt-2 text-sm">Loading...</p>
                                     </div>
-                                ))}
+                                ) : announcements.length === 0 ? (
+                                    <div className="text-center py-8 text-steel-500">
+                                        <Zap size={32} className="mx-auto mb-2 text-steel-300" />
+                                        <p className="text-sm">No announcements yet</p>
+                                        <button
+                                            onClick={() => navigate('/a/announcements/create')}
+                                            className="mt-3 text-sm text-burgundy-600 hover:text-burgundy-700 font-medium"
+                                        >
+                                            Create First Announcement
+                                        </button>
+                                    </div>
+                                ) : (
+                                    announcements.map((announcement) => (
+                                        <button
+                                            key={announcement.id}
+                                            onClick={() => navigate(`/a/announcements/${announcement.id}`)}
+                                            className="w-full text-left rounded-lg border border-steel-200 p-3 transition-all hover:bg-steel-50 hover:border-burgundy-200"
+                                        >
+                                            <div className="flex items-start gap-2 mb-2">
+                                                {announcement.isPinned && (
+                                                    <Pin size={14} className="text-burgundy-600 flex-shrink-0 mt-0.5" />
+                                                )}
+                                                <h3 className="text-sm font-semibold text-steel-900 line-clamp-2 flex-1">
+                                                    {announcement.title}
+                                                </h3>
+                                            </div>
+                                            <p className="text-xs text-steel-600 line-clamp-2 mb-2">
+                                                {announcement.content}
+                                            </p>
+                                            <div className="flex items-center justify-between">
+                                                <span className={`text-xs px-2 py-0.5 rounded-full border ${getPriorityBadge(announcement.priority)}`}>
+                                                    {announcement.priority}
+                                                </span>
+                                                <span className="text-xs text-steel-500">
+                                                    {announcement.category}
+                                                </span>
+                                            </div>
+                                        </button>
+                                    ))
+                                )}
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Quick Actions */}
+                {/* Recent Activity */}
                 <div className="rounded-xl border border-steel-200 bg-white p-5 shadow-sm">
-                    <h2 className="mb-4 text-lg font-semibold text-steel-900">Quick Actions</h2>
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 md:grid-cols-4">
-                        {[
-                            { icon: FolderOpen, label: 'New Project' },
-                            { icon: UserPlus, label: 'Add Employee' },
-                            { icon: Building2, label: 'New Client' },
-                            { icon: Target, label: 'Create Task' },
-                        ].map((action, idx) => {
-                            const Icon = action.icon;
+                    <div className="mb-5 flex items-center justify-between">
+                        <h2 className="text-lg font-semibold text-steel-900">Recent Activity</h2>
+                        <button
+                            onClick={() => navigate('/a/audit-logs')}
+                            className="text-sm font-medium text-burgundy-600 hover:text-burgundy-700 flex items-center gap-1"
+                        >
+                            View All <ArrowRight size={14} />
+                        </button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {recentActivity.map((activity) => {
+                            const Icon = activity.icon;
                             return (
-                                <button
-                                    key={idx}
-                                    className="flex flex-col items-center gap-2 rounded-lg border border-steel-200 p-4 text-center transition-colors hover:bg-steel-50"
+                                <div
+                                    key={activity.id}
+                                    className="flex items-start gap-3 p-3 rounded-lg border border-steel-200 hover:bg-steel-50 transition-colors"
                                 >
-                                    <Icon size={24} className="text-burgundy-600" />
-                                    <span className="text-sm font-medium text-steel-900">{action.label}</span>
-                                </button>
+                                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-burgundy-100">
+                                        <Icon size={14} className="text-burgundy-600" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm text-steel-900">
+                                            <span className="font-medium">{activity.user}</span>
+                                        </p>
+                                        <p className="text-xs text-steel-600 truncate">
+                                            {activity.action}
+                                            {activity.target && (
+                                                <span className="font-medium"> {activity.target}</span>
+                                            )}
+                                        </p>
+                                        <p className="text-xs text-steel-500 mt-1">{activity.time}</p>
+                                    </div>
+                                </div>
                             );
                         })}
                     </div>
                 </div>
             </div>
+
+            {/* Todo Creation Panel */}
+            <TodoCreationPanel
+                isOpen={todoCreationOpen}
+                onClose={() => setTodoCreationOpen(false)}
+                onSuccess={() => {
+                    // Optionally refresh data or show success message
+                }}
+            />
         </div>
     );
 };

@@ -284,6 +284,15 @@ public class TodoServiceImpl implements TodoService {
                 .map(TodoMapper::toDTO)
                 .toList();
     }
+    
+    @Override
+    public List<TodoDTO> getMyTodos(Long organizationId) {
+        Long employeeId = securityContextUtil.getCurrentEmployee().getId();
+        return todoRepository.findMyTodos(organizationId, employeeId)
+                .stream()
+                .map(TodoMapper::toDTO)
+                .toList();
+    }
 
     @Override
     public List<TodoDTO> getTodosByProject(String projectCode) {

@@ -25,6 +25,10 @@ import EpicManagement from "./pages/sprint-planning/EpicManagement";
 import ChatPDF from "./components/pdf/Preview";
 import DataTableDemo from "./pages/demo/DataTableDemo";
 
+// Error Pages & Components
+import NotFound from "./pages/errors/NotFound";
+import { ErrorBoundary } from "./components";
+
 /**
  * Main Router Component
  * Organizes routes into separate modules:
@@ -32,51 +36,61 @@ import DataTableDemo from "./pages/demo/DataTableDemo";
  * - /e/* - Employee routes
  * - /c/* - Client portal routes
  * - /auth/* - Authentication routes
+ * 
+ * Features:
+ * - Error Boundary for catching runtime errors
+ * - 404 Not Found page for unmatched routes
+ * - Protected routes with AuthGuard
  */
 const Router = () => {
     return (
         <BrowserRouter>
-            <Routes>
-                {/* Root - Redirect to admin dashboard */}
-                <Route path="/" element={<Navigate to="/a/dashboard" replace />} />
+            <ErrorBoundary>
+                <Routes>
+                    {/* Root - Redirect to admin dashboard */}
+                    <Route path="/" element={<Navigate to="/a/dashboard" replace />} />
 
-                {/* Authentication Routes */}
-                <Route path="/auth" element={<AuthGuard><EmptyLayout /></AuthGuard>}>
-                    <Route path="login" element={<Login />} />
-                    <Route path="forgot-password" element={<ForgotPassword />} />
-                    <Route path="reset-password" element={<ResetPassword />} />
-                </Route>
+                    {/* Authentication Routes */}
+                    <Route path="/auth" element={<AuthGuard><EmptyLayout /></AuthGuard>}>
+                        <Route path="login" element={<Login />} />
+                        <Route path="forgot-password" element={<ForgotPassword />} />
+                        <Route path="reset-password" element={<ResetPassword />} />
+                    </Route>
 
-                {/* Admin Routes - /a/* */}
-                <Route path="/a" element={<AuthGuard><DashboardLayout /></AuthGuard>}>
-                    {AdminRoutes()}
-                </Route>
+                    {/* Admin Routes - /a/* */}
+                    <Route path="/a" element={<AuthGuard><DashboardLayout /></AuthGuard>}>
+                        {AdminRoutes()}
+                    </Route>
 
-                {/* Employee Routes - /e/* */}
-                <Route path="/e" element={<AuthGuard><EmployeeLayout /></AuthGuard>}>
-                    {EmployeeRoutes()}
-                </Route>
+                    {/* Employee Routes - /e/* */}
+                    <Route path="/e" element={<AuthGuard><EmployeeLayout /></AuthGuard>}>
+                        {EmployeeRoutes()}
+                    </Route>
 
-                {/* Client Portal Routes - /c/* */}
-                <Route path="/c" element={<ClientLayout />}>
-                    {ClientRoutes()}
-                </Route>
+                    {/* Client Portal Routes - /c/* */}
+                    <Route path="/c" element={<ClientLayout />}>
+                        {ClientRoutes()}
+                    </Route>
 
-                {/* Special/Demo Routes */}
-                <Route path="/miro" element={<AdvancedMiroBoard />} />
-                <Route path="/epic" element={<EpicManagement />} />
-                <Route path="/previewer" element={<ChatPDF />} />
-                <Route path="/demo/datatable" element={<DataTableDemo />} />
+                    {/* Special/Demo Routes */}
+                    <Route path="/miro" element={<AdvancedMiroBoard />} />
+                    <Route path="/epic" element={<EpicManagement />} />
+                    <Route path="/previewer" element={<ChatPDF />} />
+                    <Route path="/demo/datatable" element={<DataTableDemo />} />
 
-                {/* Legacy Routes - Backward Compatibility */}
-                <Route path="/dashboard" element={<Navigate to="/a/dashboard" replace />} />
-                <Route path="/employees" element={<Navigate to="/a/employees" replace />} />
-                <Route path="/employee-list" element={<Navigate to="/a/employees" replace />} />
-                <Route path="/employee-details" element={<Navigate to="/a/employees/details" replace />} />
-                <Route path="/add-or-edit" element={<Navigate to="/a/employees/add" replace />} />
-                <Route path="/employee-onboarding" element={<Navigate to="/a/employees/onboarding" replace />} />
-                <Route path="/teams" element={<Navigate to="/a/teams" replace />} />
-            </Routes>
+                    {/* Legacy Routes - Backward Compatibility */}
+                    <Route path="/dashboard" element={<Navigate to="/a/dashboard" replace />} />
+                    <Route path="/employees" element={<Navigate to="/a/employees" replace />} />
+                    <Route path="/employee-list" element={<Navigate to="/a/employees" replace />} />
+                    <Route path="/employee-details" element={<Navigate to="/a/employees/details" replace />} />
+                    <Route path="/add-or-edit" element={<Navigate to="/a/employees/add" replace />} />
+                    <Route path="/employee-onboarding" element={<Navigate to="/a/employees/onboarding" replace />} />
+                    <Route path="/teams" element={<Navigate to="/a/teams" replace />} />
+
+                    {/* 404 Not Found - Must be last */}
+                    <Route path="*" element={<NotFound />} />
+                </Routes>
+            </ErrorBoundary>
         </BrowserRouter>
     );
 };

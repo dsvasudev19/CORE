@@ -50,14 +50,14 @@ const LeaveRequests = () => {
 
     // Fetch leave requests
     useEffect(() => {
-        if (user?.employeeId) {
+        if (user) {
             fetchLeaveRequests();
         }
     }, [user]);
 
     // Fetch leave balances when balance tab is active
     useEffect(() => {
-        if (activeTab === 'balance' && user?.employeeId) {
+        if (activeTab === 'balance' && user) {
             fetchLeaveBalances();
         }
     }, [activeTab, user]);
@@ -65,7 +65,8 @@ const LeaveRequests = () => {
     const fetchLeaveRequests = async () => {
         try {
             setLoading(true);
-            const data = await leaveRequestService.getEmployeeRequests(user!.employeeId);
+            // Backend will get employeeId from authenticated user, so we can use any placeholder
+            const data = await leaveRequestService.getEmployeeRequests(1); // ID doesn't matter, backend uses auth
             setLeaveRequests(data);
         } catch (error) {
             console.error('Error fetching leave requests:', error);
@@ -79,12 +80,18 @@ const LeaveRequests = () => {
         try {
             setBalanceLoading(true);
             const currentYear = new Date().getFullYear();
-            const [balances, types] = await Promise.all([
-                leaveBalanceService.getAllBalances(user!.employeeId, currentYear),
-                leaveTypeService.getAll(user!.organizationId || 1)
-            ]);
-            setLeaveBalances(balances);
-            setLeaveTypes(types);
+            // For leave balances, we still need employeeId - let's get it from the first request if available
+            if (leaveRequests.length > 0 && leaveRequests[0].employeeId) {
+                const [balances, types] = await Promise.all([
+                    leaveBalanceService.getAllBalances(leaveRequests[0].employeeId, currentYear),
+                    leaveTypeService.getAll(user!.organizationId || 1)
+                ]);
+                setLeaveBalances(balances);
+                setLeaveTypes(types);
+            } else {
+                const types = await leaveTypeService.getAll(user!.organizationId || 1);
+                setLeaveTypes(types);
+            }
         } catch (error) {
             console.error('Error fetching leave balances:', error);
             toast.error('Failed to load leave balances');

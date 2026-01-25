@@ -52,6 +52,8 @@ public interface TodoService {
     // Filters
     // ----------------------------------------------------------------------
     List<TodoDTO> getTodosByAssignee(Long employeeId);
+    
+    List<TodoDTO> getMyTodos(Long organizationId);
 
     List<TodoDTO> getTodosByProject(String projectCode);
 

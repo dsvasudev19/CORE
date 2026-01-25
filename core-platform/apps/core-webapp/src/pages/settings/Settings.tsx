@@ -23,11 +23,7 @@ const Settings = () => {
         { id: 'notifications', label: 'Notifications', icon: Bell },
         { id: 'security', label: 'Security', icon: Shield },
         { id: 'appearance', label: 'Appearance', icon: Palette },
-        { id: 'organization', label: 'Organization', icon: Building2 },
-        { id: 'users', label: 'Users & Roles', icon: Users },
-        { id: 'integrations', label: 'Integrations', icon: Globe },
-        { id: 'billing', label: 'Billing', icon: CreditCard },
-        { id: 'data', label: 'Data & Privacy', icon: Database }
+
     ];
 
     return (

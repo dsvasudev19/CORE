@@ -55,6 +55,10 @@ import BugDetails from "../pages/bugs/BugDetails";
 // Todos
 import TodoList from "../pages/todos/TodoList";
 
+// Careers
+import AvailableJobs from "../pages/careers/AvailableJobs";
+import JobDetails from "../pages/careers/JobDetails";
+
 /**
  * Employee Routes Component
  * All routes under /e prefix for employee users
@@ -125,6 +129,10 @@ const EmployeeRoutes = () => {
             {/* Bugs */}
             <Route path="bugs" element={<BugList />} />
             <Route path="bugs/:id" element={<BugDetails />} />
+
+            {/* Careers */}
+            <Route path="careers" element={<AvailableJobs />} />
+            <Route path="careers/:id" element={<JobDetails />} />
         </>
     );
 };

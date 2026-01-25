@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
-import { X, Clock, Play, Square, Plus, Search, CheckCircle, Circle, Bug as BugIcon, CheckSquare, FolderKanban, Calendar } from 'lucide-react';
+import { X, Clock, Play, Square, Plus, Search, CheckCircle, Circle, Bug as BugIcon, CheckSquare, FolderKanban, Calendar, LogIn, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { timelogService } from '../services/timelog.service';
 import { taskService } from '../services/task.service';
 import { bugService } from '../services/bug.service';
 import { projectService, type ProjectDTO } from '../services/project.service';
+import { attendanceService } from '../services/attendance.service';
 import type { TimeLogDTO } from '../types/timelog.types';
 import type { TaskDTO } from '../types/task.types';
 import type { BugDTO } from '../types/bug.types';
+import type { AttendanceDTO } from '../types/attendance.types';
 import toast from 'react-hot-toast';
+import { useConfirm } from '../hooks/useConfirm';
 
 const cn = (...inputs: (string | undefined | null | false)[]) =>
     inputs.filter(Boolean).join(' ');
@@ -29,6 +32,7 @@ interface ClockInModalProps {
 
 const ClockInModal = ({ isOpen, onClose }: ClockInModalProps) => {
     const { user } = useAuth();
+    const { confirm, ConfirmDialog } = useConfirm();
     const [activeTimer, setActiveTimer] = useState<TimeLogDTO | null>(null);
     const [todayEntries, setTodayEntries] = useState<TimeLogDTO[]>([]);
     const [tasks, setTasks] = useState<TaskDTO[]>([]);
@@ -40,6 +44,13 @@ const ClockInModal = ({ isOpen, onClose }: ClockInModalProps) => {
     const [filterType, setFilterType] = useState<'all' | 'task' | 'bug' | 'project' | 'general'>('all');
     const [loading, setLoading] = useState(false);
 
+    // Attendance state
+    const [todayAttendance, setTodayAttendance] = useState<AttendanceDTO | null>(null);
+    const [checkingIn, setCheckingIn] = useState(false);
+    const [checkingOut, setCheckingOut] = useState(false);
+    const [hasCheckedIn, setHasCheckedIn] = useState(false);
+    const [hasCheckedOut, setHasCheckedOut] = useState(false);
+
     // Stop timer modal state
     const [showStopModal, setShowStopModal] = useState(false);
     const [stopNote, setStopNote] = useState('');
@@ -47,6 +58,7 @@ const ClockInModal = ({ isOpen, onClose }: ClockInModalProps) => {
 
     useEffect(() => {
         if (isOpen && user?.id) {
+            checkTodayAttendance();
             fetchActiveTimer();
             fetchTodayEntries();
             fetchWorkItems();
@@ -64,6 +76,73 @@ const ClockInModal = ({ isOpen, onClose }: ClockInModalProps) => {
         }
         return () => clearInterval(interval);
     }, [activeTimer]);
+
+    const checkTodayAttendance = async () => {
+        if (!user?.id) return;
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            const attendance = await attendanceService.getEmployeeAttendanceForDate(user.id, today);
+            setTodayAttendance(attendance);
+            setHasCheckedIn(!!attendance);
+            setHasCheckedOut(!!attendance?.checkOutTime);
+        } catch (error) {
+            console.error('Error checking attendance:', error);
+            setHasCheckedIn(false);
+            setHasCheckedOut(false);
+        }
+    };
+
+    const handleCheckIn = async () => {
+        if (!user?.id) return;
+        setCheckingIn(true);
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            const attendance = await attendanceService.checkIn(user.id, today, 'Office');
+            setTodayAttendance(attendance);
+            setHasCheckedIn(true);
+            setHasCheckedOut(false);
+            toast.success('Checked in successfully! You can now start tracking time.');
+        } catch (error) {
+            console.error('Error checking in:', error);
+            toast.error('Failed to check in. Please try again.');
+        } finally {
+            setCheckingIn(false);
+        }
+    };
+
+    const handleCheckOut = async () => {
+        if (!user?.id || !todayAttendance) return;
+
+        const confirmed = await confirm({
+            title: 'Confirm Check Out',
+            message: 'Are you sure you want to check out? This will end your work day.',
+            confirmText: 'Check Out',
+            type: 'warning'
+        });
+
+        if (!confirmed) {
+            return;
+        }
+
+        setCheckingOut(true);
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            const attendance = await attendanceService.checkOut(user.id, today);
+            setTodayAttendance(attendance);
+            setHasCheckedOut(true);
+            toast.success('Checked out successfully! Have a great day!');
+
+            // Close modal after checkout
+            setTimeout(() => {
+                onClose();
+            }, 1500);
+        } catch (error) {
+            console.error('Error checking out:', error);
+            toast.error('Failed to check out. Please try again.');
+        } finally {
+            setCheckingOut(false);
+        }
+    };
 
     const fetchActiveTimer = async () => {
         if (!user?.id) return;
@@ -295,7 +374,7 @@ const ClockInModal = ({ isOpen, onClose }: ClockInModalProps) => {
             <div className="fixed inset-0 z-50 pointer-events-none">
                 <div className="absolute top-16 right-4 w-full max-w-xl pointer-events-auto">
                     <div className="bg-white rounded-lg shadow-2xl border border-steel-200 max-h-[calc(100vh-5rem)] overflow-hidden flex flex-col">
-                        {/* Compact Header */}
+                        {/* Header */}
                         <div className="flex items-center justify-between px-4 py-3 border-b border-steel-200 bg-gradient-to-r from-burgundy-600 to-burgundy-700">
                             <div className="flex items-center gap-2">
                                 <div className="w-8 h-8 bg-white/20 rounded flex items-center justify-center">
@@ -306,215 +385,330 @@ const ClockInModal = ({ isOpen, onClose }: ClockInModalProps) => {
                                     <p className="text-[10px] text-white/80">Track your work hours</p>
                                 </div>
                             </div>
-                            <button
-                                onClick={onClose}
-                                className="p-1.5 hover:bg-white/20 rounded transition-colors"
-                            >
-                                <X size={16} className="text-white" />
-                            </button>
+                            <div className="flex items-center gap-2">
+                                {hasCheckedIn && !hasCheckedOut && (
+                                    <button
+                                        onClick={handleCheckOut}
+                                        disabled={checkingOut}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {checkingOut ? (
+                                            <>
+                                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                                                Checking Out...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <LogOut size={14} />
+                                                Check Out
+                                            </>
+                                        )}
+                                    </button>
+                                )}
+                                <button
+                                    onClick={onClose}
+                                    className="p-1.5 hover:bg-white/20 rounded transition-colors"
+                                >
+                                    <X size={16} className="text-white" />
+                                </button>
+                            </div>
                         </div>
 
                         {/* Content */}
                         <div className="flex-1 overflow-y-auto p-4">
-                            {/* Compact Summary */}
-                            <div className="bg-gradient-to-br from-burgundy-50 to-burgundy-100 rounded-lg p-3 mb-4 border border-burgundy-200">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-[10px] text-burgundy-700 font-medium uppercase">Today's Total</p>
-                                        <p className="text-xl font-bold text-burgundy-900">{getTotalTimeToday()}</p>
+                            {/* Check-out Confirmation Screen */}
+                            {hasCheckedOut ? (
+                                <div className="flex flex-col items-center justify-center py-12 px-4">
+                                    <div className="w-20 h-20 bg-gradient-to-br from-green-100 to-green-200 rounded-full flex items-center justify-center mb-6 shadow-lg">
+                                        <CheckCircle size={40} className="text-green-600" />
                                     </div>
-                                    <div className="text-right">
-                                        <p className="text-[10px] text-burgundy-700 font-medium uppercase">Entries</p>
-                                        <p className="text-xl font-bold text-burgundy-900">{todayEntries.length}</p>
-                                    </div>
-                                </div>
-                            </div>
+                                    <h3 className="text-xl font-bold text-steel-900 mb-2">You're All Set!</h3>
+                                    <p className="text-sm text-steel-600 text-center mb-6 max-w-sm">
+                                        You have successfully checked out for today. Have a great rest of your day!
+                                    </p>
 
-                            {/* Current Timer */}
-                            {activeTimer ? (
-                                <div className="bg-white border-2 border-green-500 rounded-lg p-3 mb-4 shadow-md">
-                                    <div className="flex items-start justify-between mb-2">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-1.5 mb-1">
-                                                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-                                                <span className="text-[10px] font-bold text-green-600 uppercase">Active</span>
+                                    {todayAttendance && (
+                                        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 w-full max-w-sm">
+                                            <div className="space-y-2">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-xs text-green-700 font-medium">Check-in:</span>
+                                                    <span className="text-sm font-semibold text-green-900">
+                                                        {todayAttendance.checkInTime ? new Date(`2000-01-01T${todayAttendance.checkInTime}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-xs text-green-700 font-medium">Check-out:</span>
+                                                    <span className="text-sm font-semibold text-green-900">
+                                                        {todayAttendance.checkOutTime ? new Date(`2000-01-01T${todayAttendance.checkOutTime}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center justify-between pt-2 border-t border-green-300">
+                                                    <span className="text-xs text-green-700 font-medium">Total Hours:</span>
+                                                    <span className="text-lg font-bold text-green-900">
+                                                        {todayAttendance.workHours ? `${todayAttendance.workHours.toFixed(2)}h` : '0h'}
+                                                    </span>
+                                                </div>
                                             </div>
-                                            <h3 className="text-sm font-semibold text-steel-900 line-clamp-1">{activeTimer.note || 'Working...'}</h3>
-                                            {activeTimer.task && <p className="text-xs text-steel-600 truncate">Task: {activeTimer.task.title}</p>}
-                                            {activeTimer.bug && <p className="text-xs text-steel-600 truncate">Bug: {activeTimer.bug.title}</p>}
-                                            {activeTimer.project && <p className="text-xs text-steel-600 truncate">Project: {activeTimer.project.name}</p>}
                                         </div>
-                                    </div>
+                                    )}
 
-                                    <div className="bg-steel-50 rounded p-2.5 mb-3">
-                                        <p className="text-[9px] text-steel-600 mb-0.5 uppercase font-medium">Elapsed Time</p>
-                                        <p className="text-2xl font-bold text-steel-900 font-mono">
-                                            {formatTime(elapsedTime)}
+                                    <button
+                                        onClick={onClose}
+                                        className="px-6 py-2 bg-burgundy-600 hover:bg-burgundy-700 text-white rounded-lg font-medium shadow-md transition-colors"
+                                    >
+                                        Close
+                                    </button>
+                                </div>
+                            ) : !hasCheckedIn ? (
+                                /* Check-in Required Screen */
+                                <div className="flex flex-col items-center justify-center py-12 px-4">
+                                    <div className="w-20 h-20 bg-gradient-to-br from-burgundy-100 to-burgundy-200 rounded-full flex items-center justify-center mb-6 shadow-lg">
+                                        <LogIn size={40} className="text-burgundy-600" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-steel-900 mb-2">Welcome Back!</h3>
+                                    <p className="text-sm text-steel-600 text-center mb-6 max-w-sm">
+                                        Please check in to mark your attendance before you can start tracking your work time.
+                                    </p>
+
+                                    {todayAttendance && (
+                                        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 w-full max-w-sm">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <CheckCircle size={16} className="text-green-600" />
+                                                <p className="text-sm font-semibold text-green-900">Already Checked In</p>
+                                            </div>
+                                            <p className="text-xs text-green-700">
+                                                Check-in time: {todayAttendance.checkInTime ? new Date(todayAttendance.checkInTime).toLocaleTimeString() : 'N/A'}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    <button
+                                        onClick={handleCheckIn}
+                                        disabled={checkingIn}
+                                        className="px-8 py-3 bg-gradient-to-r from-burgundy-600 to-burgundy-700 hover:from-burgundy-700 hover:to-burgundy-800 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                    >
+                                        {checkingIn ? (
+                                            <>
+                                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                                Checking In...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <LogIn size={20} />
+                                                Check In Now
+                                            </>
+                                        )}
+                                    </button>
+
+                                    <div className="mt-8 bg-steel-50 rounded-lg p-4 w-full max-w-sm">
+                                        <p className="text-xs text-steel-600 text-center">
+                                            <strong>Note:</strong> Checking in records your attendance for today and allows you to track your work hours.
                                         </p>
-                                    </div>
-
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={handleStopTimerClick}
-                                            className="flex-1 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
-                                        >
-                                            <Square size={12} />
-                                            Stop & Save
-                                        </button>
-                                        <button
-                                            onClick={handleSwitchTask}
-                                            className="px-3 py-2 bg-steel-600 hover:bg-steel-700 text-white rounded text-xs font-medium transition-colors"
-                                        >
-                                            Switch
-                                        </button>
                                     </div>
                                 </div>
                             ) : (
-                                <div className="bg-steel-50 border-2 border-dashed border-steel-300 rounded-lg p-6 mb-4 text-center">
-                                    <Clock size={32} className="text-steel-400 mx-auto mb-2" />
-                                    <h3 className="text-sm font-semibold text-steel-900 mb-1">No Active Timer</h3>
-                                    <p className="text-xs text-steel-600 mb-3">Start general timer or select specific work item</p>
-                                    <div className="flex items-center justify-center gap-2">
-                                        <button
-                                            onClick={() => handleStartTimer(null)}
-                                            className="px-4 py-2 bg-burgundy-600 hover:bg-burgundy-700 text-white rounded text-xs font-medium inline-flex items-center gap-1.5 transition-colors"
-                                        >
-                                            <Play size={12} />
-                                            Start General Timer
-                                        </button>
-                                        <button
-                                            onClick={() => setShowWorkItemSelector(true)}
-                                            className="px-4 py-2 bg-steel-600 hover:bg-steel-700 text-white rounded text-xs font-medium inline-flex items-center gap-1.5 transition-colors"
-                                        >
-                                            <Plus size={12} />
-                                            Select Work Item
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Work Item Selector */}
-                            {(showWorkItemSelector || !activeTimer) && (
-                                <div className="space-y-3">
-                                    <div className="flex items-center justify-between">
-                                        <h3 className="text-xs font-bold text-steel-900 uppercase">Select Work Item</h3>
+                                <>
+                                    {/* Compact Summary */}
+                                    <div className="bg-gradient-to-br from-burgundy-50 to-burgundy-100 rounded-lg p-3 mb-4 border border-burgundy-200">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="text-[10px] text-burgundy-700 font-medium uppercase">Today's Total</p>
+                                                <p className="text-xl font-bold text-burgundy-900">{getTotalTimeToday()}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-[10px] text-burgundy-700 font-medium uppercase">Entries</p>
+                                                <p className="text-xl font-bold text-burgundy-900">{todayEntries.length}</p>
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    {/* Filters and Search in one row */}
-                                    <div className="flex items-center gap-2">
-                                        {/* Filter Buttons */}
-                                        <div className="flex items-center gap-1 flex-shrink-0">
-                                            {[
-                                                { value: 'all' as const, label: 'All', icon: Circle },
-                                                { value: 'general' as const, label: 'Gen', icon: Clock },
-                                                { value: 'task' as const, label: 'Task', icon: CheckSquare },
-                                                { value: 'bug' as const, label: 'Bug', icon: BugIcon },
-                                                { value: 'project' as const, label: 'Proj', icon: FolderKanban }
-                                            ].map(({ value, label, icon: Icon }) => (
+                                    {/* Current Timer */}
+                                    {activeTimer ? (
+                                        <div className="bg-white border-2 border-green-500 rounded-lg p-3 mb-4 shadow-md">
+                                            <div className="flex items-start justify-between mb-2">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-1.5 mb-1">
+                                                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                                                        <span className="text-[10px] font-bold text-green-600 uppercase">Active</span>
+                                                    </div>
+                                                    <h3 className="text-sm font-semibold text-steel-900 line-clamp-1">{activeTimer.note || 'Working...'}</h3>
+                                                    {activeTimer.task && <p className="text-xs text-steel-600 truncate">Task: {activeTimer.task.title}</p>}
+                                                    {activeTimer.bug && <p className="text-xs text-steel-600 truncate">Bug: {activeTimer.bug.title}</p>}
+                                                    {activeTimer.project && <p className="text-xs text-steel-600 truncate">Project: {activeTimer.project.name}</p>}
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-steel-50 rounded p-2.5 mb-3">
+                                                <p className="text-[9px] text-steel-600 mb-0.5 uppercase font-medium">Elapsed Time</p>
+                                                <p className="text-2xl font-bold text-steel-900 font-mono">
+                                                    {formatTime(elapsedTime)}
+                                                </p>
+                                            </div>
+
+                                            <div className="flex gap-2">
                                                 <button
-                                                    key={value}
-                                                    onClick={() => setFilterType(value)}
-                                                    className={cn(
-                                                        'px-2 py-1 rounded text-[10px] font-bold transition-all border flex items-center gap-0.5',
-                                                        filterType === value
-                                                            ? 'bg-burgundy-100 text-burgundy-700 border-burgundy-300'
-                                                            : 'bg-steel-50 text-steel-600 border-steel-200 hover:bg-steel-100'
-                                                    )}
+                                                    onClick={handleStopTimerClick}
+                                                    className="flex-1 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
                                                 >
-                                                    <Icon size={10} />
-                                                    {label}
+                                                    <Square size={12} />
+                                                    Stop & Save
                                                 </button>
-                                            ))}
-                                        </div>
-
-                                        {/* Search */}
-                                        <div className="relative flex-1">
-                                            <Search size={12} className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-steel-400" />
-                                            <input
-                                                type="text"
-                                                value={searchQuery}
-                                                onChange={(e) => setSearchQuery(e.target.value)}
-                                                placeholder="Search..."
-                                                className="w-full pl-8 pr-3 py-1.5 text-xs border border-steel-200 rounded focus:outline-none focus:border-burgundy-400"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Work Item List */}
-                                    <div className="space-y-1.5 max-h-56 overflow-y-auto">
-                                        {loading ? (
-                                            <div className="text-center py-6">
-                                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-burgundy-600 mx-auto"></div>
+                                                <button
+                                                    onClick={handleSwitchTask}
+                                                    className="px-3 py-2 bg-steel-600 hover:bg-steel-700 text-white rounded text-xs font-medium transition-colors"
+                                                >
+                                                    Switch
+                                                </button>
                                             </div>
-                                        ) : filteredItems.length === 0 ? (
-                                            <div className="text-center py-6">
-                                                <p className="text-xs text-steel-600">No items found</p>
+                                        </div>
+                                    ) : (
+                                        <div className="bg-steel-50 border-2 border-dashed border-steel-300 rounded-lg p-6 mb-4 text-center">
+                                            <Clock size={32} className="text-steel-400 mx-auto mb-2" />
+                                            <h3 className="text-sm font-semibold text-steel-900 mb-1">No Active Timer</h3>
+                                            <p className="text-xs text-steel-600 mb-3">Start general timer or select specific work item</p>
+                                            <div className="flex items-center justify-center gap-2">
+                                                <button
+                                                    onClick={() => handleStartTimer(null)}
+                                                    className="px-4 py-2 bg-burgundy-600 hover:bg-burgundy-700 text-white rounded text-xs font-medium inline-flex items-center gap-1.5 transition-colors"
+                                                >
+                                                    <Play size={12} />
+                                                    Start General Timer
+                                                </button>
+                                                <button
+                                                    onClick={() => setShowWorkItemSelector(true)}
+                                                    className="px-4 py-2 bg-steel-600 hover:bg-steel-700 text-white rounded text-xs font-medium inline-flex items-center gap-1.5 transition-colors"
+                                                >
+                                                    <Plus size={12} />
+                                                    Select Work Item
+                                                </button>
                                             </div>
-                                        ) : (
-                                            filteredItems.map((item) => {
-                                                const Icon = getItemIcon(item.type);
-                                                return (
-                                                    <button
-                                                        key={`${item.type}-${item.id}`}
-                                                        onClick={() => item.type === 'general' ? handleStartTimer(null) : handleStartTimer(item)}
-                                                        className="w-full flex items-center gap-2 p-2 bg-white border border-steel-200 rounded hover:border-burgundy-300 hover:bg-burgundy-50 transition-all text-left group"
-                                                    >
-                                                        <div className="w-6 h-6 bg-steel-100 group-hover:bg-burgundy-100 rounded flex items-center justify-center flex-shrink-0 transition-colors">
-                                                            <Icon size={12} className="text-steel-400 group-hover:text-burgundy-600" />
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <h4 className="text-xs font-medium text-steel-900 truncate">{item.title}</h4>
-                                                            <div className="flex items-center gap-1.5 mt-0.5">
-                                                                <span className="text-[10px] text-steel-600 capitalize">{item.type}</span>
-                                                                {item.projectName && (
-                                                                    <>
-                                                                        <span className="text-[10px] text-steel-400">•</span>
-                                                                        <span className="text-[10px] text-steel-600 truncate">{item.projectName}</span>
-                                                                    </>
+                                        </div>
+                                    )}
+
+                                    {/* Work Item Selector */}
+                                    {(showWorkItemSelector || !activeTimer) && (
+                                        <div className="space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <h3 className="text-xs font-bold text-steel-900 uppercase">Select Work Item</h3>
+                                            </div>
+
+                                            {/* Filters and Search in one row */}
+                                            <div className="flex items-center gap-2">
+                                                {/* Filter Buttons */}
+                                                <div className="flex items-center gap-1 flex-shrink-0">
+                                                    {[
+                                                        { value: 'all' as const, label: 'All', icon: Circle },
+                                                        { value: 'general' as const, label: 'Gen', icon: Clock },
+                                                        { value: 'task' as const, label: 'Task', icon: CheckSquare },
+                                                        { value: 'bug' as const, label: 'Bug', icon: BugIcon },
+                                                        { value: 'project' as const, label: 'Proj', icon: FolderKanban }
+                                                    ].map(({ value, label, icon: Icon }) => (
+                                                        <button
+                                                            key={value}
+                                                            onClick={() => setFilterType(value)}
+                                                            className={cn(
+                                                                'px-2 py-1 rounded text-[10px] font-bold transition-all border flex items-center gap-0.5',
+                                                                filterType === value
+                                                                    ? 'bg-burgundy-100 text-burgundy-700 border-burgundy-300'
+                                                                    : 'bg-steel-50 text-steel-600 border-steel-200 hover:bg-steel-100'
+                                                            )}
+                                                        >
+                                                            <Icon size={10} />
+                                                            {label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+
+                                                {/* Search */}
+                                                <div className="relative flex-1">
+                                                    <Search size={12} className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-steel-400" />
+                                                    <input
+                                                        type="text"
+                                                        value={searchQuery}
+                                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                                        placeholder="Search..."
+                                                        className="w-full pl-8 pr-3 py-1.5 text-xs border border-steel-200 rounded focus:outline-none focus:border-burgundy-400"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Work Item List */}
+                                            <div className="space-y-1.5 max-h-56 overflow-y-auto">
+                                                {loading ? (
+                                                    <div className="text-center py-6">
+                                                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-burgundy-600 mx-auto"></div>
+                                                    </div>
+                                                ) : filteredItems.length === 0 ? (
+                                                    <div className="text-center py-6">
+                                                        <p className="text-xs text-steel-600">No items found</p>
+                                                    </div>
+                                                ) : (
+                                                    filteredItems.map((item) => {
+                                                        const Icon = getItemIcon(item.type);
+                                                        return (
+                                                            <button
+                                                                key={`${item.type}-${item.id}`}
+                                                                onClick={() => item.type === 'general' ? handleStartTimer(null) : handleStartTimer(item)}
+                                                                className="w-full flex items-center gap-2 p-2 bg-white border border-steel-200 rounded hover:border-burgundy-300 hover:bg-burgundy-50 transition-all text-left group"
+                                                            >
+                                                                <div className="w-6 h-6 bg-steel-100 group-hover:bg-burgundy-100 rounded flex items-center justify-center flex-shrink-0 transition-colors">
+                                                                    <Icon size={12} className="text-steel-400 group-hover:text-burgundy-600" />
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <h4 className="text-xs font-medium text-steel-900 truncate">{item.title}</h4>
+                                                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                                                        <span className="text-[10px] text-steel-600 capitalize">{item.type}</span>
+                                                                        {item.projectName && (
+                                                                            <>
+                                                                                <span className="text-[10px] text-steel-400">•</span>
+                                                                                <span className="text-[10px] text-steel-600 truncate">{item.projectName}</span>
+                                                                            </>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                                {(item.priority || item.severity) && (
+                                                                    <span className={cn('px-1.5 py-0.5 rounded text-[9px] font-bold border', getItemColor(item))}>
+                                                                        {item.priority || item.severity}
+                                                                    </span>
                                                                 )}
-                                                            </div>
-                                                        </div>
-                                                        {(item.priority || item.severity) && (
-                                                            <span className={cn('px-1.5 py-0.5 rounded text-[9px] font-bold border', getItemColor(item))}>
-                                                                {item.priority || item.severity}
-                                                            </span>
-                                                        )}
-                                                    </button>
-                                                );
-                                            })
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Today's Completed Entries */}
-                            {todayEntries.length > 0 && (
-                                <div className="mt-4">
-                                    <h3 className="text-xs font-bold text-steel-900 mb-2 uppercase">Completed Today</h3>
-                                    <div className="space-y-1.5">
-                                        {todayEntries.slice(0, 5).map((entry) => (
-                                            <div
-                                                key={entry.id}
-                                                className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded"
-                                            >
-                                                <CheckCircle size={12} className="text-green-600 flex-shrink-0" />
-                                                <div className="flex-1 min-w-0">
-                                                    <h4 className="text-xs font-medium text-steel-900 truncate">{entry.note || 'Work logged'}</h4>
-                                                    {(entry.task || entry.bug || entry.project) && (
-                                                        <p className="text-[10px] text-steel-600 truncate">
-                                                            {entry.task && `Task: ${entry.task.title}`}
-                                                            {entry.bug && `Bug: ${entry.bug.title}`}
-                                                            {entry.project && !entry.task && !entry.bug && `Project: ${entry.project.name}`}
-                                                        </p>
-                                                    )}
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="text-xs font-bold text-green-700">{formatDuration(entry.durationMinutes || 0)}</p>
-                                                </div>
+                                                            </button>
+                                                        );
+                                                    })
+                                                )}
                                             </div>
-                                        ))}
-                                    </div>
-                                </div>
+                                        </div>
+                                    )}
+
+                                    {/* Today's Completed Entries */}
+                                    {todayEntries.length > 0 && (
+                                        <div className="mt-4">
+                                            <h3 className="text-xs font-bold text-steel-900 mb-2 uppercase">Completed Today</h3>
+                                            <div className="space-y-1.5">
+                                                {todayEntries.slice(0, 5).map((entry) => (
+                                                    <div
+                                                        key={entry.id}
+                                                        className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded"
+                                                    >
+                                                        <CheckCircle size={12} className="text-green-600 flex-shrink-0" />
+                                                        <div className="flex-1 min-w-0">
+                                                            <h4 className="text-xs font-medium text-steel-900 truncate">{entry.note || 'Work logged'}</h4>
+                                                            {(entry.task || entry.bug || entry.project) && (
+                                                                <p className="text-[10px] text-steel-600 truncate">
+                                                                    {entry.task && `Task: ${entry.task.title}`}
+                                                                    {entry.bug && `Bug: ${entry.bug.title}`}
+                                                                    {entry.project && !entry.task && !entry.bug && `Project: ${entry.project.name}`}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-xs font-bold text-green-700">{formatDuration(entry.durationMinutes || 0)}</p>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
 
@@ -594,6 +788,9 @@ const ClockInModal = ({ isOpen, onClose }: ClockInModalProps) => {
                     </div>
                 </div>
             )}
+
+            {/* Confirm Dialog */}
+            <ConfirmDialog />
         </>
     );
 };

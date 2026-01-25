@@ -191,4 +191,19 @@ public interface TimeLogRepository extends JpaRepository<TimeLog, Long>, JpaSpec
         ORDER BY t.workDate DESC, t.startTime DESC
     """)
     List<TimeLog> findByOrganizationIdAndDateRange(Long orgId, LocalDate from, LocalDate to);
+    
+    /**
+     * Find time logs for multiple users (for manager viewing subordinates)
+     */
+    List<TimeLog> findByUserIdIn(List<Long> userIds);
+    
+    /**
+     * Find time logs for multiple users within a date range
+     */
+    List<TimeLog> findByUserIdInAndWorkDateBetween(List<Long> userIds, LocalDate fromDate, LocalDate toDate);
+    
+    /**
+     * Find time logs for multiple users on a specific date
+     */
+    List<TimeLog> findByUserIdInAndWorkDate(List<Long> userIds, LocalDate workDate);
 }
