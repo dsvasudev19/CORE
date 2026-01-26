@@ -177,27 +177,29 @@ const AIAgent = ({ isOpen, onClose }: AIAgentProps) => {
         words[words.length - 1] = suggestion + ' ';
         setInput(words.join(' '));
         setShowSuggestions(false);
-        // Removed getAIResponse function - now using real AI backend via neonService
+    };
 
-        const handleReset = () => {
-            setMessages([
-                {
-                    id: '1',
-                    content: "Hi! I'm your CORE AI Assistant. I can understand commands like:\n\n• Ask @username about #123\n• Create task \"Task name\" in ^ProjectName\n• Schedule meeting with @user1 @user2\n• Show my tasks for today\n• What's the status of #456?\n\nHow can I help you?",
-                    isUser: false,
-                    timestamp: new Date(),
-                    type: 'info'
-                }
-            ]);
-        };
+    // Removed getAIResponse function - now using real AI backend via neonService
 
-        const formatTime = (date: Date) => {
-            return date.toLocaleTimeString('en-US', {
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: true
-            });
-        };
+    const handleReset = () => {
+        setMessages([
+            {
+                id: '1',
+                content: "Hi! I'm your CORE AI Assistant. I can understand commands like:\n\n• Ask @username about #123\n• Create task \"Task name\" in ^ProjectName\n• Schedule meeting with @user1 @user2\n• Show my tasks for today\n• What's the status of #456?\n\nHow can I help you?",
+                isUser: false,
+                timestamp: new Date(),
+                type: 'info'
+            }
+        ]);
+    };
+
+    const formatTime = (date: Date) => {
+        return date.toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        });
+    };
 
         const getMessageIcon = (type?: string) => {
             switch (type) {
